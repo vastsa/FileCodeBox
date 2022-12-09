@@ -12,6 +12,10 @@
 - [x] Sqlite3数据库：无需安装数据库
 
 ## 系统截图
+![取件](https://raw.githubusercontent.com/vastsa/FileCodeBox/master/images/%E5%8F%96%E4%BB%B6.png)
+![取件箱](https://raw.githubusercontent.com/vastsa/FileCodeBox/master/images/%E5%8F%96%E4%BB%B6%E7%AE%B1.png)
+![寄件](https://raw.githubusercontent.com/vastsa/FileCodeBox/master/images/%E5%AF%84%E4%BB%B6.png)
+![寄件箱](https://raw.githubusercontent.com/vastsa/FileCodeBox/master/images/%E5%AF%84%E4%BB%B6%E7%AE%B1.png)
 
 ## 部署方式
 
