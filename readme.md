@@ -16,21 +16,36 @@
 - [x] 无需注册：无需注册，无需登录
 - [x] Sqlite3数据库：无需安装数据库
 - [x] 可以加get参数code，这样打开就会读取取件码如：http://xxx.com?code=12345
-- [ ] 管理面板：简单列表页删除违规文件
+- [x] 管理面板：简单列表页删除违规文件
 - [ ] 口令使用次数，口令有效期，二维码分享
 
+## 更新记录
+
+### 2022年12月10日 01:56:43
+
+1. 管理面板已新增，一如既往的极简，只有删除
+2. 二维码图片（调用的网络接口，如果离线环境将无法使用，一切为了极简）
+
 ## 系统截图
+
 ### 取件
+
 ![取件](https://raw.githubusercontent.com/vastsa/FileCodeBox/master/images/img.png)
 ![取件](https://raw.githubusercontent.com/vastsa/FileCodeBox/master/images/img_1.png)
+
 ### 寄件
+
 ![取件](https://raw.githubusercontent.com/vastsa/FileCodeBox/master/images/img_2.png)
 ![取件](https://raw.githubusercontent.com/vastsa/FileCodeBox/master/images/img_3.png)
+
 ### 管理面板
+
 ![取件](https://raw.githubusercontent.com/vastsa/FileCodeBox/master/images/img_4.png)
 ![取件](https://raw.githubusercontent.com/vastsa/FileCodeBox/master/images/img_5.png)
 
 ## 部署方式
+
+先拉取代码，然后修改main.py文件，将里面写了注释的可以根据需求改一下
 
 ### 服务端部署
 

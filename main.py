@@ -19,13 +19,17 @@ if not os.path.exists('./static'):
     os.makedirs('./static')
 app.mount("/static", StaticFiles(directory="static"), name="static")
 index_html = open('templates/index.html', 'r').read()
+admin_html = open('templates/admin.html', 'r').read()
 # 过期时间
 exp_hour = 24
 # 允许错误次数
 error_count = 5
 # 禁止分钟数
 error_minute = 60
-
+# 后台地址
+admin_address = 'admin'
+# 管理密码
+admin_password = 'admin'
 error_ip_count = {}
 
 
@@ -54,6 +58,33 @@ def get_file_name(key, ext, file):
     with open(f'{os.path.join(path, name)}', 'wb') as f:
         f.write(file)
     return key, len(file), path[1:] + name
+
+
+@app.get(f'/{admin_address}')
+async def admin(request: Request):
+    return HTMLResponse(admin_html)
+
+
+@app.post(f'/{admin_address}')
+async def admin_post(request: Request, db: Session = Depends(get_db)):
+    if request.headers.get('pwd') == admin_password:
+        codes = db.query(database.Codes).all()
+        return {'code': 200, 'msg': '查询成功', 'data': codes}
+    else:
+        return {'code': 400, 'msg': '密码错误'}
+
+
+@app.delete(f'/{admin_address}')
+async def admin_delete(request: Request, code: str, db: Session = Depends(get_db)):
+    if request.headers.get('pwd') == admin_password:
+        file = db.query(database.Codes).filter(database.Codes.code == code)
+        if file.first().type != 'text/plain':
+            os.remove('.' + file.first().text)
+        file.delete()
+        db.commit()
+        return {'code': 200, 'msg': '删除成功'}
+    else:
+        return {'code': 400, 'msg': '密码错误'}
 
 
 @app.get('/')
