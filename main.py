@@ -61,7 +61,7 @@ def get_file_name(key, ext, file):
 
 
 @app.get(f'/{admin_address}')
-async def admin(request: Request):
+async def admin():
     return HTMLResponse(admin_html)
 
 
