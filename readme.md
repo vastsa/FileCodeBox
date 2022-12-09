@@ -12,6 +12,7 @@
 - [x] Sqlite3数据库：无需安装数据库
 
 ## 系统截图
+
 ![取件](https://raw.githubusercontent.com/vastsa/FileCodeBox/master/images/%E5%8F%96%E4%BB%B6.png)
 ![取件箱](https://raw.githubusercontent.com/vastsa/FileCodeBox/master/images/%E5%8F%96%E4%BB%B6%E7%AE%B1.png)
 ![寄件](https://raw.githubusercontent.com/vastsa/FileCodeBox/master/images/%E5%AF%84%E4%BB%B6.png)
@@ -38,3 +39,8 @@
 docker build --file Dockerfile --tag filecodebox .
 docker run -d -p 12345:12345 --name filecodebox filecodebox
 ```
+
+## 免责声明
+
+本项目开源仅供学习使用，不得用于商业用途以及任何违法用途，否则后果自负，与本人无关。
+

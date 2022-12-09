@@ -58,8 +58,7 @@ def get_file_name(key, ext, file):
 
 @app.get('/')
 async def index():
-    with open('templates/index.html', 'r') as f:
-        return HTMLResponse(index_html)
+    return HTMLResponse(index_html)
 
 
 @app.post('/')
