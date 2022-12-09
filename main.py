@@ -79,12 +79,6 @@ async def index(request: Request, code: str, db: Session = Depends(get_db)):
             return {'code': 200, 'msg': '取件成功，请点击库查看', 'data': info}
 
 
-@app.get('/share')
-async def share():
-    with open('templates/upload.html', 'r') as f:
-        return HTMLResponse(f.read())
-
-
 @app.post('/share')
 async def share(text: str = Form(default=None), file: UploadFile = File(default=None), db: Session = Depends(get_db)):
     cutoff_time = datetime.datetime.now() - datetime.timedelta(hours=exp_hour)
