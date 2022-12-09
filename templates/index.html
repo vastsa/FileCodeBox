@@ -1,0 +1,257 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+          content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <link rel="stylesheet" href="https://unpkg.com/element-ui/lib/theme-chalk/index.css">
+    <!-- 引入组件库 -->
+    <script src="https://unpkg.com/element-ui/lib/index.js"></script>
+    <title>取件箱-口令传送箱</title>
+    <style>
+        .qu .el-button {
+            width: 100px;
+            height: 100px;
+            margin: 0.2rem;
+            font-size: 30px;
+            font-weight: bold;
+        }
+
+        .qu .el-input__inner {
+            height: 100px;
+            margin: 1rem 0;
+            font-size: 30px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+<div id="app" style="text-align: center;">
+    <el-row v-if="tool==0" class="qu" style="width:400px;margin: auto">
+        <el-card style="padding-bottom: 1rem">
+            <el-col :span="24">
+                <el-input autofocus @input="inputing" clearable v-model:value="code" maxlength="5"
+                          :disabled="inout_disable"
+                          placeholder="请输入取件码"></el-input>
+            </el-col>
+            <el-col :span=8>
+                <el-button @click="inputNumber('1')">1</el-button>
+            </el-col>
+            <el-col :span=8>
+                <el-button @click="inputNumber('2')">2</el-button>
+            </el-col>
+            <el-col :span=8>
+                <el-button @click="inputNumber('3')">3</el-button>
+            </el-col>
+            <el-col :span=8>
+                <el-button @click="inputNumber('4')">4</el-button>
+            </el-col>
+            <el-col :span=8>
+                <el-button @click="inputNumber('5')">5</el-button>
+            </el-col>
+            <el-col :span=8>
+                <el-button @click="inputNumber('6')">6</el-button>
+            </el-col>
+            <el-col :span=8>
+                <el-button @click="inputNumber('7')">7</el-button>
+            </el-col>
+            <el-col :span=8>
+                <el-button @click="inputNumber('8')">8</el-button>
+            </el-col>
+            <el-col :span=8>
+                <el-button @click="inputNumber('9')">9</el-button>
+            </el-col>
+            <el-col :span=8>
+                <el-button @click="tool=1">寄</el-button>
+            </el-col>
+            <el-col :span=8>
+                <el-button @click="inputNumber('0')">0</el-button>
+            </el-col>
+            <el-col :span=8>
+                <el-button @click="quDrawer=true">取</el-button>
+            </el-col>
+        </el-card>
+    </el-row>
+    <el-row v-else style="width:400px;margin: auto">
+        <el-col :span="24" style="margin: 1rem 0">
+            <el-card>
+                <el-upload
+                        drag
+                        action="/share"
+                        multiple
+                        :on-success="successUpload"
+                >
+                    <i class="el-icon-upload"></i>
+                    <div class="el-upload__text">将文件拖、粘贴到此处，或<em>点击上传</em>，24h后删除</div>
+                    <div class="el-upload__tip" slot="tip">
+                        <el-button @click="tool=0">去取件</el-button>
+                        <el-button @click="cunDrawer=true">文件箱</el-button>
+                    </div>
+                </el-upload>
+            </el-card>
+        </el-col>
+    </el-row>
+    <div style="text-align: center; margin-top: 1rem;color: #606266">
+        <span> By: <a style="text-decoration: none;color: #606266" target="_blank"
+                      href="https://github.com/vastsa/FileShare">Lan</a></span>
+    </div>
+    <el-drawer
+            title="文件库"
+            :visible.sync="quDrawer"
+            :direction="direction"
+            size="50%"
+    >
+        <el-card v-for="(file,index) in files" :key="index" class="box-card">
+            <div style="cursor: pointer;text-align: left">
+                <div>取件码：${ file.code }</div>
+                <div>文件名：${ file.name }</div>
+                <div v-if="file.name==='分享文本'">
+                    <span>内&nbsp;&nbsp; 容：${ file.text }</span>
+                </div>
+                <div v-else>
+                    <span>链&nbsp;&nbsp; 接：</span>
+                    <a :href="file.text" target="_blank"
+                       style="color: #1E9FFF;text-underline: none"
+                       type="primary">点击下载</a>
+                </div>
+            </div>
+        </el-card>
+        <el-empty v-if="files.length===0" description="请输入取件码，收取文件"></el-empty>
+    </el-drawer>
+    <el-drawer
+            title="文件库"
+            :visible.sync="cunDrawer"
+            direction="btt"
+            size="50%">
+        <el-card>
+            <el-empty v-if="files.length===0" description="请上传文件"></el-empty>
+            <el-card style="margin-top: 0.2rem" v-for="file in files" :key="file.code">
+                <el-row>
+                    <el-col :span="24" style="line-height: 45px">
+                        ${ file.name }
+                    </el-col>
+                    <el-col :span="24">
+                        取件码：<h1 style="margin: 0;display: inline">${ file.code }</h1>
+                    </el-col>
+                </el-row>
+            </el-card>
+        </el-card>
+    </el-drawer>
+</div>
+
+</body>
+<!-- import Vue before Element -->
+<script src="https://unpkg.com/vue@2/dist/vue.js"></script>
+<!-- import JavaScript -->
+<script src="https://unpkg.com/element-ui/lib/index.js"></script>
+<script src="//unpkg.com/axios/dist/axios.min.js"></script>
+<script>
+    new Vue({
+        el: '#app',
+        delimiters: ['${', '}'],
+        data: function () {
+            return {
+                code: '',
+                inout_disable: false,
+                files: [],
+                quDrawer: false,
+                cunDrawer: false,
+                direction: 'btt',
+                tool: 0
+            };
+        },
+        mounted: function () {
+            this.code = window.location.search.substring('code=='.length)
+            if (this.code) {
+                this.get_file();
+            }
+
+            const that = this
+            document.addEventListener('paste', function (event) {
+                if (that.tool === 1) {
+                    const items = event.clipboardData && event.clipboardData.items;
+                    if (items && items.length) {
+                        for (let i = 0; i < items.length; i++) {
+                            if (items[i].kind === 'string') {
+                                if (items[i].type.match(/^text\/plain/)) {
+                                    const FileData = new FormData();
+                                    that.$message('剪切板文字正在上传，请稍等');
+                                    items[i].getAsString(function (str) {
+                                        FileData.append('text', str);
+                                        axios.post('/share', FileData)
+                                            .then(function (response) {
+                                                that.$message({'message': response.data.msg, 'type': 'success'});
+                                                that.files.push(response.data.data)
+                                            })
+                                            .catch(function (error) {
+                                                that.$message({'message': error.data.msg, 'type': 'error'});
+                                            });
+                                    });
+                                }
+                            } else {
+                                const file = items[i].getAsFile();
+                                that.$message('剪切板文件正在上传，请稍等');
+                                const FileData = new FormData();
+                                FileData.append('file', file || '');
+                                axios.post('/share', FileData).then(async res => {
+                                    that.files.push(res.data.data);
+                                    that.$message({'message': res.data.msg, 'type': 'success'});
+                                })
+                            }
+
+                        }
+                    }
+                }
+            });
+        },
+        methods: {
+            inputing: function (value) {
+                if (value.length === 5) {
+                    this.inout_disable = true;
+                    this.get_file();
+                }
+            },
+            get_file: function () {
+                const that = this;
+                axios.post('?code=' + this.code).then(function (response) {
+                    if (response.data.code === 404) {
+                        that.$message({
+                            message: response.data.msg,
+                            type: 'error'
+                        });
+                    } else {
+                        that.files.push(response.data.data);
+                        that.$message({
+                            message: response.data.msg,
+                            type: 'success'
+                        });
+                    }
+                    that.code = '';
+                    that.inout_disable = false
+                }).catch(function (error) {
+                    console.log(error);
+                });
+            },
+            inputNumber: function (number) {
+                if (number === 'C') {
+                    this.code = '';
+                } else if (number === 'X') {
+                    this.code = this.code.substring(0, this.code.length - 1);
+                } else {
+                    if (this.code.length < 5) {
+                        this.code += number;
+                    }
+                }
+                if (this.code.length === 5) {
+                    this.inout_disable = true
+                    this.get_file()
+                }
+            },
+            successUpload(response, file, fileList) {
+                this.files.push(response.data[0])
+            },
+        }
+    })
+</script>
+</html>
