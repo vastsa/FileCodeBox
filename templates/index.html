@@ -5,9 +5,8 @@
     <meta name="viewport"
           content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
-    <link rel="stylesheet" href="https://unpkg.com/element-ui/lib/theme-chalk/index.css">
+    <link rel="stylesheet" href="/static/assert/index.css">
     <!-- 引入组件库 -->
-    <script src="https://unpkg.com/element-ui/lib/index.js"></script>
     <title>取件箱-口令传送箱</title>
     <style>
         .qu .el-button {
@@ -128,11 +127,19 @@
             <el-empty v-if="files.length===0" description="请上传文件"></el-empty>
             <el-card style="margin-top: 0.2rem" v-for="file in files" :key="file.code">
                 <el-row>
-                    <el-col :span="24" style="line-height: 45px">
-                        ${ file.name }
+                    <el-col :span="20">
+                        <el-row>
+                            <el-col :span="24" style="line-height: 45px">
+                                    ${ file.name }
+                            </el-col>
+                            <el-col :span="24">
+                                取件码：<h1 style="margin: 0;display: inline">${ file.code }</h1>
+                            </el-col>
+                        </el-row>
                     </el-col>
-                    <el-col :span="24">
-                        取件码：<h1 style="margin: 0;display: inline">${ file.code }</h1>
+                    <el-col :span="4">
+                        <img style="width: 80px;height: 80px;"
+                             :src="qrcodeUrl(file)">
                     </el-col>
                 </el-row>
             </el-card>
@@ -141,11 +148,10 @@
 </div>
 
 </body>
-<!-- import Vue before Element -->
-<script src="https://unpkg.com/vue@2/dist/vue.js"></script>
-<!-- import JavaScript -->
-<script src="https://unpkg.com/element-ui/lib/index.js"></script>
-<script src="//unpkg.com/axios/dist/axios.min.js"></script>
+<script src="/static/assert/qrcode.min.js"></script>
+<script src="/static/assert/vue.min.js"></script>
+<script src="/static/assert/index.js"></script>
+<script src="/static/assert/axios.min.js"></script>
 <script>
     new Vue({
         el: '#app',
@@ -166,7 +172,6 @@
             if (this.code) {
                 this.get_file();
             }
-
             const that = this
             document.addEventListener('paste', function (event) {
                 if (that.tool === 1) {
@@ -180,13 +185,13 @@
                                     items[i].getAsString(function (str) {
                                         FileData.append('text', str);
                                         axios.post('/share', FileData)
-                                            .then(function (response) {
-                                                that.$message({'message': response.data.msg, 'type': 'success'});
-                                                that.files.push(response.data.data)
-                                            })
-                                            .catch(function (error) {
-                                                that.$message({'message': error.data.msg, 'type': 'error'});
-                                            });
+                                                .then(function (response) {
+                                                    that.$message({'message': response.data.msg, 'type': 'success'});
+                                                    that.files.push(response.data.data)
+                                                })
+                                                .catch(function (error) {
+                                                    that.$message({'message': error.data.msg, 'type': 'error'});
+                                                });
                                     });
                                 }
                             } else {
@@ -250,6 +255,9 @@
             },
             successUpload(response, file, fileList) {
                 this.files.push(response.data[0])
+            },
+            qrcodeUrl(file) {
+                return 'https://api.qrserver.com/v1/create-qr-code?data=' + window.location.origin + '/?code=' + file.code
             },
         }
     })

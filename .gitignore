@@ -1,7 +1,7 @@
 media/
 logs/
 .idea
-static/
+/static/upload
 __pycache__/
 *.py[cod]
 *$py.class

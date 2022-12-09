@@ -8,7 +8,7 @@
 
 - [x] 轻量简洁，Fastapi+sqlite3
 - [x] 拖拽，复制粘贴上传
-- [x] 文件口令传输
+- [x] 文件口令传输，生成二维码
 - [x] 分享文件：多种上传方式供你选择
 - [x] 分享文本：直接复制粘贴直接上传
 - [x] 防爆破：错误五次拉黑十分钟
@@ -16,14 +16,18 @@
 - [x] 无需注册：无需注册，无需登录
 - [x] Sqlite3数据库：无需安装数据库
 - [ ] 管理面板：简单列表页删除违规文件
-- [ ] 口令使用次数，口令有效期
+- [ ] 口令使用次数，口令有效期，二维码分享
 
 ## 系统截图
-
-![取件](https://raw.githubusercontent.com/vastsa/FileCodeBox/master/images/%E5%8F%96%E4%BB%B6.png)
-![取件箱](https://raw.githubusercontent.com/vastsa/FileCodeBox/master/images/%E5%8F%96%E4%BB%B6%E7%AE%B1.png)
-![寄件](https://raw.githubusercontent.com/vastsa/FileCodeBox/master/images/%E5%AF%84%E4%BB%B6.png)
-![寄件箱](https://raw.githubusercontent.com/vastsa/FileCodeBox/master/images/%E5%AF%84%E4%BB%B6%E7%AE%B1.png)
+### 取件
+![取件](https://raw.githubusercontent.com/vastsa/FileCodeBox/master/images/img.png)
+![取件](https://raw.githubusercontent.com/vastsa/FileCodeBox/master/images/img_1.png)
+### 寄件
+![取件](https://raw.githubusercontent.com/vastsa/FileCodeBox/master/images/img_2.png)
+![取件](https://raw.githubusercontent.com/vastsa/FileCodeBox/master/images/img_3.png)
+### 管理面板
+![取件](https://raw.githubusercontent.com/vastsa/FileCodeBox/master/images/img_4.png)
+![取件](https://raw.githubusercontent.com/vastsa/FileCodeBox/master/images/img_5.png)
 
 ## 部署方式
 

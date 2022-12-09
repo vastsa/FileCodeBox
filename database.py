@@ -20,4 +20,6 @@ class Codes(Base):
     type = Column(String(20))
     text = Column(String(500))
     used = Column(Boolean, default=False)
+    count = Column(Integer, default=-1)
     use_time = Column(DateTime, default=datetime.datetime.now, onupdate=datetime.datetime.now)
+    exp_time = Column(DateTime, nullable=True)
