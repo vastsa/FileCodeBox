@@ -8,7 +8,7 @@ __pycache__/
 # Created by .ignore support plugin (hsz.mobi)
 ### Python template
 # Byte-compiled / optimized / DLL files
-
+database.db
 # C extensions
 *.so
 *.env
@@ -153,4 +153,3 @@ for_test.py
 .env*
 .backup/
 /cloc-1.64.exe
-*.db
