@@ -18,6 +18,7 @@ app = FastAPI()
 if not os.path.exists('./static'):
     os.makedirs('./static')
 app.mount("/static", StaticFiles(directory="static"), name="static")
+index_html = open('templates/index.html', 'r').read()
 # 过期时间
 exp_hour = 24
 # 允许错误次数
@@ -58,7 +59,7 @@ def get_file_name(key, ext, file):
 @app.get('/')
 async def index():
     with open('templates/index.html', 'r') as f:
-        return HTMLResponse(f.read())
+        return HTMLResponse(index_html)
 
 
 @app.post('/')
