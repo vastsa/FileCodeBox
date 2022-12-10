@@ -6,8 +6,11 @@
           content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
     <link rel="stylesheet" href="/static/assert/index.css">
-    <!-- 引入组件库 -->
-    <title>口令传送箱</title>
+    <title>{{title}}</title>
+    <meta name="description" content="{{description}}"/>
+    <meta name="keywords" content="{{keywords}}"/>
+    <meta name="generator" content="FileCodeBox"/>
+    <meta name="template" content="Lan"/>
     <style>
         .qu .el-button {
             width: 100px;
@@ -27,7 +30,7 @@
 </head>
 <body>
 <div id="app" style="text-align: center;">
-    <el-row v-if="tool==0" class="qu" style="width:400px;margin: auto">
+    <el-row v-if="tool === 0" class="qu" style="width:400px;margin: auto">
         <el-card style="padding-bottom: 1rem">
             <el-col :span="24">
                 <el-input autofocus @input="inputing" clearable v-model:value="code" maxlength="5"
@@ -72,17 +75,29 @@
             </el-col>
         </el-card>
     </el-row>
-    <el-row v-else style="width:400px;margin: auto">
+    <el-row v-else style="width:400px;margin: 20vh auto 0 auto">
         <el-col :span="24" style="margin: 1rem 0">
             <el-card>
+                <div style="margin-bottom: 1rem">
+                    <el-radio-group v-model="destoryData.style">
+                        <el-radio label="1">次数</el-radio>
+                        <el-radio label="2">天数</el-radio>
+                    </el-radio-group>
+                    <el-input-number
+                            placeholder="输入数量，默认1"
+                            style="margin-left: 1rem" v-model="destoryData.value" controls-position="right" :min="1">
+                    </el-input-number>
+                </div>
                 <el-upload
                         drag
                         action="/share"
                         multiple
+                        :data="destoryData"
                         :on-success="successUpload"
                 >
                     <i class="el-icon-upload"></i>
-                    <div class="el-upload__text">将文件拖、粘贴到此处，或<em>点击上传</em>，24h后删除</div>
+                    <div class="el-upload__text">将文字、文件拖、粘贴到此处，或<em>点击上传</em></div>
+                    <div class="el-upload__text" style="font-size: 10px">天数<7或限制次数（24h后删除）</div>
                     <div class="el-upload__tip" slot="tip">
                         <el-button @click="tool=0">去取件</el-button>
                         <el-button @click="cunDrawer=true">文件箱</el-button>
@@ -96,7 +111,7 @@
                   href="https://github.com/vastsa/FileCodeBox">FileCodeBox</a></span>
     </div>
     <el-drawer
-            title="文件库"
+            title="文件箱"
             :visible.sync="quDrawer"
             :direction="direction"
             size="50%"
@@ -105,7 +120,7 @@
             <div style="cursor: pointer;text-align: left">
                 <div>取件码：${ file.code }</div>
                 <div>文件名：${ file.name }</div>
-                <div v-if="file.name==='分享文本'">
+                <div v-if="file.name==='文本分享'">
                     <span>内&nbsp;&nbsp; 容：${ file.text }</span>
                 </div>
                 <div v-else>
@@ -119,13 +134,13 @@
         <el-empty v-if="files.length===0" description="请输入取件码，收取文件"></el-empty>
     </el-drawer>
     <el-drawer
-            title="文件库"
+            title="文件箱"
             :visible.sync="cunDrawer"
             direction="btt"
             size="50%">
         <el-card>
             <el-empty v-if="files.length===0" description="请上传文件"></el-empty>
-            <el-card style="margin-top: 0.2rem" v-for="file in files" :key="file.code">
+            <el-card style="margin-top: 0.2rem" v-for="(file,index) in files" :key="index">
                 <el-row>
                     <el-col :span="20">
                         <el-row>
@@ -139,7 +154,7 @@
                     </el-col>
                     <el-col :span="4">
                         <img style="width: 80px;height: 80px;"
-                             :src="qrcodeUrl(file)">
+                             :src="qrcodeUrl(file)" :alt="file.code">
                     </el-col>
                 </el-row>
             </el-card>
@@ -164,7 +179,11 @@
                 quDrawer: false,
                 cunDrawer: false,
                 direction: 'btt',
-                tool: 0
+                tool: 0,
+                destoryData: {
+                    style: '2',
+                    value: 1
+                },
             };
         },
         mounted: function () {
@@ -184,10 +203,16 @@
                                     that.$message('剪切板文字正在上传，请稍等');
                                     items[i].getAsString(function (str) {
                                         FileData.append('text', str);
+                                        FileData.append('style', that.destoryData.style);
+                                        FileData.append('value', that.destoryData.value);
                                         axios.post('/share', FileData)
-                                                .then(function (response) {
-                                                    that.$message({'message': response.data.msg, 'type': 'success'});
-                                                    that.files.push(response.data.data)
+                                                .then(function (res) {
+                                                    if (res.data.code === 200) {
+                                                        that.$message({'message': res.data.msg, 'type': 'success'});
+                                                        that.files.push(res.data.data)
+                                                    } else {
+                                                        that.$message({'message': res.data.msg, 'type': 'error'});
+                                                    }
                                                 })
                                                 .catch(function (error) {
                                                     that.$message({'message': error.data.msg, 'type': 'error'});
@@ -199,9 +224,15 @@
                                 that.$message('剪切板文件正在上传，请稍等');
                                 const FileData = new FormData();
                                 FileData.append('file', file || '');
+                                FileData.append('style', that.destoryData.style);
+                                FileData.append('value', that.destoryData.value);
                                 axios.post('/share', FileData).then(async res => {
-                                    that.files.push(res.data.data);
-                                    that.$message({'message': res.data.msg, 'type': 'success'});
+                                    if (res.data.code === 200) {
+                                        that.$message({'message': res.data.msg, 'type': 'success'});
+                                        that.files.push(res.data.data)
+                                    } else {
+                                        that.$message({'message': res.data.msg, 'type': 'error'});
+                                    }
                                 })
                             }
 
@@ -254,11 +285,21 @@
                 }
             },
             successUpload(response, file, fileList) {
-                this.$message({'message': '上传成功，请点击文件库查看', 'type': 'success'});
-                this.files.push(response.data)
+                if (response.code === 200) {
+                    this.$message({
+                        message: response.msg,
+                        type: 'success'
+                    });
+                    this.files.push(response.data);
+                } else {
+                    this.$message({
+                        message: response.msg,
+                        type: 'error'
+                    });
+                }
             },
             qrcodeUrl(file) {
-                return 'https://api.qrserver.com/v1/create-qr-code?data=' + window.location.origin + '/?code=' + file.code
+                return 'https://api.qrserver.com/v1/create-qr-code/?data=' + window.location.origin + '/?code=' + file.code
             },
         }
     })
