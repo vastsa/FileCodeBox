@@ -107,7 +107,7 @@ async def index(request: Request, code: str, db: Session = Depends(get_db)):
             error_ip_count[request.client.host] = error
             return {'code': 404, 'msg': f'取件码错误，错误5次将被禁止10分钟'}
         else:
-            return {'code': 200, 'msg': '取件成功，请点击库查看', 'data': info}
+            return {'code': 200, 'msg': '取件成功，请点击“取”查看', 'data': info}
 
 
 @app.post('/share')

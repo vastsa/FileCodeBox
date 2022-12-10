@@ -254,7 +254,8 @@
                 }
             },
             successUpload(response, file, fileList) {
-                this.files.push(response.data[0])
+                this.$message({'message': '上传成功，请点击文件库查看', 'type': 'success'});
+                this.files.push(response.data)
             },
             qrcodeUrl(file) {
                 return 'https://api.qrserver.com/v1/create-qr-code?data=' + window.location.origin + '/?code=' + file.code
