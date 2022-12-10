@@ -154,7 +154,11 @@ async def index(request: Request, code: str, db: Session = Depends(get_db)):
         threading.Thread(target=delete_file, args=([{'type': info.type, 'text': info.text}],)).start()
         db.delete(info)
     db.commit()
-    return {'code': 200, 'msg': '取件成功，请点击"取"查看', 'data': info}
+    return {
+        'code': 200,
+        'msg': '取件成功，请点击"取"查看',
+        'data': {'type': info.type, 'text': info.text, 'name': info.name, 'code': info.code}
+    }
 
 
 @app.post('/share')
