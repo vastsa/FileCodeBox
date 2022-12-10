@@ -1,7 +1,7 @@
 import datetime
 import os
 import uuid
-
+import threading
 from fastapi import FastAPI, Depends, UploadFile, Form, File
 from sqlalchemy.orm import Session
 from starlette.requests import Request
@@ -31,6 +31,11 @@ admin_address = 'admin'
 # 管理密码
 admin_password = 'admin'
 error_ip_count = {}
+
+
+def delete_file(files):
+    for file in files:
+        os.remove('.' + file)
 
 
 def get_db():
@@ -79,7 +84,7 @@ async def admin_delete(request: Request, code: str, db: Session = Depends(get_db
     if request.headers.get('pwd') == admin_password:
         file = db.query(database.Codes).filter(database.Codes.code == code)
         if file.first().type != 'text/plain':
-            os.remove('.' + file.first().text)
+            threading.Thread(target=delete_file, args=([file.first().text],)).start()
         file.delete()
         db.commit()
         return {'code': 200, 'msg': '删除成功'}
@@ -113,7 +118,9 @@ async def index(request: Request, code: str, db: Session = Depends(get_db)):
 @app.post('/share')
 async def share(text: str = Form(default=None), file: UploadFile = File(default=None), db: Session = Depends(get_db)):
     cutoff_time = datetime.datetime.now() - datetime.timedelta(hours=exp_hour)
-    db.query(database.Codes).filter(database.Codes.use_time < cutoff_time).delete()
+    olds = db.query(database.Codes).filter(database.Codes.use_time < cutoff_time)
+    threading.Thread(target=delete_file, args=([old.text for old in olds if old.type != 'text/plain'],)).start()
+    olds.delete()
     db.commit()
     code = get_code(db)
     if text:
