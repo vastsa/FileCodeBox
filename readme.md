@@ -81,6 +81,8 @@ docker build --file Dockerfile --tag filecodebox .
 docker run -d -p 12345:12345 --name filecodebox filecodebox
 ```
 
+## 状态
+![Alt](https://repobeats.axiom.co/api/embed/7a6c92f1d96ee57e6fb67f0df371528397b0c9ac.svg "Repobeats analytics image")
 ## 免责声明
 
 本项目开源仅供学习使用，不得用于商业用途以及任何违法用途，否则后果自负，与本人无关。
