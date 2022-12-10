@@ -18,8 +18,8 @@ app = FastAPI()
 if not os.path.exists('./static'):
     os.makedirs('./static')
 app.mount("/static", StaticFiles(directory="static"), name="static")
-index_html = open('templates/index.html', 'r').read()
-admin_html = open('templates/admin.html', 'r').read()
+index_html = open('templates/index.html', 'r', encoding='utf-8').read()
+admin_html = open('templates/admin.html', 'r', encoding='utf-8').read()
 # 过期时间
 exp_hour = 24
 # 允许错误次数
