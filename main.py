@@ -3,6 +3,7 @@ import os
 import uuid
 import threading
 from fastapi import FastAPI, Depends, UploadFile, Form, File
+from sqlalchemy import or_
 from sqlalchemy.orm import Session
 from starlette.requests import Request
 from starlette.responses import HTMLResponse
@@ -144,15 +145,12 @@ async def index(request: Request, code: str, db: Session = Depends(get_db)):
     info = db.query(database.Codes).filter(database.Codes.code == code).first()
     if not info:
         return {'code': 404, 'msg': f'取件码错误，错误{error_count - ip_error(ip)}次将被禁止10分钟'}
-    if info.exp_time < datetime.datetime.now():
+    if info.exp_time < datetime.datetime.now() or info.count == 0:
         threading.Thread(target=delete_file, args=([{'type': info.type, 'text': info.text}],)).start()
         db.delete(info)
         db.commit()
         return {'code': 404, 'msg': '取件码已过期，请联系寄件人'}
     info.count -= 1
-    if info.count == 0:
-        threading.Thread(target=delete_file, args=([{'type': info.type, 'text': info.text}],)).start()
-        db.delete(info)
     db.commit()
     return {
         'code': 200,
@@ -164,7 +162,12 @@ async def index(request: Request, code: str, db: Session = Depends(get_db)):
 @app.post('/share')
 async def share(text: str = Form(default=None), style: str = Form(default='2'), value: int = Form(default=1),
                 file: UploadFile = File(default=None), db: Session = Depends(get_db)):
-    exps = db.query(database.Codes).filter(database.Codes.exp_time < datetime.datetime.now())
+    exps = db.query(database.Codes).filter(
+        or_(
+            database.Codes.exp_time < datetime.datetime.now(),
+            database.Codes.count == 0
+        )
+    )
     threading.Thread(target=delete_file, args=([[{'type': old.type, 'text': old.text}] for old in exps.all()],)).start()
     exps.delete()
     db.commit()
