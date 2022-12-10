@@ -202,3 +202,9 @@ async def share(text: str = Form(default=None), style: str = Form(default='2'), 
         'msg': '分享成功，请点击文件箱查看取件码',
         'data': {'code': code, 'key': key, 'name': name, 'text': _text}
     }
+
+
+if __name__ == '__main__':
+    import uvicorn
+
+    uvicorn.run('main:app', host='0.0.0.0', port=12345)
