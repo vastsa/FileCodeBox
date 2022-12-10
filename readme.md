@@ -50,6 +50,10 @@
 ![取件](https://raw.githubusercontent.com/vastsa/FileCodeBox/master/images/img_4.png)
 ![取件](https://raw.githubusercontent.com/vastsa/FileCodeBox/master/images/img_5.png)
 
+## 部署教程
+
+https://www.yuque.com/lxyo/work/zd0kvzy7fofx6w7v
+
 ## 部署方式
 
 先拉取代码，然后修改main.py文件，将里面写了注释的可以根据需求改一下
