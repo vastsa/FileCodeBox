@@ -3,6 +3,8 @@ import os
 import uuid
 import threading
 import random
+import asyncio
+
 from fastapi import FastAPI, Depends, UploadFile, Form, File
 from starlette.requests import Request
 from starlette.responses import HTMLResponse, FileResponse
@@ -11,7 +13,7 @@ from starlette.staticfiles import StaticFiles
 from sqlalchemy import or_, select, update, delete
 from sqlalchemy.ext.asyncio.session import AsyncSession
 
-from database import get_session, Codes, init_models
+from database import get_session, Codes, init_models, engine
 
 app = FastAPI()
 if not os.path.exists('./static'):
@@ -22,6 +24,8 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 @app.on_event('startup')
 async def startup():
     await init_models()
+
+    asyncio.create_task(delete_expire_files())
 
 
 ############################################
@@ -60,6 +64,21 @@ def delete_file(files):
     for file in files:
         if file['type'] != 'text':
             os.remove('.' + file['text'])
+
+
+async def delete_expire_files():
+    while True:
+        async with AsyncSession(engine, expire_on_commit=False) as s:
+            query = select(Codes).where(or_(Codes.exp_time < datetime.datetime.now(), Codes.count == 0))
+            exps = (await s.execute(query)).scalars().all()
+            await asyncio.to_thread(delete_file, [{'type': old.type, 'text': old.text} for old in exps])
+
+            exps_ids = [exp.id for exp in exps]
+            query = delete(Codes).where(Codes.id.in_(exps_ids))
+            await s.execute(query)
+            await s.commit()
+
+        await asyncio.sleep(random.randint(60, 300))
 
 
 async def get_code(s: AsyncSession):
@@ -104,7 +123,7 @@ async def admin_delete(request: Request, code: str, s: AsyncSession = Depends(ge
     if request.headers.get('pwd') == admin_password:
         query = select(Codes).where(Codes.code == code)
         file = (await s.execute(query)).scalars().first()
-        threading.Thread(target=delete_file, args=([{'type': file.type, 'text': file.text}],)).start()
+        await asyncio.to_thread(delete_file, [{'type': file.type, 'text': file.text}])
         await s.delete(file)
         await s.commit()
         return {'code': 200, 'msg': '删除成功'}
@@ -179,15 +198,6 @@ async def index(request: Request, code: str, s: AsyncSession = Depends(get_sessi
 @app.post('/share')
 async def share(text: str = Form(default=None), style: str = Form(default='2'), value: int = Form(default=1),
                 file: UploadFile = File(default=None), s: AsyncSession = Depends(get_session)):
-    query = select(Codes).where(or_(Codes.exp_time < datetime.datetime.now(), Codes.count == 0))
-    exps = (await s.execute(query)).scalars().all()
-    threading.Thread(target=delete_file, args=([[{'type': old.type, 'text': old.text}] for old in exps],)).start()
-
-    exps_ids = [exp.id for exp in exps]
-    query = delete(Codes).where(Codes.id.in_(exps_ids))
-    await s.execute(query)
-    await s.commit()
-
     code = await get_code(s)
     if style == '2':
         if value > 7:
