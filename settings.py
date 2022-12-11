@@ -16,7 +16,7 @@ ERROR_MINUTE = config('ERROR_MINUTE', cast=int, default=10)
 
 ADMIN_ADDRESS = config('ADMIN_ADDRESS', cast=str, default="admin")
 
-ADMIN_PASSWORD = config('ADMIN_ADDRESS', cast=str, default="admin")
+ADMIN_PASSWORD = config('ADMIN_PASSWORD', cast=str, default="admin")
 
 FILE_SIZE_LIMIT = config('FILE_SIZE_LIMIT', cast=int, default=10) * 1024 * 1024
 
