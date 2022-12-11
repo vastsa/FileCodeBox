@@ -137,14 +137,14 @@ def ip_error(ip):
     return ip_info['count']
 
 
-@app.get('/file')
+@app.get('/select')
 async def get_file(code: str, db: Session = Depends(get_db)):
     file = db.query(database.Codes).filter(database.Codes.code == code).first()
     if file:
         if file.type == 'text':
             return {'code': code, 'msg': '查询成功', 'data': file.text}
         else:
-            return FileResponse('.' + file.text)
+            return FileResponse('.' + file.text, filename=file.name)
     else:
         return {'code': 404, 'msg': '口令不存在'}
 
@@ -165,7 +165,7 @@ async def index(request: Request, code: str, db: Session = Depends(get_db)):
     info.count -= 1
     db.commit()
     if info.type != 'text':
-        info.text = f'/file?code={code}'
+        info.text = f'/select?code={code}'
     return {
         'code': 200,
         'msg': '取件成功，请点击"取"查看',
