@@ -8,7 +8,7 @@ __pycache__/
 # Created by .ignore support plugin (hsz.mobi)
 ### Python template
 # Byte-compiled / optimized / DLL files
-database.db
+databasea.db
 # C extensions
 *.so
 *.env

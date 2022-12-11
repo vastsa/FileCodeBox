@@ -1,3 +1,4 @@
+import asyncio
 import datetime
 
 from sqlalchemy import Boolean, Column, Integer, String, DateTime
@@ -9,7 +10,10 @@ engine = create_async_engine("sqlite+aiosqlite:///database.db")
 
 Base = declarative_base()
 
-Base.metadata.create_all(bind=engine)
+
+async def init_models():
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
 
 
 async def get_session():

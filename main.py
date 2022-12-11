@@ -11,12 +11,18 @@ from starlette.staticfiles import StaticFiles
 from sqlalchemy import or_, select, update, delete
 from sqlalchemy.ext.asyncio.session import AsyncSession
 
-from database import get_session, Codes
+from database import get_session, Codes, init_models
 
 app = FastAPI()
 if not os.path.exists('./static'):
     os.makedirs('./static')
 app.mount("/static", StaticFiles(directory="static"), name="static")
+
+
+@app.on_event('startup')
+async def startup():
+    await init_models()
+
 
 ############################################
 # 需要修改的参数
