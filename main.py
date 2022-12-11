@@ -4,6 +4,7 @@ import uuid
 import threading
 import random
 import asyncio
+from pathlib import Path
 
 from fastapi import FastAPI, Depends, UploadFile, Form, File
 from starlette.requests import Request
@@ -13,12 +14,17 @@ from starlette.staticfiles import StaticFiles
 from sqlalchemy import or_, select, update, delete
 from sqlalchemy.ext.asyncio.session import AsyncSession
 
+import settings
 from database import get_session, Codes, init_models, engine
 
-app = FastAPI()
-if not os.path.exists('./static'):
-    os.makedirs('./static')
-app.mount("/static", StaticFiles(directory="static"), name="static")
+app = FastAPI(debug=settings.DEBUG)
+
+DATA_ROOT = Path(settings.DATA_ROOT)
+if not DATA_ROOT.exists():
+    DATA_ROOT.mkdir(parents=True)
+
+STATIC_URL = settings.STATIC_URL
+app.mount(STATIC_URL, StaticFiles(directory=DATA_ROOT), name="static")
 
 
 @app.on_event('startup')
@@ -27,35 +33,14 @@ async def startup():
 
     asyncio.create_task(delete_expire_files())
 
-
-############################################
-# 需要修改的参数
-# 允许错误次数
-error_count = 5
-# 禁止分钟数
-error_minute = 10
-# 后台地址
-admin_address = 'admin'
-# 管理密码
-admin_password = 'admin'
-# 文件大小限制 10M
-file_size_limit = 1024 * 1024 * 10
-# 系统标题
-title = '文件快递柜'
-# 系统描述
-description = 'FileCodeBox，文件快递柜，口令传送箱，匿名口令分享文本，文件，图片，视频，音频，压缩包等文件'
-# 系统关键字
-keywords = 'FileCodeBox，文件快递柜，口令传送箱，匿名口令分享文本，文件，图片，视频，音频，压缩包等文件'
-############################################
-
 index_html = open('templates/index.html', 'r', encoding='utf-8').read() \
-    .replace('{{title}}', title) \
-    .replace('{{description}}', description) \
-    .replace('{{keywords}}', keywords)
+    .replace('{{title}}', settings.TITLE) \
+    .replace('{{description}}', settings.DESCRIPTION) \
+    .replace('{{keywords}}', settings.KEYWORDS)
 admin_html = open('templates/admin.html', 'r', encoding='utf-8').read() \
-    .replace('{{title}}', title) \
-    .replace('{{description}}', description) \
-    .replace('{{keywords}}', keywords)
+    .replace('{{title}}', settings.TITLE) \
+    .replace('{{description}}', settings.DESCRIPTION) \
+    .replace('{{keywords}}', settings.KEYWORDS)
 
 error_ip_count = {}
 
@@ -63,7 +48,7 @@ error_ip_count = {}
 def delete_file(files):
     for file in files:
         if file['type'] != 'text':
-            os.remove('.' + file['text'])
+            os.remove(DATA_ROOT / file['text'].lstrip(STATIC_URL+'/'))
 
 
 async def delete_expire_files():
@@ -92,25 +77,26 @@ def get_file_name(key, ext, file):
     now = datetime.datetime.now()
     file_bytes = file.file.read()
     size = len(file_bytes)
-    if size > file_size_limit:
+    if size > settings.FILE_SIZE_LIMIT:
         return size, '', '', ''
-    path = f'./static/upload/{now.year}/{now.month}/{now.day}/'
+    path = DATA_ROOT / f"upload/{now.year}/{now.month}/{now.day}/"
     name = f'{key}.{ext}'
-    if not os.path.exists(path):
-        os.makedirs(path)
-    with open(f'{os.path.join(path, name)}', 'wb') as f:
+    if not path.exists():
+        path.mkdir(parents=True)
+    filepath = path / name
+    with open(filepath, 'wb') as f:
         f.write(file_bytes)
-    return size, path[1:] + name, file.content_type, file.filename
+    return size, f"{STATIC_URL}/{filepath.relative_to(DATA_ROOT)}", file.content_type, file.filename
 
 
-@app.get(f'/{admin_address}')
+@app.get(f'/{settings.ADMIN_ADDRESS}')
 async def admin():
     return HTMLResponse(admin_html)
 
 
-@app.post(f'/{admin_address}')
+@app.post(f'/{settings.ADMIN_ADDRESS}')
 async def admin_post(request: Request, s: AsyncSession = Depends(get_session)):
-    if request.headers.get('pwd') == admin_password:
+    if request.headers.get('pwd') == settings.ADMIN_PASSWORD:
         query = select(Codes)
         codes = (await s.execute(query)).scalars().all()
         return {'code': 200, 'msg': '查询成功', 'data': codes}
@@ -118,9 +104,9 @@ async def admin_post(request: Request, s: AsyncSession = Depends(get_session)):
         return {'code': 404, 'msg': '密码错误'}
 
 
-@app.delete(f'/{admin_address}')
+@app.delete(f'/{settings.ADMIN_ADDRESS}')
 async def admin_delete(request: Request, code: str, s: AsyncSession = Depends(get_session)):
-    if request.headers.get('pwd') == admin_password:
+    if request.headers.get('pwd') == settings.ADMIN_PASSWORD:
         query = select(Codes).where(Codes.code == code)
         file = (await s.execute(query)).scalars().first()
         await asyncio.to_thread(delete_file, [{'type': file.type, 'text': file.text}])
@@ -139,8 +125,8 @@ async def index():
 def check_ip(ip):
     # 检查ip是否被禁止
     if ip in error_ip_count:
-        if error_ip_count[ip]['count'] >= error_count:
-            if error_ip_count[ip]['time'] + datetime.timedelta(minutes=error_minute) > datetime.datetime.now():
+        if error_ip_count[ip]['count'] >= settings.ERROR_COUNT:
+            if error_ip_count[ip]['time'] + datetime.timedelta(minutes=settings.ERROR_MINUTE) > datetime.datetime.now():
                 return False
             else:
                 error_ip_count.pop(ip)
@@ -162,7 +148,7 @@ async def get_file(code: str, s: AsyncSession = Depends(get_session)):
         if info.type == 'text':
             return {'code': code, 'msg': '查询成功', 'data': info.text}
         else:
-            return FileResponse('.' + info.text, filename=info.name)
+            return FileResponse(DATA_ROOT / info.text.lstrip(STATIC_URL+'/'), filename=info.name)
     else:
         return {'code': 404, 'msg': '口令不存在'}
 
@@ -175,7 +161,7 @@ async def index(request: Request, code: str, s: AsyncSession = Depends(get_sessi
     query = select(Codes).where(Codes.code == code)
     info = (await s.execute(query)).scalars().first()
     if not info:
-        return {'code': 404, 'msg': f'取件码错误，错误{error_count - ip_error(ip)}次将被禁止10分钟'}
+        return {'code': 404, 'msg': f'取件码错误，错误{settings.ERROR_COUNT - ip_error(ip)}次将被禁止10分钟'}
     if info.exp_time < datetime.datetime.now() or info.count == 0:
         threading.Thread(target=delete_file, args=([{'type': info.type, 'text': info.text}],)).start()
         await s.delete(info)
@@ -215,7 +201,7 @@ async def share(text: str = Form(default=None), style: str = Form(default='2'), 
     key = uuid.uuid4().hex
     if file:
         size, _text, _type, name = get_file_name(key, file.filename.split('.')[-1], file)
-        if size > file_size_limit:
+        if size > settings.FILE_SIZE_LIMIT:
             return {'code': 404, 'msg': '文件过大'}
     else:
         size, _text, _type, name = len(text), text, 'text', '文本分享'
