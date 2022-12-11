@@ -1,6 +1,5 @@
 from starlette.config import Config
 
-
 config = Config(".env")
 
 DEBUG = config('DEBUG', cast=bool, default=False)
@@ -19,10 +18,10 @@ ADMIN_ADDRESS = config('ADMIN_ADDRESS', cast=str, default="admin")
 
 ADMIN_PASSWORD = config('ADMIN_ADDRESS', cast=str, default="admin")
 
-FILE_SIZE_LIMIT = config('FILE_SIZE_LIMIT', cast=int, default=1024 * 1024 * 10)
+FILE_SIZE_LIMIT = config('FILE_SIZE_LIMIT', cast=int, default=10) * 1024 * 1024
 
 TITLE = config('TITLE', cast=str, default="文件快递柜")
 
-DESCRIPTION = config('DESCRIPTION', cast=str, default="FileCodeBox，文件快递柜，口令传送箱，匿名口令分享文本，文件，图片，视频，音频，压缩包等文件")
+DESCRIPTION = config('DESCRIPTION', cast=str, default="FileCodeBox，文件快递柜，口令传送箱，匿名口令分享文本，文件等文件")
 
-KEYWORDS = config('TITLE', cast=str, default="FileCodeBox，文件快递柜，口令传送箱，匿名口令分享文本，文件，图片，视频，音频，压缩包等文件")
+KEYWORDS = config('KEYWORDS', cast=str, default="FileCodeBox，文件快递柜，口令传送箱，匿名口令分享文本，文件等文件")

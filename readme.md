@@ -65,7 +65,33 @@ https://www.yuque.com/lxyo/work/zd0kvzy7fofx6w7v
 
 ## 部署方式
 
-先拉取代码，然后修改main.py文件，将里面写了注释的可以根据需求改一下
+为持久化，不管怎么样，先第一步，建一个文件夹，然后再下载代码
+
+```bash
+mkdir /opt/FileCodeBox
+cd /opt/FileCodeBox
+```
+
+新建一个`.env`文件
+
+```bash
+vi .env
+```
+将下列字段内容替换成你自己的
+
+```dotenv
+DEBUG=False
+DATABASE_URL=sqlite+aiosqlite:///database.db
+DATA_ROOT=./static
+STATIC_URL=/static
+ERROR_COUNT=5
+ERROR_MINUTE=10
+ADMIN_ADDRESS=admin
+FILE_SIZE_LIMIT=10
+TITLE=文件快递柜
+DESCRIPTION=FileCodeBox，文件快递柜，口令传送箱，匿名口令分享文本，文件，图片，视频，音频，压缩包等文件
+KEYWORDS=FileCodeBox，文件快递柜，口令传送箱，匿名口令分享文本，文件，图片，视频，音频，压缩包等文件
+```
 
 ### 服务端部署
 
@@ -83,8 +109,12 @@ https://www.yuque.com/lxyo/work/zd0kvzy7fofx6w7v
 ### Docker部署
 
 ```bash
+mkdir "/opt/FileCodeBox"
+cd "/opt/FileCodeBox"
+wget https://github.com/vastsa/FileCodeBox/releases/download/Main/code.zip
+unzip code.zip
 docker build --file Dockerfile --tag filecodebox .
-docker run -d -p 12345:12345 --name filecodebox filecodebox
+docker run -d -p 12345:12345 --name filecodebox --volume /opt/FileCodeBox:/app filecodebox
 ```
 
 ## 状态

@@ -1,4 +1,3 @@
-import asyncio
 import datetime
 
 from sqlalchemy import Boolean, Column, Integer, String, DateTime

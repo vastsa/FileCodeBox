@@ -30,8 +30,8 @@ app.mount(STATIC_URL, StaticFiles(directory=DATA_ROOT), name="static")
 @app.on_event('startup')
 async def startup():
     await init_models()
-
     asyncio.create_task(delete_expire_files())
+
 
 index_html = open('templates/index.html', 'r', encoding='utf-8').read() \
     .replace('{{title}}', settings.TITLE) \
@@ -48,7 +48,7 @@ error_ip_count = {}
 def delete_file(files):
     for file in files:
         if file['type'] != 'text':
-            os.remove(DATA_ROOT / file['text'].lstrip(STATIC_URL+'/'))
+            os.remove(DATA_ROOT / file['text'].lstrip(STATIC_URL + '/'))
 
 
 async def delete_expire_files():
@@ -57,12 +57,10 @@ async def delete_expire_files():
             query = select(Codes).where(or_(Codes.exp_time < datetime.datetime.now(), Codes.count == 0))
             exps = (await s.execute(query)).scalars().all()
             await asyncio.to_thread(delete_file, [{'type': old.type, 'text': old.text} for old in exps])
-
             exps_ids = [exp.id for exp in exps]
             query = delete(Codes).where(Codes.id.in_(exps_ids))
             await s.execute(query)
             await s.commit()
-
         await asyncio.sleep(random.randint(60, 300))
 
 
@@ -73,12 +71,8 @@ async def get_code(s: AsyncSession):
     return str(code)
 
 
-def get_file_name(key, ext, file):
+def get_file_name(key, ext, file, file_bytes):
     now = datetime.datetime.now()
-    file_bytes = file.file.read()
-    size = len(file_bytes)
-    if size > settings.FILE_SIZE_LIMIT:
-        return size, '', '', ''
     path = DATA_ROOT / f"upload/{now.year}/{now.month}/{now.day}/"
     name = f'{key}.{ext}'
     if not path.exists():
@@ -86,7 +80,7 @@ def get_file_name(key, ext, file):
     filepath = path / name
     with open(filepath, 'wb') as f:
         f.write(file_bytes)
-    return size, f"{STATIC_URL}/{filepath.relative_to(DATA_ROOT)}", file.content_type, file.filename
+    return f"{STATIC_URL}/{filepath.relative_to(DATA_ROOT)}", file.content_type, file.filename
 
 
 @app.get(f'/{settings.ADMIN_ADDRESS}')
@@ -148,7 +142,7 @@ async def get_file(code: str, s: AsyncSession = Depends(get_session)):
         if info.type == 'text':
             return {'code': code, 'msg': '查询成功', 'data': info.text}
         else:
-            return FileResponse(DATA_ROOT / info.text.lstrip(STATIC_URL+'/'), filename=info.name)
+            return FileResponse(DATA_ROOT / info.text.lstrip(STATIC_URL + '/'), filename=info.name)
     else:
         return {'code': 404, 'msg': '口令不存在'}
 
@@ -173,7 +167,6 @@ async def index(request: Request, code: str, s: AsyncSession = Depends(get_sessi
     await s.commit()
     if info.type != 'text':
         info.text = f'/select?code={code}'
-
     return {
         'code': 200,
         'msg': '取件成功，请点击"取"查看',
@@ -200,9 +193,11 @@ async def share(text: str = Form(default=None), style: str = Form(default='2'), 
         exp_count = -1
     key = uuid.uuid4().hex
     if file:
-        size, _text, _type, name = get_file_name(key, file.filename.split('.')[-1], file)
+        file_bytes = file.file.read()
+        size = len(file_bytes)
         if size > settings.FILE_SIZE_LIMIT:
             return {'code': 404, 'msg': '文件过大'}
+        _text, _type, name = get_file_name(key, file.filename.split('.')[-1], file, file_bytes)
     else:
         size, _text, _type, name = len(text), text, 'text', '文本分享'
     info = Codes(
