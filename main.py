@@ -6,7 +6,7 @@ from fastapi import FastAPI, Depends, UploadFile, Form, File
 from sqlalchemy import or_
 from sqlalchemy.orm import Session
 from starlette.requests import Request
-from starlette.responses import HTMLResponse
+from starlette.responses import HTMLResponse, FileResponse
 import random
 
 from starlette.staticfiles import StaticFiles
@@ -137,6 +137,18 @@ def ip_error(ip):
     return ip_info['count']
 
 
+@app.get('/file')
+async def get_file(code: str, db: Session = Depends(get_db)):
+    file = db.query(database.Codes).filter(database.Codes.code == code).first()
+    if file:
+        if file.type == 'text':
+            return {'code': code, 'msg': '查询成功', 'data': file.text}
+        else:
+            return FileResponse('.' + file.text)
+    else:
+        return {'code': 404, 'msg': '口令不存在'}
+
+
 @app.post('/')
 async def index(request: Request, code: str, db: Session = Depends(get_db)):
     ip = request.client.host
@@ -152,6 +164,8 @@ async def index(request: Request, code: str, db: Session = Depends(get_db)):
         return {'code': 404, 'msg': '取件码已过期，请联系寄件人'}
     info.count -= 1
     db.commit()
+    if info.type != 'text':
+        info.text = f'/file?code={code}'
     return {
         'code': 200,
         'msg': '取件成功，请点击"取"查看',
