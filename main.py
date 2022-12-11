@@ -6,7 +6,8 @@ import random
 
 from fastapi import FastAPI, Depends, UploadFile, Form, File
 from starlette.requests import Request
-from starlette.responses import HTMLResponse
+from starlette.responses import HTMLResponse, FileResponse
+import random
 from starlette.staticfiles import StaticFiles
 
 from sqlalchemy import or_, select, update, delete, create_engine
@@ -135,6 +136,18 @@ def ip_error(ip):
     return ip_info['count']
 
 
+@app.get('/select')
+async def get_file(code: str, db: Session = Depends(get_db)):
+    file = db.query(database.Codes).filter(database.Codes.code == code).first()
+    if file:
+        if file.type == 'text':
+            return {'code': code, 'msg': '查询成功', 'data': file.text}
+        else:
+            return FileResponse('.' + file.text, filename=file.name)
+    else:
+        return {'code': 404, 'msg': '口令不存在'}
+
+
 @app.post('/')
 async def index(request: Request, code: str, s: AsyncSession = Depends(get_session)):
     ip = request.client.host
@@ -149,11 +162,13 @@ async def index(request: Request, code: str, s: AsyncSession = Depends(get_sessi
         await s.delete(info)
         await s.commit()
         return {'code': 404, 'msg': '取件码已过期，请联系寄件人'}
-
     count = info.count - 1
     query = update(Codes).where(Codes.id == info.id).values(count=count)
     await s.execute(query)
     await s.commit()
+    if info.type != 'text':
+        info.text = f'/select?code={code}'
+
     return {
         'code': 200,
         'msg': '取件成功，请点击"取"查看',
