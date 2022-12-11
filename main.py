@@ -33,11 +33,11 @@ admin_password = 'admin'
 # 文件大小限制 10M
 file_size_limit = 1024 * 1024 * 10
 # 系统标题
-title = '口令传送箱'
+title = '文件快递柜'
 # 系统描述
-description = 'FileCodeBox，口令传送箱，匿名口令分享文本，文件，图片，视频，音频，压缩包等文件'
+description = 'FileCodeBox，文件快递柜，口令传送箱，匿名口令分享文本，文件，图片，视频，音频，压缩包等文件'
 # 系统关键字
-keywords = 'FileCodeBox，口令传送箱，匿名口令分享文本，文件，图片，视频，音频，压缩包等文件'
+keywords = 'FileCodeBox，文件快递柜，口令传送箱，匿名口令分享文本，文件，图片，视频，音频，压缩包等文件'
 ############################################
 
 index_html = open('templates/index.html', 'r', encoding='utf-8').read() \
