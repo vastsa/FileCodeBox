@@ -1,3 +1,7 @@
-fastapi[all]==0.88.0
+fastapi==0.88.0
 aiosqlite==0.17.0
 SQLAlchemy==1.4.44
+python-multipart==0.0.5
+uvicorn==0.15.0
+greenlet==2.0.1
+starlette~=0.22.0

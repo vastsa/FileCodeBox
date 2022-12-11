@@ -3,22 +3,15 @@ import os
 import uuid
 import threading
 import random
-
 from fastapi import FastAPI, Depends, UploadFile, Form, File
 from starlette.requests import Request
 from starlette.responses import HTMLResponse, FileResponse
-import random
 from starlette.staticfiles import StaticFiles
 
-from sqlalchemy import or_, select, update, delete, create_engine
-from sqlalchemy import select, update, delete
+from sqlalchemy import or_, select, update, delete
 from sqlalchemy.ext.asyncio.session import AsyncSession
 
-from database import engine, get_session, Base, Codes
-
-
-engine = create_engine('sqlite:///database.db', connect_args={"check_same_thread": False})
-Base.metadata.create_all(bind=engine)
+from database import get_session, Codes
 
 app = FastAPI()
 if not os.path.exists('./static'):
@@ -137,13 +130,14 @@ def ip_error(ip):
 
 
 @app.get('/select')
-async def get_file(code: str, db: Session = Depends(get_db)):
-    file = db.query(database.Codes).filter(database.Codes.code == code).first()
-    if file:
-        if file.type == 'text':
-            return {'code': code, 'msg': '查询成功', 'data': file.text}
+async def get_file(code: str, s: AsyncSession = Depends(get_session)):
+    query = select(Codes).where(Codes.code == code)
+    info = (await s.execute(query)).scalars().first()
+    if info:
+        if info.type == 'text':
+            return {'code': code, 'msg': '查询成功', 'data': info.text}
         else:
-            return FileResponse('.' + file.text, filename=file.name)
+            return FileResponse('.' + info.text, filename=info.name)
     else:
         return {'code': 404, 'msg': '口令不存在'}
 
@@ -182,7 +176,7 @@ async def share(text: str = Form(default=None), style: str = Form(default='2'), 
     query = select(Codes).where(or_(Codes.exp_time < datetime.datetime.now(), Codes.count == 0))
     exps = (await s.execute(query)).scalars().all()
     threading.Thread(target=delete_file, args=([[{'type': old.type, 'text': old.text}] for old in exps],)).start()
-    
+
     exps_ids = [exp.id for exp in exps]
     query = delete(Codes).where(Codes.id.in_(exps_ids))
     await s.execute(query)

@@ -5,7 +5,6 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.ext.asyncio import create_async_engine
 from sqlalchemy.ext.asyncio.session import AsyncSession
 
-
 engine = create_async_engine("sqlite+aiosqlite:///database.db")
 
 Base = declarative_base()
