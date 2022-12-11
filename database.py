@@ -9,6 +9,8 @@ engine = create_async_engine("sqlite+aiosqlite:///database.db")
 
 Base = declarative_base()
 
+Base.metadata.create_all(bind=engine)
+
 
 async def get_session():
     async with AsyncSession(engine, expire_on_commit=False) as s:
