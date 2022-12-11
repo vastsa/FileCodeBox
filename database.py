@@ -1,17 +1,23 @@
 import datetime
 
-from sqlalchemy import create_engine, DateTime
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy import Boolean, Column, Integer, String, DateTime
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy import Boolean, Column, Integer, String
+from sqlalchemy.ext.asyncio import create_async_engine
+from sqlalchemy.ext.asyncio.session import AsyncSession
 
-engine = create_engine('sqlite:///database.db', connect_args={"check_same_thread": False})
+
+engine = create_async_engine("sqlite+aiosqlite:///database.db")
+
 Base = declarative_base()
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+
+
+async def get_session():
+    async with AsyncSession(engine, expire_on_commit=False) as s:
+        yield s
 
 
 class Codes(Base):
-    __tablename__ = 'codes'
+    __tablename__ = "codes"
     id = Column(Integer, primary_key=True, index=True)
     code = Column(String(10), unique=True, index=True)
     key = Column(String(30), unique=True, index=True)
