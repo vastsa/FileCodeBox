@@ -87,6 +87,7 @@ STATIC_URL=/static
 ERROR_COUNT=5
 ERROR_MINUTE=10
 ADMIN_ADDRESS=admin
+ADMIN_PASSWORD=admin
 FILE_SIZE_LIMIT=10
 TITLE=文件快递柜
 DESCRIPTION=FileCodeBox，文件快递柜，口令传送箱，匿名口令分享文本，文件，图片，视频，音频，压缩包等文件
