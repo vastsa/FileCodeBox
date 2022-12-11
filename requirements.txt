@@ -1,4 +1,3 @@
-fastapi==0.88.0
-python-multipart==0.0.5
+fastapi[all]==0.88.0
+aiosqlite==0.17.0
 SQLAlchemy==1.4.44
-uvicorn==0.20.0
