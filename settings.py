@@ -4,6 +4,8 @@ config = Config(".env")
 
 DEBUG = config('DEBUG', cast=bool, default=False)
 
+PORT = config('PORT', cast=int, default=12345)
+
 DATABASE_URL = config('DATABASE_URL', cast=str, default="sqlite+aiosqlite:///database.db")
 
 DATA_ROOT = config('DATA_ROOT', cast=str, default="./static")

@@ -33,7 +33,7 @@ class FileSystemStorage:
     async def delete_file(self, file):
         filepath = self.DATA_ROOT / file['text'].lstrip(self.STATIC_URL + '/')
         await asyncio.to_thread(os.remove, filepath)
-    
+
     async def delete_files(self, files):
         for file in files:
             if file['type'] != 'text':
