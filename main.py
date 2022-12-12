@@ -1,7 +1,5 @@
 import datetime
-import os
 import uuid
-import threading
 import random
 import asyncio
 from pathlib import Path
@@ -16,6 +14,7 @@ from sqlalchemy.ext.asyncio.session import AsyncSession
 
 import settings
 from database import get_session, Codes, init_models, engine
+from storage import STORAGE_ENGINE
 
 app = FastAPI(debug=settings.DEBUG)
 
@@ -25,6 +24,8 @@ if not DATA_ROOT.exists():
 
 STATIC_URL = settings.STATIC_URL
 app.mount(STATIC_URL, StaticFiles(directory=DATA_ROOT), name="static")
+
+storage = STORAGE_ENGINE[settings.STORAGE_ENGINE]()
 
 
 @app.on_event('startup')
@@ -45,18 +46,13 @@ admin_html = open('templates/admin.html', 'r', encoding='utf-8').read() \
 error_ip_count = {}
 
 
-def delete_file(files):
-    for file in files:
-        if file['type'] != 'text':
-            os.remove(DATA_ROOT / file['text'].lstrip(STATIC_URL + '/'))
-
-
 async def delete_expire_files():
     while True:
         async with AsyncSession(engine, expire_on_commit=False) as s:
             query = select(Codes).where(or_(Codes.exp_time < datetime.datetime.now(), Codes.count == 0))
             exps = (await s.execute(query)).scalars().all()
-            await asyncio.to_thread(delete_file, [{'type': old.type, 'text': old.text} for old in exps])
+            files = [{'type': old.type, 'text': old.text} for old in exps]
+            await storage.delete_files(files)
             exps_ids = [exp.id for exp in exps]
             query = delete(Codes).where(Codes.id.in_(exps_ids))
             await s.execute(query)
@@ -69,18 +65,6 @@ async def get_code(s: AsyncSession):
     while (await s.execute(select(Codes.id).where(Codes.code == code))).scalar():
         code = random.randint(10000, 99999)
     return str(code)
-
-
-def get_file_name(key, ext, file, file_bytes):
-    now = datetime.datetime.now()
-    path = DATA_ROOT / f"upload/{now.year}/{now.month}/{now.day}/"
-    name = f'{key}.{ext}'
-    if not path.exists():
-        path.mkdir(parents=True)
-    filepath = path / name
-    with open(filepath, 'wb') as f:
-        f.write(file_bytes)
-    return f"{STATIC_URL}/{filepath.relative_to(DATA_ROOT)}", file.content_type, file.filename
 
 
 @app.get(f'/{settings.ADMIN_ADDRESS}')
@@ -103,7 +87,7 @@ async def admin_delete(request: Request, code: str, s: AsyncSession = Depends(ge
     if request.headers.get('pwd') == settings.ADMIN_PASSWORD:
         query = select(Codes).where(Codes.code == code)
         file = (await s.execute(query)).scalars().first()
-        await asyncio.to_thread(delete_file, [{'type': file.type, 'text': file.text}])
+        await storage.delete_file({'type': file.type, 'text': file.text})
         await s.delete(file)
         await s.commit()
         return {'code': 200, 'msg': '删除成功'}
@@ -142,7 +126,8 @@ async def get_file(code: str, s: AsyncSession = Depends(get_session)):
         if info.type == 'text':
             return {'code': code, 'msg': '查询成功', 'data': info.text}
         else:
-            return FileResponse(DATA_ROOT / info.text.lstrip(STATIC_URL + '/'), filename=info.name)
+            filepath = await storage.get_filepath(info.text)
+            return FileResponse(filepath, filename=info.name)
     else:
         return {'code': 404, 'msg': '口令不存在'}
 
@@ -157,7 +142,7 @@ async def index(request: Request, code: str, s: AsyncSession = Depends(get_sessi
     if not info:
         return {'code': 404, 'msg': f'取件码错误，错误{settings.ERROR_COUNT - ip_error(ip)}次将被禁止10分钟'}
     if info.exp_time < datetime.datetime.now() or info.count == 0:
-        threading.Thread(target=delete_file, args=([{'type': info.type, 'text': info.text}],)).start()
+        await storage.delete_file({'type': info.type, 'text': info.text})
         await s.delete(info)
         await s.commit()
         return {'code': 404, 'msg': '取件码已过期，请联系寄件人'}
@@ -193,11 +178,11 @@ async def share(text: str = Form(default=None), style: str = Form(default='2'), 
         exp_count = -1
     key = uuid.uuid4().hex
     if file:
-        file_bytes = file.file.read()
+        file_bytes = await file.read()
         size = len(file_bytes)
         if size > settings.FILE_SIZE_LIMIT:
             return {'code': 404, 'msg': '文件过大'}
-        _text, _type, name = get_file_name(key, file.filename.split('.')[-1], file, file_bytes)
+        _text, _type, name = await storage.save_file(file, file_bytes, key), file.content_type, file.filename
     else:
         size, _text, _type, name = len(text), text, 'text', '文本分享'
     info = Codes(
