@@ -94,6 +94,7 @@
                         multiple
                         :data="destoryData"
                         :on-success="successUpload"
+                        :on-error="errorUpload"
                 >
                     <i class="el-icon-upload"></i>
                     <div class="el-upload__text">将文字、文件拖、粘贴到此处，或<em>点击上传</em></div>
@@ -206,16 +207,12 @@
                                         FileData.append('style', that.destoryData.style);
                                         FileData.append('value', that.destoryData.value);
                                         axios.post('/share', FileData)
-                                                .then(function (res) {
-                                                    if (res.data.code === 200) {
-                                                        that.$message({'message': res.data.msg, 'type': 'success'});
-                                                        that.files.push(res.data.data)
-                                                    } else {
-                                                        that.$message({'message': res.data.msg, 'type': 'error'});
-                                                    }
+                                                .then(res => {
+                                                    that.$message({'message': res.data.msg, 'type': 'success'});
+                                                    that.files.push(res.data.data)
                                                 })
-                                                .catch(function (error) {
-                                                    that.$message({'message': error.data.msg, 'type': 'error'});
+                                                .catch(e => {
+                                                    that.$message({'message': e.response.data.detail, 'type': 'error'});
                                                 });
                                     });
                                 }
@@ -226,14 +223,14 @@
                                 FileData.append('file', file || '');
                                 FileData.append('style', that.destoryData.style);
                                 FileData.append('value', that.destoryData.value);
-                                axios.post('/share', FileData).then(async res => {
-                                    if (res.data.code === 200) {
-                                        that.$message({'message': res.data.msg, 'type': 'success'});
-                                        that.files.push(res.data.data)
-                                    } else {
-                                        that.$message({'message': res.data.msg, 'type': 'error'});
-                                    }
+                                axios.post('/share', FileData)
+                                .then(res => {
+                                    that.$message({'message': res.data.msg, 'type': 'success'});
+                                    that.files.push(res.data.data)
                                 })
+                                .catch(e => {
+                                    that.$message({'message': e.response.data.detail, 'type': 'error'});
+                                });
                             }
 
                         }
@@ -250,25 +247,21 @@
             },
             get_file: function () {
                 const that = this;
-                axios.post('?code=' + this.code).then(function (response) {
-                    if (response.data.code === 404) {
-                        that.$message({
-                            message: response.data.msg,
-                            type: 'error'
-                        });
-                    } else {
-                        that.files.push(response.data.data);
-                        that.$message({
-                            message: response.data.msg,
-                            type: 'success'
-                        });
-                        that.quDrawer = true;
-                    }
+                axios.post('?code=' + this.code).then(response => {
+                    that.files.push(response.data.data);
+                    that.$message({
+                        message: response.data.msg,
+                        type: 'success'
+                    });
+                    that.quDrawer = true;
                     that.code = '';
-                    that.inout_disable = false
-                }).catch(function (error) {
-                    console.log(error);
+                }).catch(e => {
+                    that.$message({
+                        message: e.response.data.detail,
+                        type: 'error'
+                    });
                 });
+                that.inout_disable = false
             },
             inputNumber: function (number) {
                 if (number === 'C') {
@@ -286,18 +279,18 @@
                 }
             },
             successUpload(response, file, fileList) {
-                if (response.code === 200) {
-                    this.$message({
-                        message: response.msg,
-                        type: 'success'
-                    });
-                    this.files.push(response.data);
-                } else {
-                    this.$message({
-                        message: response.msg,
-                        type: 'error'
-                    });
-                }
+                this.$message({
+                    message: response.msg,
+                    type: 'success'
+                });
+                this.files.push(response.data);
+            },
+            errorUpload(error, file, fileList){
+                e = JSON.parse(error.message)
+                this.$message({
+                    message: e.detail,
+                    type: 'error'
+                });
             },
             qrcodeUrl(file) {
                 return 'https://api.qrserver.com/v1/create-qr-code/?data=' + window.location.origin + '/?code=' + file.code
