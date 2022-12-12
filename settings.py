@@ -25,3 +25,5 @@ TITLE = config('TITLE', cast=str, default="文件快递柜")
 DESCRIPTION = config('DESCRIPTION', cast=str, default="FileCodeBox，文件快递柜，口令传送箱，匿名口令分享文本，文件等文件")
 
 KEYWORDS = config('KEYWORDS', cast=str, default="FileCodeBox，文件快递柜，口令传送箱，匿名口令分享文本，文件等文件")
+
+STORAGE_ENGINE = config('STORAGE_ENGINE', cast=str, default="filesystem")
