@@ -1,7 +1,7 @@
 FROM python:3.9.5
 LABEL author="Lan"
 LABEL email="vast@tom.com"
-LABEL version="1.4.4"
+LABEL version="1.5.4"
 
 
 COPY . /app
