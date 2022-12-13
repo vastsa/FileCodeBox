@@ -119,7 +119,8 @@ KEYWORDS=FileCodeBox，文件快递柜，口令传送箱，匿名口令分享文
 
 ### Docker部署
 ```bash
-docker run -d --restart=always -p 12345:12345 -v /opt/FileCodeBox/.env:/app/.env -v /opt/FileCodeBox/static/upload:/app/static/upload -v /opt/FileCodeBox/database.db:/app/database.db  lanol/filecodebox:latest```
+docker run -d --restart=always -p 12345:12345 -v /opt/FileCodeBox/.env:/app/.env -v /opt/FileCodeBox/static/upload:/app/static/upload --name filecodebox lanol/filecodebox:latest
+```
 ### Docker自己构建部署
 
 ```bash
