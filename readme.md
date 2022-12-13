@@ -12,8 +12,7 @@
 - [x] 分享文件：多种上传方式供你选择
 - [x] 分享文本：直接复制粘贴直接上传
 - [x] 防爆破：错误五次拉黑十分钟
-- [x] 完全匿名：不记录任何信息
-- [x] 无需注册：无需注册，无需登录
+- [x] 完全匿名：不记录任何信息，无需注册，无需登录
 - [x] Sqlite3数据库：无需安装数据库
 - [x] 可以加get参数code，这样打开就会读取取件码如：http://host?code=12345
 - [x] 管理面板：简单列表页删除违规文件
@@ -119,6 +118,10 @@ KEYWORDS=FileCodeBox，文件快递柜，口令传送箱，匿名口令分享文
 2. 然后你自己看着填吧
 
 ### Docker部署
+```bash
+docker run -d --restart=always -v /opt/FileCodeBox/:/app -p 12345:12345 --name="filecodebox" lanol/filecodebox:V1.5.1
+```
+### Docker自己构建部署
 
 ```bash
 mkdir "/opt/FileCodeBox"
