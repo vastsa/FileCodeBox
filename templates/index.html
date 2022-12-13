@@ -306,8 +306,9 @@
                 }
             },
             successUpload(response, file, fileList) {
+                console.log(response)
                 this.$message({
-                    message: response.msg,
+                    message: response.detail,
                     type: 'success'
                 });
                 this.files.unshift(response.data);

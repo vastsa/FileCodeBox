@@ -1,7 +1,7 @@
 media/
 logs/
 .idea
-/static/upload
+/data
 __pycache__/
 *.py[cod]
 *$py.class
@@ -111,7 +111,7 @@ celerybeat.pid
 *.sage.py
 
 # Environments
-.env
+data/.env
 .venv
 env/
 venv/
@@ -150,6 +150,6 @@ for_test.py
 .html
 /evaluate/temp.py
 /evaluation/back.json
-.env*
+data/.env
 .backup/
 /cloc-1.64.exe

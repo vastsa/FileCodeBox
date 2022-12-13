@@ -23,7 +23,7 @@ class FileSystemStorage:
         path = self.DATA_ROOT / f"upload/{now.year}/{now.month}/{now.day}/"
         if not path.exists():
             path.mkdir(parents=True)
-        text = f"{self.STATIC_URL}/{(path / f'{key}.{ext}').relative_to(self.DATA_ROOT).relative_to(self.DATA_ROOT)}"
+        text = f"{self.STATIC_URL}/{(path / f'{key}.{ext}').relative_to(self.DATA_ROOT)}"
         return text
 
     @staticmethod

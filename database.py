@@ -1,15 +1,12 @@
 import datetime
-
 from alembic import command
 from alembic.config import Config
 from sqlalchemy import Boolean, Column, Integer, String, DateTime
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.ext.asyncio import create_async_engine
 from sqlalchemy.ext.asyncio.session import AsyncSession
-
 import settings
-
-engine = create_async_engine(f"sqlite+aiosqlite:///{settings.DATABASE_FILE}")
+engine = create_async_engine(settings.DATABASE_URL)
 
 Base = declarative_base()
 
