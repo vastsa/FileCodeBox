@@ -3,7 +3,7 @@ import uuid
 import asyncio
 from pathlib import Path
 
-from fastapi import FastAPI, Depends, UploadFile, Form, File, HTTPException, BackgroundTasks
+from fastapi import FastAPI, Depends, UploadFile, Form, File, HTTPException, BackgroundTasks, Header
 from starlette.responses import HTMLResponse, FileResponse
 from starlette.staticfiles import StaticFiles
 
@@ -122,9 +122,11 @@ async def index(code: str, ip: str = Depends(error_ip_limit), s: AsyncSession = 
 
 
 @app.post('/share')
-async def share(background_tasks: BackgroundTasks, text: str = Form(default=None), style: str = Form(default='2'),
-                value: int = Form(default=1), file: UploadFile = File(default=None), ip: str = Depends(upload_ip_limit),
-                s: AsyncSession = Depends(get_session)):
+async def share(background_tasks: BackgroundTasks, pwd: str = Header(default=None), text: str = Form(default=None),
+                style: str = Form(default='2'), value: int = Form(default=1), file: UploadFile = File(default=None),
+                ip: str = Depends(upload_ip_limit), s: AsyncSession = Depends(get_session)):
+    if not settings.ENABLE_UPLOAD and pwd != settings.ADMIN_PASSWORD:
+        raise HTTPException(status_code=403, detail="上传功能已关闭")
     code = await get_code(s)
     if style == '2':
         if value > 7:

@@ -15,6 +15,8 @@ DATABASE_URL = config('DATABASE_URL', cast=str, default=f"sqlite+aiosqlite:///{D
 DATA_ROOT = './data/' + config('DATA_ROOT', cast=str, default=f"static")
 # 静态文件夹URL
 STATIC_URL = config('STATIC_URL', cast=str, default="/static")
+# 开启上传
+ENABLE_UPLOAD = config('ENABLE_UPLOAD', cast=bool, default=False)
 # 错误次数
 ERROR_COUNT = config('ERROR_COUNT', cast=int, default=5)
 # 错误限制分钟数

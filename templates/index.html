@@ -11,7 +11,7 @@
     <meta name="description" content="{{description}}"/>
     <meta name="keywords" content="{{keywords}}"/>
     <meta name="generator" content="FileCodeBox"/>
-    <meta name="template" content="Lan-V1.5.1"/>
+    <meta name="template" content="Lan-V1.5.4"/>
     <style>
         .qu .el-button {
             width: 100px;
@@ -102,6 +102,7 @@
                         multiple
                         style="margin: 1rem 0;"
                         :data="uploadData"
+                        :headers="{'pwd':pwd}"
                         :on-success="successUpload"
                         :on-error="errorUpload"
                 >
@@ -194,6 +195,7 @@
                 files: [],
                 pageNum: 0,
                 inputDisable: false,
+                pwd: localStorage.getItem('pwd') || '',
                 uploadData: {
                     style: '2',
                     type: '1',
@@ -295,7 +297,8 @@
                 } else {
                     this.http('post', '/share', this.uploadData, {
                         headers: {
-                            'Content-Type': 'multipart/form-data'
+                            'Content-Type': 'multipart/form-data',
+                            'pwd': this.pwd
                         }
                     }).then(res => {
                         this.files.unshift(res.data);
@@ -306,7 +309,6 @@
                 }
             },
             successUpload(response, file, fileList) {
-                console.log(response)
                 this.$message({
                     message: response.detail,
                     type: 'success'

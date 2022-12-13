@@ -5,7 +5,7 @@
 
 ---
 
-[English](./README_EN.md) | [简体中文](./README.md)
+[简体中文](./readme.md) | [English](./readme_en.md)
 
 ## Main features
 
@@ -18,6 +18,23 @@
 - [x] anonymous sharing: no registration, no login
 - [x] management Panel: View all files and delete them
 - [x] one-click deployment: docker one-click deployment
+
+## Future Plan
+
+December 14, 2022
+This project is mainly light-weight, mainly single-user, offline environment, so there is no need to add too many
+things, so in fact, the basic functions of this project have been completed, and the rest is to maintain and improve the
+existing functions.
+
+No new major functions will be added. If there are new functions, it will be our Pro version. Of course, it will
+continue to be open source. It is an honor to be open source with @veoco. I learned from his code Many, I basically used
+the Django set before, and only used Fastapi. Many of his writing methods have benefited me a lot, and I have a deeper
+understanding of Fastapi, so I will also use Fastapi in the Pro version .
+
+According to some current feedback, I hope to add multi-user functions and multi-storage engines, etc. Welcome to
+continue to give comments and join us in joint development.
+
+If you have better ideas and suggestions, welcome to file an issue.
 
 ## Preview
 
@@ -113,3 +130,12 @@ KEYWORDS=FileCodeBox，文件快递柜，口令传送箱，匿名口令分享文
 # 存储引擎
 STORAGE_ENGINE=filesystem
 ```
+
+## Status
+
+![Alt](https://repobeats.axiom.co/api/embed/7a6c92f1d96ee57e6fb67f0df371528397b0c9ac.svg "Repobeats analytics image")
+
+## Disclaimer
+
+this project is open source for learning only and cannot be used for any illegal purposes. Otherwise, you will be
+responsible for the consequences and have nothing to do with yourself. Please keep the project address. Thank you.
