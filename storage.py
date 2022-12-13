@@ -23,18 +23,19 @@ class FileSystemStorage:
         path = self.DATA_ROOT / f"upload/{now.year}/{now.month}/{now.day}/"
         if not path.exists():
             path.mkdir(parents=True)
-        filepath = path / f'{key}.{ext}'
-        text = f"{self.STATIC_URL}/{filepath.relative_to(self.DATA_ROOT)}"
+        text = f"{self.STATIC_URL}/{(path / f'{key}.{ext}').relative_to(self.DATA_ROOT).relative_to(self.DATA_ROOT)}"
         return text
 
-    async def get_size(self, file: UploadFile):
+    @staticmethod
+    async def get_size(file: UploadFile):
         f = file.file
         f.seek(0, os.SEEK_END)
         size = f.tell()
         f.seek(0, os.SEEK_SET)
         return size
 
-    def _save(self, filepath, file: BinaryIO):
+    @staticmethod
+    def _save(filepath, file: BinaryIO):
         with open(filepath, 'wb') as f:
             chunk_size = 256 * 1024
             chunk = file.read(chunk_size)

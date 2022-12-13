@@ -1,6 +1,5 @@
 import datetime
 import uuid
-import random
 import asyncio
 from pathlib import Path
 
@@ -8,12 +7,12 @@ from fastapi import FastAPI, Depends, UploadFile, Form, File, HTTPException, Bac
 from starlette.responses import HTMLResponse, FileResponse
 from starlette.staticfiles import StaticFiles
 
-from sqlalchemy import or_, select, update, delete
+from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio.session import AsyncSession
 
 import settings
-from database import get_session, Codes, init_models, engine
-from storage import STORAGE_ENGINE
+from utils import delete_expire_files, storage, get_code
+from database import get_session, Codes, init_models
 from depends import admin_required, IPRateLimit
 
 app = FastAPI(debug=settings.DEBUG)
@@ -24,8 +23,6 @@ if not DATA_ROOT.exists():
 
 STATIC_URL = settings.STATIC_URL
 app.mount(STATIC_URL, StaticFiles(directory=DATA_ROOT), name="static")
-
-storage = STORAGE_ENGINE[settings.STORAGE_ENGINE]()
 
 
 @app.on_event('startup')
@@ -44,31 +41,6 @@ admin_html = open('templates/admin.html', 'r', encoding='utf-8').read() \
     .replace('{{keywords}}', settings.KEYWORDS)
 
 ip_limit = IPRateLimit()
-
-
-async def delete_expire_files():
-    while True:
-        async with AsyncSession(engine, expire_on_commit=False) as s:
-            query = select(Codes).where(or_(Codes.exp_time < datetime.datetime.now(), Codes.count == 0))
-            exps = (await s.execute(query)).scalars().all()
-            files = []
-            exps_ids = []
-            for exp in exps:
-                if exp.type != "text":
-                    files.append(exp.text)
-                exps_ids.append(exp.id)
-            await storage.delete_files(files)
-            query = delete(Codes).where(Codes.id.in_(exps_ids))
-            await s.execute(query)
-            await s.commit()
-        await asyncio.sleep(random.randint(60, 300))
-
-
-async def get_code(s: AsyncSession):
-    code = random.randint(10000, 99999)
-    while (await s.execute(select(Codes.id).where(Codes.code == code))).scalar():
-        code = random.randint(10000, 99999)
-    return str(code)
 
 
 @app.get(f'/{settings.ADMIN_ADDRESS}')
@@ -138,7 +110,8 @@ async def index(code: str, ip: str = Depends(ip_limit), s: AsyncSession = Depend
 
 @app.post('/share')
 async def share(background_tasks: BackgroundTasks, text: str = Form(default=None), style: str = Form(default='2'),
-                value: int = Form(default=1), file: UploadFile = File(default=None), s: AsyncSession = Depends(get_session)):
+                value: int = Form(default=1), file: UploadFile = File(default=None),
+                s: AsyncSession = Depends(get_session)):
     code = await get_code(s)
     if style == '2':
         if value > 7:
@@ -162,20 +135,11 @@ async def share(background_tasks: BackgroundTasks, text: str = Form(default=None
         background_tasks.add_task(storage.save_file, file, _text)
     else:
         size, _text, _type, name = len(text), text, 'text', '文本分享'
-    info = Codes(
-        code=code,
-        text=_text,
-        size=size,
-        type=_type,
-        name=name,
-        count=exp_count,
-        exp_time=exp_time,
-        key=key
-    )
+    info = Codes(code=code, text=_text, size=size, type=_type, name=name, count=exp_count, exp_time=exp_time, key=key)
     s.add(info)
     await s.commit()
     return {
-        'detail': '分享成功，请点击文件箱查看取件码',
+        'detail': '分享成功，请点击取件码按钮查看上传列表',
         'data': {'code': code, 'key': key, 'name': name, 'text': _text}
     }
 
