@@ -90,18 +90,36 @@ vi .env
 将下列字段内容替换成你自己的
 
 ```dotenv
-DEBUG=False
+# 端口
+PORT=12345
+# Sqlite数据库文件
 DATABASE_URL=sqlite+aiosqlite:///database.db
+# 静态文件夹
 DATA_ROOT=./static
+# 静态文件夹URL
 STATIC_URL=/static
+# 错误次数
 ERROR_COUNT=5
+# 错误限制分钟数
 ERROR_MINUTE=10
+# 上传次数
+UPLOAD_COUNT=60
+# 上传限制分钟数
+UPLOAD_MINUTE=1
+# 管理地址
 ADMIN_ADDRESS=admin
+# 管理密码
 ADMIN_PASSWORD=admin
+# 文件大小限制，默认10MB
 FILE_SIZE_LIMIT=10
+# 网站标题
 TITLE=文件快递柜
+# 网站描述
 DESCRIPTION=FileCodeBox，文件快递柜，口令传送箱，匿名口令分享文本，文件，图片，视频，音频，压缩包等文件
+# 网站关键词
 KEYWORDS=FileCodeBox，文件快递柜，口令传送箱，匿名口令分享文本，文件，图片，视频，音频，压缩包等文件
+# 存储引擎
+STORAGE_ENGINE=filesystem
 ```
 
 ### 服务端部署
