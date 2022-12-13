@@ -76,7 +76,7 @@ async def admin():
 async def admin_post(s: AsyncSession = Depends(get_session)):
     query = select(Codes)
     codes = (await s.execute(query)).scalars().all()
-    return {'msg': '查询成功', 'data': codes}
+    return {'detail': '查询成功', 'data': codes}
 
 
 @app.delete(f'/{settings.ADMIN_ADDRESS}', dependencies=[Depends(admin_required)])
@@ -86,7 +86,7 @@ async def admin_delete(code: str, s: AsyncSession = Depends(get_session)):
     await storage.delete_file({'type': file.type, 'text': file.text})
     await s.delete(file)
     await s.commit()
-    return {'msg': '删除成功'}
+    return {'detail': '删除成功'}
 
 
 @app.get('/')
@@ -101,7 +101,7 @@ async def get_file(code: str, s: AsyncSession = Depends(get_session)):
     if not info:
         raise HTTPException(status_code=404, detail="口令不存在")
     if info.type == 'text':
-        return {'msg': '查询成功', 'data': info.text}
+        return {'detail': '查询成功', 'data': info.text}
     else:
         filepath = await storage.get_filepath(info.text)
         return FileResponse(filepath, filename=info.name)
@@ -112,21 +112,19 @@ async def index(code: str, ip: str = Depends(ip_limit), s: AsyncSession = Depend
     query = select(Codes).where(Codes.code == code)
     info = (await s.execute(query)).scalars().first()
     if not info:
-        error_count = ip_limit.add_ip(ip)
-        raise HTTPException(status_code=404, detail=f"取件码错误，错误{settings.ERROR_COUNT - error_count}次将被禁止10分钟")
+        error_count = settings.ERROR_COUNT - ip_limit.add_ip(ip)
+        raise HTTPException(status_code=404, detail=f"取件码错误，错误{error_count}次将被禁止10分钟")
     if info.exp_time < datetime.datetime.now() or info.count == 0:
         await storage.delete_file({'type': info.type, 'text': info.text})
         await s.delete(info)
         await s.commit()
         raise HTTPException(status_code=404, detail="取件码已过期，请联系寄件人")
-    count = info.count - 1
-    query = update(Codes).where(Codes.id == info.id).values(count=count)
-    await s.execute(query)
+    await s.execute(update(Codes).where(Codes.id == info.id).values(count=info.count - 1))
     await s.commit()
     if info.type != 'text':
         info.text = f'/select?code={code}'
     return {
-        'msg': '取件成功，请点击"取"查看',
+        'detail': '取件成功，请点击"取"查看',
         'data': {'type': info.type, 'text': info.text, 'name': info.name, 'code': info.code}
     }
 
@@ -170,7 +168,7 @@ async def share(text: str = Form(default=None), style: str = Form(default='2'), 
     s.add(info)
     await s.commit()
     return {
-        'msg': '分享成功，请点击文件箱查看取件码',
+        'detail': '分享成功，请点击文件箱查看取件码',
         'data': {'code': code, 'key': key, 'name': name, 'text': _text}
     }
 

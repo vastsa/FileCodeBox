@@ -6,11 +6,14 @@
           content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
     <link rel="stylesheet" href="/static/assert/index.css">
+    <link rel="shortcut icon" href="/static/assert/favicon.ico" type="image/x-icon"/>
     <title>后台管理-{{title}}</title>
     <meta name="description" content="{{description}}"/>
     <meta name="keywords" content="{{keywords}}"/>
     <meta name="generator" content="FileCodeBox"/>
     <meta name="template" content="Lan"/>
+    <script src="/static/assert/vue.min.js"></script>
+    <script src="/static/assert/index.js"></script>
 </head>
 <body>
 <div id="app">
@@ -57,8 +60,6 @@
 </div>
 
 </body>
-<script src="/static/assert/vue.min.js"></script>
-<script src="/static/assert/index.js"></script>
 <script src="/static/assert/axios.min.js"></script>
 <script>
     new Vue({
@@ -99,7 +100,7 @@
                 axios.delete('?code=' + code, {'headers': {'pwd': this.pwd}}).then(res => {
                     this.files = this.files.filter(item => item.code !== code)
                     this.$message({
-                        message: res.data.msg,
+                        message: res.data.detail,
                         type: 'success'
                     });
                 })
