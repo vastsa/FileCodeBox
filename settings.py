@@ -7,7 +7,7 @@ DEBUG = config('DEBUG', cast=bool, default=False)
 # 端口
 PORT = config('PORT', cast=int, default=12345)
 # Sqlite数据库文件
-DATABASE_URL = config('DATABASE_URL', cast=str, default="sqlite+aiosqlite:///database.db")
+DATABASE_FILE = config('DATABASE_URL', cast=str, default="database.db")
 # 静态文件夹
 DATA_ROOT = config('DATA_ROOT', cast=str, default="./static")
 # 静态文件夹URL
