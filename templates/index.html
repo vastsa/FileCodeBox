@@ -37,7 +37,7 @@
     <el-row v-if="pageNum === 0" class="qu" style="width:400px;margin: 6vh auto 0 auto">
         <el-card style="padding-bottom: 1rem">
             <el-col :span="24">
-                <el-input autofocus @input="listenInput" clearable v-model:value="code" maxlength="5"
+                <el-input autofocus @change="changeInput" clearable v-model:value="code" maxlength="5"
                           :disabled="inputDisable" placeholder="请输入五位取件码">
                 </el-input>
             </el-col>
@@ -236,6 +236,14 @@
                 }
             });
         },
+        watch: {
+            code: function (code) {
+                if (code.length === 5) {
+                    this.inout_disable = true;
+                    this.getFile();
+                }
+            }
+        },
         methods: {
             http: function (method, url, data = {}, config = {}) {
                 return new Promise((resolve, reject) => {
@@ -274,10 +282,9 @@
                 if (this.code.length < 5) {
                     this.code += value;
                 }
-                if (this.code.length === 5) {
-                    this.inout_disable = true;
-                    this.getFile();
-                }
+            },
+            changeInput: function (value) {
+                this.code = value;
             },
             toUploadData: function () {
                 if (this.uploadData.text === '' && this.uploadData.file === null) {
