@@ -46,16 +46,13 @@ class FileSystemStorage:
         filepath = await self.get_filepath(text)
         await asyncio.to_thread(self._save, filepath, file.file)
 
-    async def delete_file(self, file):
-        # 是文件就删除
-        if file['type'] != 'text':
-            filepath = self.DATA_ROOT / file['text'].lstrip(self.STATIC_URL + '/')
-            await asyncio.to_thread(os.remove, filepath)
+    async def delete_file(self, text: str):
+        filepath = await self.get_filepath(text)
+        await asyncio.to_thread(os.remove, filepath)
 
-    async def delete_files(self, files):
-        for file in files:
-            if file['type'] != 'text':
-                await self.delete_file(file)
+    async def delete_files(self, texts):
+        tasks = [self.delete_file(text) for text in texts]
+        await asyncio.gather(*tasks)
 
 
 STORAGE_ENGINE = {

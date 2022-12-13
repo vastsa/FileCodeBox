@@ -51,9 +51,13 @@ async def delete_expire_files():
         async with AsyncSession(engine, expire_on_commit=False) as s:
             query = select(Codes).where(or_(Codes.exp_time < datetime.datetime.now(), Codes.count == 0))
             exps = (await s.execute(query)).scalars().all()
-            files = [{'type': old.type, 'text': old.text} for old in exps]
+            files = []
+            exps_ids = []
+            for exp in exps:
+                if exp.type != "text":
+                    files.append(exp.text)
+                exps_ids.append(exp.id)
             await storage.delete_files(files)
-            exps_ids = [exp.id for exp in exps]
             query = delete(Codes).where(Codes.id.in_(exps_ids))
             await s.execute(query)
             await s.commit()
@@ -83,9 +87,11 @@ async def admin_post(s: AsyncSession = Depends(get_session)):
 async def admin_delete(code: str, s: AsyncSession = Depends(get_session)):
     query = select(Codes).where(Codes.code == code)
     file = (await s.execute(query)).scalars().first()
-    await storage.delete_file({'type': file.type, 'text': file.text})
-    await s.delete(file)
-    await s.commit()
+    if file:
+        if file.type != 'text':
+            await storage.delete_file(file.text)
+        await s.delete(file)
+        await s.commit()
     return {'detail': '删除成功'}
 
 
@@ -115,7 +121,8 @@ async def index(code: str, ip: str = Depends(ip_limit), s: AsyncSession = Depend
         error_count = settings.ERROR_COUNT - ip_limit.add_ip(ip)
         raise HTTPException(status_code=404, detail=f"取件码错误，错误{error_count}次将被禁止10分钟")
     if info.exp_time < datetime.datetime.now() or info.count == 0:
-        await storage.delete_file({'type': info.type, 'text': info.text})
+        if info.type != "text":
+            await storage.delete_file(info.text)
         await s.delete(info)
         await s.commit()
         raise HTTPException(status_code=404, detail="取件码已过期，请联系寄件人")
