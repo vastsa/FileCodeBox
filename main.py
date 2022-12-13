@@ -4,7 +4,7 @@ import random
 import asyncio
 from pathlib import Path
 
-from fastapi import FastAPI, Depends, UploadFile, Form, File, HTTPException
+from fastapi import FastAPI, Depends, UploadFile, Form, File, HTTPException, BackgroundTasks
 from starlette.responses import HTMLResponse, FileResponse
 from starlette.staticfiles import StaticFiles
 
@@ -130,8 +130,8 @@ async def index(code: str, ip: str = Depends(ip_limit), s: AsyncSession = Depend
 
 
 @app.post('/share')
-async def share(text: str = Form(default=None), style: str = Form(default='2'), value: int = Form(default=1),
-                file: UploadFile = File(default=None), s: AsyncSession = Depends(get_session)):
+async def share(background_tasks: BackgroundTasks, text: str = Form(default=None), style: str = Form(default='2'),
+                value: int = Form(default=1), file: UploadFile = File(default=None), s: AsyncSession = Depends(get_session)):
     code = await get_code(s)
     if style == '2':
         if value > 7:
@@ -148,11 +148,11 @@ async def share(text: str = Form(default=None), style: str = Form(default='2'), 
         exp_count = -1
     key = uuid.uuid4().hex
     if file:
-        file_bytes = await file.read()
-        size = len(file_bytes)
+        size = await storage.get_size(file)
         if size > settings.FILE_SIZE_LIMIT:
             raise HTTPException(status_code=400, detail="文件过大")
-        _text, _type, name = await storage.save_file(file, file_bytes, key), file.content_type, file.filename
+        _text, _type, name = await storage.get_text(file, key), file.content_type, file.filename
+        background_tasks.add_task(storage.save_file, file, _text)
     else:
         size, _text, _type, name = len(text), text, 'text', '文本分享'
     info = Codes(
