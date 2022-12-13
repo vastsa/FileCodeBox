@@ -161,4 +161,4 @@ async def share(background_tasks: BackgroundTasks, text: str = Form(default=None
 if __name__ == '__main__':
     import uvicorn
 
-    uvicorn.run('main:app', host='0.0.0.0', port=settings.PORT, debug=settings.DEBUG)
+    uvicorn.run('main:app', host='0.0.0.0', port=settings.PORT, reload=settings.DEBUG)
