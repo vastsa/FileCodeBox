@@ -8,7 +8,9 @@ DEBUG = config('DEBUG', cast=bool, default=False)
 # 端口
 PORT = config('PORT', cast=int, default=12345)
 # Sqlite数据库文件
-DATABASE_URL = config('DATABASE_URL', cast=str, default="sqlite+aiosqlite:///data/database.db")
+DATABASE_FILE = config('DATABASE_FILE', cast=str, default='data/database.db')
+# Sqlite套接字
+DATABASE_URL = config('DATABASE_URL', cast=str, default=f"sqlite+aiosqlite:///{DATABASE_FILE}")
 # 数据存储文件夹，文件就不暴露在静态资源里面了
 DATA_ROOT = './data/' + config('DATA_ROOT', cast=str, default=f"static")
 # 静态文件夹URL
