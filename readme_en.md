@@ -1,27 +1,27 @@
 <div style="text-align: center">
-<h1>文件快递柜</h1>
-<p><em>匿名口令分享文本，文件，像拿快递一样取文件</em></p>
+<h1>File Express Cabinet </h1>
+<p><em>share text and files with anonymous passwords, and take files like express delivery </em></p>
 </div>
 
 ---
 
-[简体中文](./readme.md) | [English](./readme_en.md)
+[English](./README_EN.md) | [简体中文](./README.md)
 
-## 主要特色
+## Main features
 
-- [x] 轻量简洁：Fastapi+Sqlite3+Vue2+ElementUI
-- [x] 轻松上传：复制粘贴，拖拽选择
-- [x] 多种类型：文本，文件
-- [x] 防止爆破：错误次数限制
-- [x] 防止滥用：IP限制上传次数
-- [x] 口令分享：随机口令，存取文件，自定义次数以及有效期
-- [x] 匿名分享：无需注册，无需登录
-- [x] 管理面板：查看所有文件，删除文件
-- [x] 一键部署：docker一键部署
+- [x] lightweight and simple: Fastapi + Sqlite3 + Vue2 + ElementUI
+- [x] easy upload: copy and paste, drag and drop
+- [x] multiple types: Text, File
+- [x] explosion Prevention: error count limit
+- [x] prevent abuse: IP address limits the number of uploads
+- [x] password sharing: random password, file access, custom times, and validity period
+- [x] anonymous sharing: no registration, no login
+- [x] management Panel: View all files and delete them
+- [x] one-click deployment: docker one-click deployment
 
-## 预览
+## Preview
 
-### 寄件
+### Send
 
 <table style="width: 100%">
 <tr style="width: 100%">
@@ -39,7 +39,7 @@
 </tr>
 </table>
 
-### 取件
+### Receive
 
 <table style="width: 100%">
 <tr style="width: 100%">
@@ -57,25 +57,27 @@
 </tr>
 </table>
 
-### 管理
+### Manage
 
 ![管理](https://raw.githubusercontent.com/vastsa/FileCodeBox/master/images/img_7.png)
 
-## 部署方式
+## Deployment method
 
-### Docker一键部署
+### One-click Docker deployment
 
 ```bash
 docker run -d --restart=always -p 12345:12345 -v /opt/FileCodeBox/:/app/data --name filecodebox lanol/filecodebox:latest
 ```
 
-### 其他方式
+### Other methods
 
 请参考->[部署文档](https://www.yuque.com/lxyo/work/zd0kvzy7fofx6w7v)
 
-## 配置文件
+## Configuration file
 
-如果需要修改配置，可以将该文件放在`/opt/FileCodeBox/`目录下，并命名为`.env`，然后重启容器即可。
+if you need to modify the configuration, you can put the file in `/opt/FileCodeBox/` directory and name it `.env` , and
+then
+restart the container.
 
 ```bash
 
