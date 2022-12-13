@@ -5,14 +5,22 @@ from sqlalchemy import or_, select, delete
 from sqlalchemy.ext.asyncio.session import AsyncSession
 import settings
 from database import Codes, engine
+from depends import IPRateLimit
 from storage import STORAGE_ENGINE
 
 storage = STORAGE_ENGINE[settings.STORAGE_ENGINE]()
+
+# 错误IP限制器
+error_ip_limit = IPRateLimit(settings.ERROR_COUNT, settings.ERROR_MINUTE)
+# 上传文件限制器
+upload_ip_limit = IPRateLimit(settings.UPLOAD_COUNT, settings.UPLOAD_MINUTE)
 
 
 async def delete_expire_files():
     while True:
         async with AsyncSession(engine, expire_on_commit=False) as s:
+            await error_ip_limit.remove_expired_ip()
+            await upload_ip_limit.remove_expired_ip()
             query = select(Codes).where(or_(Codes.exp_time < datetime.datetime.now(), Codes.count == 0))
             exps = (await s.execute(query)).scalars().all()
             files = []
@@ -25,7 +33,7 @@ async def delete_expire_files():
             query = delete(Codes).where(Codes.id.in_(exps_ids))
             await s.execute(query)
             await s.commit()
-        await asyncio.sleep(random.randint(60, 300))
+        await asyncio.sleep(random.randint(2, 2))
 
 
 async def get_code(s: AsyncSession):
