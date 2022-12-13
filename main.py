@@ -21,8 +21,7 @@ DATA_ROOT = Path(settings.DATA_ROOT)
 if not DATA_ROOT.exists():
     DATA_ROOT.mkdir(parents=True)
 
-STATIC_URL = settings.STATIC_URL
-app.mount(STATIC_URL, StaticFiles(directory=DATA_ROOT), name="static")
+app.mount(settings.STATIC_URL, StaticFiles(directory=DATA_ROOT), name="static")
 
 
 @app.on_event('startup')
