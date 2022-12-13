@@ -1,15 +1,16 @@
 from starlette.config import Config
 
 # 配置文件.env
-config = Config(".env")
+# 请将.env移动至data目录，方便docker部署
+config = Config("data/.env")
 # 是否开启DEBUG模式
 DEBUG = config('DEBUG', cast=bool, default=False)
 # 端口
 PORT = config('PORT', cast=int, default=12345)
 # Sqlite数据库文件
-DATABASE_URL = config('DATABASE_URL', cast=str, default="sqlite+aiosqlite:///database.db")
-# 静态文件夹
-DATA_ROOT = config('DATA_ROOT', cast=str, default="./static")
+DATABASE_URL = config('DATABASE_URL', cast=str, default="sqlite+aiosqlite:///data/database.db")
+# 数据存储文件夹，文件就不暴露在静态资源里面了
+DATA_ROOT = './data/' + config('DATA_ROOT', cast=str, default=f"static")
 # 静态文件夹URL
 STATIC_URL = config('STATIC_URL', cast=str, default="/static")
 # 错误次数
