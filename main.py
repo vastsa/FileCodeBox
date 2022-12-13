@@ -4,8 +4,7 @@ import random
 import asyncio
 from pathlib import Path
 
-from fastapi import FastAPI, Depends, UploadFile, Form, File
-from starlette.requests import Request
+from fastapi import FastAPI, Depends, UploadFile, Form, File, HTTPException
 from starlette.responses import HTMLResponse, FileResponse
 from starlette.staticfiles import StaticFiles
 
@@ -15,6 +14,7 @@ from sqlalchemy.ext.asyncio.session import AsyncSession
 import settings
 from database import get_session, Codes, init_models, engine
 from storage import STORAGE_ENGINE
+from depends import admin_required, IPRateLimit
 
 app = FastAPI(debug=settings.DEBUG)
 
@@ -43,7 +43,7 @@ admin_html = open('templates/admin.html', 'r', encoding='utf-8').read() \
     .replace('{{description}}', settings.DESCRIPTION) \
     .replace('{{keywords}}', settings.KEYWORDS)
 
-error_ip_count = {}
+ip_limit = IPRateLimit()
 
 
 async def delete_expire_files():
@@ -72,27 +72,21 @@ async def admin():
     return HTMLResponse(admin_html)
 
 
-@app.post(f'/{settings.ADMIN_ADDRESS}')
-async def admin_post(request: Request, s: AsyncSession = Depends(get_session)):
-    if request.headers.get('pwd') == settings.ADMIN_PASSWORD:
-        query = select(Codes)
-        codes = (await s.execute(query)).scalars().all()
-        return {'code': 200, 'msg': '查询成功', 'data': codes}
-    else:
-        return {'code': 404, 'msg': '密码错误'}
+@app.post(f'/{settings.ADMIN_ADDRESS}', dependencies=[Depends(admin_required)])
+async def admin_post(s: AsyncSession = Depends(get_session)):
+    query = select(Codes)
+    codes = (await s.execute(query)).scalars().all()
+    return {'msg': '查询成功', 'data': codes}
 
 
-@app.delete(f'/{settings.ADMIN_ADDRESS}')
-async def admin_delete(request: Request, code: str, s: AsyncSession = Depends(get_session)):
-    if request.headers.get('pwd') == settings.ADMIN_PASSWORD:
-        query = select(Codes).where(Codes.code == code)
-        file = (await s.execute(query)).scalars().first()
-        await storage.delete_file({'type': file.type, 'text': file.text})
-        await s.delete(file)
-        await s.commit()
-        return {'code': 200, 'msg': '删除成功'}
-    else:
-        return {'code': 404, 'msg': '密码错误'}
+@app.delete(f'/{settings.ADMIN_ADDRESS}', dependencies=[Depends(admin_required)])
+async def admin_delete(code: str, s: AsyncSession = Depends(get_session)):
+    query = select(Codes).where(Codes.code == code)
+    file = (await s.execute(query)).scalars().first()
+    await storage.delete_file({'type': file.type, 'text': file.text})
+    await s.delete(file)
+    await s.commit()
+    return {'msg': '删除成功'}
 
 
 @app.get('/')
@@ -100,52 +94,31 @@ async def index():
     return HTMLResponse(index_html)
 
 
-def check_ip(ip):
-    # 检查ip是否被禁止
-    if ip in error_ip_count:
-        if error_ip_count[ip]['count'] >= settings.ERROR_COUNT:
-            if error_ip_count[ip]['time'] + datetime.timedelta(minutes=settings.ERROR_MINUTE) > datetime.datetime.now():
-                return False
-            else:
-                error_ip_count.pop(ip)
-    return True
-
-
-def ip_error(ip):
-    ip_info = error_ip_count.get(ip, {'count': 0, 'time': datetime.datetime.now()})
-    ip_info['count'] += 1
-    error_ip_count[ip] = ip_info
-    return ip_info['count']
-
-
 @app.get('/select')
 async def get_file(code: str, s: AsyncSession = Depends(get_session)):
     query = select(Codes).where(Codes.code == code)
     info = (await s.execute(query)).scalars().first()
-    if info:
-        if info.type == 'text':
-            return {'code': code, 'msg': '查询成功', 'data': info.text}
-        else:
-            filepath = await storage.get_filepath(info.text)
-            return FileResponse(filepath, filename=info.name)
+    if not info:
+        raise HTTPException(status_code=404, detail="口令不存在")
+    if info.type == 'text':
+        return {'msg': '查询成功', 'data': info.text}
     else:
-        return {'code': 404, 'msg': '口令不存在'}
+        filepath = await storage.get_filepath(info.text)
+        return FileResponse(filepath, filename=info.name)
 
 
 @app.post('/')
-async def index(request: Request, code: str, s: AsyncSession = Depends(get_session)):
-    ip = request.client.host
-    if not check_ip(ip):
-        return {'code': 404, 'msg': '错误次数过多，请稍后再试'}
+async def index(code: str, ip: str = Depends(ip_limit), s: AsyncSession = Depends(get_session)):
     query = select(Codes).where(Codes.code == code)
     info = (await s.execute(query)).scalars().first()
     if not info:
-        return {'code': 404, 'msg': f'取件码错误，错误{settings.ERROR_COUNT - ip_error(ip)}次将被禁止10分钟'}
+        error_count = ip_limit.add_ip(ip)
+        raise HTTPException(status_code=404, detail=f"取件码错误，错误{settings.ERROR_COUNT - error_count}次将被禁止10分钟")
     if info.exp_time < datetime.datetime.now() or info.count == 0:
         await storage.delete_file({'type': info.type, 'text': info.text})
         await s.delete(info)
         await s.commit()
-        return {'code': 404, 'msg': '取件码已过期，请联系寄件人'}
+        raise HTTPException(status_code=404, detail="取件码已过期，请联系寄件人")
     count = info.count - 1
     query = update(Codes).where(Codes.id == info.id).values(count=count)
     await s.execute(query)
@@ -153,7 +126,6 @@ async def index(request: Request, code: str, s: AsyncSession = Depends(get_sessi
     if info.type != 'text':
         info.text = f'/select?code={code}'
     return {
-        'code': 200,
         'msg': '取件成功，请点击"取"查看',
         'data': {'type': info.type, 'text': info.text, 'name': info.name, 'code': info.code}
     }
@@ -165,12 +137,12 @@ async def share(text: str = Form(default=None), style: str = Form(default='2'), 
     code = await get_code(s)
     if style == '2':
         if value > 7:
-            return {'code': 404, 'msg': '最大有效天数为7天'}
+            raise HTTPException(status_code=400, detail="最大有效天数为7天")
         exp_time = datetime.datetime.now() + datetime.timedelta(days=value)
         exp_count = -1
     elif style == '1':
         if value < 1:
-            return {'code': 404, 'msg': '最小有效次数为1次'}
+            raise HTTPException(status_code=400, detail="最小有效次数为1次")
         exp_time = datetime.datetime.now() + datetime.timedelta(days=1)
         exp_count = value
     else:
@@ -181,7 +153,7 @@ async def share(text: str = Form(default=None), style: str = Form(default='2'), 
         file_bytes = await file.read()
         size = len(file_bytes)
         if size > settings.FILE_SIZE_LIMIT:
-            return {'code': 404, 'msg': '文件过大'}
+            raise HTTPException(status_code=400, detail="文件过大")
         _text, _type, name = await storage.save_file(file, file_bytes, key), file.content_type, file.filename
     else:
         size, _text, _type, name = len(text), text, 'text', '文本分享'
@@ -198,7 +170,6 @@ async def share(text: str = Form(default=None), style: str = Form(default='2'), 
     s.add(info)
     await s.commit()
     return {
-        'code': 200,
         'msg': '分享成功，请点击文件箱查看取件码',
         'data': {'code': code, 'key': key, 'name': name, 'text': _text}
     }

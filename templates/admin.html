@@ -87,28 +87,21 @@
         methods: {
             loginAdmin: function () {
                 axios.post('', {}, {'headers': {'pwd': this.pwd}}).then(res => {
-                    if (res.data.code === 200) {
-                        this.files = res.data.data;
-                        this.login = true;
-                        localStorage.setItem('pwd', this.pwd);
-                    } else {
-                        localStorage.clear()
-                        this.$message({
-                            message: res.data.msg,
-                            type: 'error'
-                        });
-                    }
-                })
+                    this.files = res.data.data;
+                    this.login = true;
+                    localStorage.setItem('pwd', this.pwd);
+                }).catch(e => {
+                    localStorage.clear()
+                    this.$message({'message': e.response.data.detail, 'type': 'error'});
+                });
             },
             deleteFile: function (code) {
                 axios.delete('?code=' + code, {'headers': {'pwd': this.pwd}}).then(res => {
-                    if (res.data.code === 200) {
-                        this.files = this.files.filter(item => item.code !== code)
-                        this.$message({
-                            message: res.data.msg,
-                            type: 'success'
-                        });
-                    }
+                    this.files = this.files.filter(item => item.code !== code)
+                    this.$message({
+                        message: res.data.msg,
+                        type: 'success'
+                    });
                 })
             },
         }
