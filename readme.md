@@ -34,6 +34,10 @@
 
 ## 预览
 
+### 例站
+
+[https://share.lanol.cn](https://share.lanol.cn)
+
 ### 寄件
 
 <table style="width: 100%">
