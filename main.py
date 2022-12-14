@@ -3,7 +3,7 @@ import uuid
 import asyncio
 from pathlib import Path
 
-from fastapi import FastAPI, Depends, UploadFile, Form, File, HTTPException, BackgroundTasks, Header
+from fastapi import FastAPI, Depends, UploadFile, Form, File, HTTPException, BackgroundTasks
 from starlette.responses import HTMLResponse, FileResponse
 from starlette.staticfiles import StaticFiles
 
@@ -16,7 +16,7 @@ from database import get_session, Codes, init_models
 from depends import admin_required
 
 # 实例化FastAPI
-app = FastAPI(debug=settings.DEBUG)
+app = FastAPI(debug=settings.DEBUG, docs_url=None, redoc_url=None)
 
 # 数据存储文件夹
 DATA_ROOT = Path(settings.DATA_ROOT)

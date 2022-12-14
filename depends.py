@@ -34,10 +34,10 @@ class IPRateLimit:
                     self.ips.pop(ip)
         return True
 
-    def add_ip(cls, ip):
-        ip_info = cls.ips.get(ip, {'count': 0, 'time': datetime.now()})
+    def add_ip(self, ip):
+        ip_info = self.ips.get(ip, {'count': 0, 'time': datetime.now()})
         ip_info['count'] += 1
-        cls.ips[ip] = ip_info
+        self.ips[ip] = ip_info
         return ip_info['count']
 
     async def remove_expired_ip(self):
