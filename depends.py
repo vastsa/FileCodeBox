@@ -46,7 +46,8 @@ class IPRateLimit:
                 self.ips.pop(ip)
 
     def __call__(self, request: Request):
-        ip = request.client.host
+        ip = request.headers.get('X-Real-IP', request.headers.get('X-Forwarded-For', request.client.host))
+        print(ip)
         if not self.check_ip(ip):
             raise HTTPException(status_code=400, detail=f"请求次数过多，请稍后再试")
         return ip
