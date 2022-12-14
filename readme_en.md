@@ -113,6 +113,8 @@ DATABASE_URL=sqlite+aiosqlite:///database.db
 DATA_ROOT=./static
 # 静态文件夹URL
 STATIC_URL=/static
+# 是否开启上传
+ENABLE_UPLOAD=true
 # 错误次数
 ERROR_COUNT=5
 # 错误限制分钟数
