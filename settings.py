@@ -17,6 +17,8 @@ DATA_ROOT = './data/' + config('DATA_ROOT', cast=str, default=f"static")
 STATIC_URL = config('STATIC_URL', cast=str, default="/static")
 # 开启上传
 ENABLE_UPLOAD = config('ENABLE_UPLOAD', cast=bool, default=False)
+# 最长天数
+MAX_DAYS = config('MAX_DAYS', cast=int, default=7)
 # 错误次数
 ERROR_COUNT = config('ERROR_COUNT', cast=int, default=5)
 # 错误限制分钟数

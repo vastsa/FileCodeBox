@@ -6,9 +6,13 @@ from fastapi import Header, HTTPException, Request
 import settings
 
 
-async def admin_required(pwd: Union[str, None] = Header(default=None)):
-    if not pwd or pwd != settings.ADMIN_PASSWORD:
-        raise HTTPException(status_code=401, detail="密码错误")
+async def admin_required(pwd: Union[str, None] = Header(default=None), request: Request = None):
+    if 'share' in request.url.path:
+        if pwd != settings.ADMIN_PASSWORD and not settings.ENABLE_UPLOAD:
+            raise HTTPException(status_code=403, detail='本站上传功能已关闭，仅管理员可用')
+    else:
+        if not pwd or pwd != settings.ADMIN_PASSWORD:
+            raise HTTPException(status_code=401, detail="密码错误，请重新登录")
 
 
 class IPRateLimit:
