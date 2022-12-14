@@ -89,13 +89,14 @@ docker run -d --restart=always -p 12345:12345 -v /opt/FileCodeBox/:/app/data --n
 
 ### Other methods
 
-请参考->[部署文档](https://www.yuque.com/lxyo/work/zd0kvzy7fofx6w7v)
+For reference only, historical version->[部署文档](https://www.yuque.com/lxyo/work/zd0kvzy7fofx6w7v)
 
 ## Configuration file
 
 if you need to modify the configuration, you can put the file in `/opt/FileCodeBox/` directory and name it `.env` , and
-then
-restart the container.
+then restart the container.
+If it is not Docker, you need to create a `data` folder in the same directory as the project, and then create a `.env`
+file
 
 ```bash
 

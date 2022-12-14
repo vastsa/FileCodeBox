@@ -84,13 +84,12 @@ docker run -d --restart=always -p 12345:12345 -v /opt/FileCodeBox/:/app/data --n
 
 ### 其他方式
 
-请参考->[部署文档](https://www.yuque.com/lxyo/work/zd0kvzy7fofx6w7v)
+仅供参考，历史版本->[部署文档](https://www.yuque.com/lxyo/work/zd0kvzy7fofx6w7v)
 
 ## 配置文件
 
 如果需要修改配置，可以将该文件放在`/opt/FileCodeBox/`目录下，并命名为`.env`，然后重启容器即可。
-
-```bash
+如果不是Docker，则需要在项目同目录下新建一个`data`文件夹，然后在创建`.env`文件
 
 ```dotenv
 # 端口
