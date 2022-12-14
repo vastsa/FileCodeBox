@@ -1,20 +1,18 @@
 import datetime
-from alembic import command
-from alembic.config import Config
 from sqlalchemy import Boolean, Column, Integer, String, DateTime
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.ext.asyncio import create_async_engine
 from sqlalchemy.ext.asyncio.session import AsyncSession
 import settings
+
 engine = create_async_engine(settings.DATABASE_URL)
 
 Base = declarative_base()
 
 
 async def init_models():
-    config = Config()
-    config.set_main_option("script_location", "migrations")
-    command.upgrade(config, "head")
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
 
 
 async def get_session():
