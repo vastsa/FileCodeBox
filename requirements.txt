@@ -1,6 +1,5 @@
 fastapi==0.88.0
 aiosqlite==0.17.0
-alembic==1.8.1
 SQLAlchemy==1.4.44
 python-multipart==0.0.5
 uvicorn==0.15.0
