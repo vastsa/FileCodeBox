@@ -33,7 +33,7 @@ async def delete_expire_files():
             query = delete(Codes).where(Codes.id.in_(exps_ids))
             await s.execute(query)
             await s.commit()
-        await asyncio.sleep(settings.DELETE_EXPIRE_FILES_INTERVAL)
+        await asyncio.sleep(settings.DELETE_EXPIRE_FILES_INTERVAL * 60)
 
 
 async def get_code(s: AsyncSession):
