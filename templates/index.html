@@ -102,6 +102,7 @@
                         multiple
                         style="margin: 1rem 0;"
                         :data="uploadData"
+                        :before-upload="beforeUpload"
                         :headers="{'pwd':pwd}"
                         :on-success="successUpload"
                         :on-error="errorUpload"
@@ -195,6 +196,7 @@
                 files: [],
                 pageNum: 0,
                 inputDisable: false,
+                fileSizeLimit: '{{fileSizeLimit}}',
                 pwd: localStorage.getItem('pwd') || '',
                 uploadData: {
                     style: '2',
@@ -322,6 +324,15 @@
                     type: 'error'
                 });
             },
+            beforeUpload: function (file) {
+                if (file.size > this.fileSizeLimit) {
+                    this.$message({
+                        message: `文件大小不能超过${this.fileSizeLimit/1024/1024}MB`,
+                        type: 'error'
+                    });
+                    return false
+                }
+            }
         }
     })
 </script>

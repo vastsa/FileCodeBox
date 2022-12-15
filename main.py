@@ -39,7 +39,8 @@ async def startup():
 index_html = open('templates/index.html', 'r', encoding='utf-8').read() \
     .replace('{{title}}', settings.TITLE) \
     .replace('{{description}}', settings.DESCRIPTION) \
-    .replace('{{keywords}}', settings.KEYWORDS)
+    .replace('{{keywords}}', settings.KEYWORDS) \
+    .replace("'{{fileSizeLimit}}'", str(settings.FILE_SIZE_LIMIT))
 # 管理页面
 admin_html = open('templates/admin.html', 'r', encoding='utf-8').read() \
     .replace('{{title}}', settings.TITLE) \
@@ -116,7 +117,7 @@ async def index(code: str, ip: str = Depends(error_ip_limit), s: AsyncSession = 
     if info.type != 'text':
         info.text = f'/select?code={code}'
     return {
-        'detail': '取件成功，请点击"取"查看',
+        'detail': f'取件成功，文件将在{settings.DELETE_EXPIRE_FILES_INTERVAL}分钟后删除',
         'data': {'type': info.type, 'text': info.text, 'name': info.name, 'code': info.code}
     }
 

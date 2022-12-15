@@ -27,6 +27,8 @@ ERROR_MINUTE = config('ERROR_MINUTE', cast=int, default=10)
 UPLOAD_COUNT = config('UPLOAD_COUNT', cast=int, default=60)
 # 上传限制分钟数
 UPLOAD_MINUTE = config('UPLOAD_MINUTE', cast=int, default=1)
+# 删除过期文件的间隔（秒）
+DELETE_EXPIRE_FILES_INTERVAL = config('DELETE_EXPIRE_FILES_INTERVAL', cast=int, default=10)
 # 管理地址
 ADMIN_ADDRESS = config('ADMIN_ADDRESS', cast=str, default="admin")
 # 管理密码

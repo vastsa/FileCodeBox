@@ -113,8 +113,6 @@ DATABASE_URL=sqlite+aiosqlite:///database.db
 DATA_ROOT=./static
 # 静态文件夹URL
 STATIC_URL=/static
-# 是否开启上传
-ENABLE_UPLOAD=true
 # 错误次数
 ERROR_COUNT=5
 # 错误限制分钟数
@@ -123,6 +121,8 @@ ERROR_MINUTE=10
 UPLOAD_COUNT=60
 # 上传限制分钟数
 UPLOAD_MINUTE=1
+# 删除过期文件的间隔（秒）
+DELETE_EXPIRE_FILES_INTERVAL=60
 # 管理地址
 ADMIN_ADDRESS=admin
 # 管理密码
