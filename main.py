@@ -107,11 +107,7 @@ async def index(code: str, ip: str = Depends(error_ip_limit), s: AsyncSession = 
         error_count = settings.ERROR_COUNT - error_ip_limit.add_ip(ip)
         raise HTTPException(status_code=404, detail=f"取件码错误，{error_count}次后将被禁止{settings.ERROR_MINUTE}分钟")
     if info.exp_time < datetime.datetime.now() or info.count == 0:
-        if info.type != "text":
-            await storage.delete_file(info.text)
-        await s.delete(info)
-        await s.commit()
-        raise HTTPException(status_code=404, detail="取件码已过期，请联系寄件人")
+        raise HTTPException(status_code=404, detail="取件码已失效，请联系寄件人")
     await s.execute(update(Codes).where(Codes.id == info.id).values(count=info.count - 1))
     await s.commit()
     if info.type != 'text':
