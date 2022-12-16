@@ -102,8 +102,6 @@ then restart the container.
 If it is not Docker, you need to create a `data` folder in the same directory as the project, and then create a `.env`
 file
 
-```bash
-
 ```dotenv
 # 端口
 PORT=12345
@@ -113,6 +111,8 @@ DATABASE_URL=sqlite+aiosqlite:///database.db
 DATA_ROOT=./static
 # 静态文件夹URL
 STATIC_URL=/static
+# 开启上传
+ENABLE_UPLOAD=True
 # 错误次数
 ERROR_COUNT=5
 # 错误限制分钟数
