@@ -143,6 +143,21 @@ STORAGE_ENGINE=filesystem
 
 ![Alt](https://repobeats.axiom.co/api/embed/7a6c92f1d96ee57e6fb67f0df371528397b0c9ac.svg "Repobeats analytics image")
 
+## Appreciate
+
+<table style="width: 100%">
+<tr style="width: 100%">
+<td style="width: 50%;text-align: center;">
+支付宝
+<img src="https://raw.githubusercontent.com/vastsa/FileCodeBox/master/images/img_9.png" alt="支付宝">
+</td>
+<td style="width: 50%;text-align: center">
+微信
+<img src="https://raw.githubusercontent.com/vastsa/FileCodeBox/master/images/img_8.png" alt="微信">
+</td>
+</tr>
+</table>    
+
 ## Disclaimer
 
 this project is open source for learning only and cannot be used for any illegal purposes. Otherwise, you will be
