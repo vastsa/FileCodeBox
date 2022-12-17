@@ -26,7 +26,10 @@
             margin: 1rem 0;
             font-size: 30px;
             font-weight: bold;
+            border-radius: 20px;
         }
+
+
     </style>
     <script src="/static/asserts/vue.min.js"></script>
     <script src="/static/asserts/index.js"></script>
@@ -36,54 +39,57 @@
     <el-row v-if="pageNum === 0" class="qu" style="width:400px;margin: 6vh auto 0 auto">
         <el-card style="padding-bottom: 1rem">
             <el-col :span="24">
-                <el-input autofocus @change="changeInput" clearable v-model:value="code" maxlength="5"
+                <el-input round autofocus @change="changeInput" clearable v-model:value="code" maxlength="5"
                           :disabled="inputDisable" placeholder="请输入五位取件码">
                 </el-input>
             </el-col>
             <el-col :span=8>
-                <el-button @click="listenInput('1')">1</el-button>
+                <el-button round @click="listenInput('1')">1</el-button>
             </el-col>
             <el-col :span=8>
-                <el-button @click="listenInput('2')">2</el-button>
+                <el-button round @click="listenInput('2')">2</el-button>
             </el-col>
             <el-col :span=8>
-                <el-button @click="listenInput('3')">3</el-button>
+                <el-button round @click="listenInput('3')">3</el-button>
             </el-col>
             <el-col :span=8>
-                <el-button @click="listenInput('4')">4</el-button>
+                <el-button round @click="listenInput('4')">4</el-button>
             </el-col>
             <el-col :span=8>
-                <el-button @click="listenInput('5')">5</el-button>
+                <el-button round @click="listenInput('5')">5</el-button>
             </el-col>
             <el-col :span=8>
-                <el-button @click="listenInput('6')">6</el-button>
+                <el-button round @click="listenInput('6')">6</el-button>
             </el-col>
             <el-col :span=8>
-                <el-button @click="listenInput('7')">7</el-button>
+                <el-button round @click="listenInput('7')">7</el-button>
             </el-col>
             <el-col :span=8>
-                <el-button @click="listenInput('8')">8</el-button>
+                <el-button round @click="listenInput('8')">8</el-button>
             </el-col>
             <el-col :span=8>
-                <el-button @click="listenInput('9')">9</el-button>
+                <el-button round @click="listenInput('9')">9</el-button>
             </el-col>
             <el-col :span=8>
-                <el-button type="primary"  @click="pageNum=1"><div style="height: 10px" class="el-icon-upload2"></div></el-button>
+                <el-button round @click="pageNum=1">
+                    <div style="height: 10px" class="el-icon-upload2"></div>
+                </el-button>
             </el-col>
             <el-col :span=8>
-                <el-button @click="listenInput('0')">0</el-button>
+                <el-button round @click="listenInput('0')">0</el-button>
             </el-col>
             <el-col :span=8>
-                <el-button type="primary" plain @click="quDrawer=true"><div class="el-icon-takeaway-box"></div></el-button>
+                <el-button round @click="quDrawer=true">
+                    <div class="el-icon-takeaway-box"></div>
+                </el-button>
             </el-col>
         </el-card>
     </el-row>
     <el-row v-else style="width:400px;margin: 20vh auto 0 auto">
         <el-col :span="24" style="margin: 1rem 0">
             <el-card>
-
                 <el-row>
-                    <el-input style="width: 200px" placeholder="数量" v-model="uploadData.value"
+                    <el-input style="width: 190px" placeholder="数量" v-model="uploadData.value"
                               class="input-with-select">
                         <el-select style="width: 75px" v-model="uploadData.style" slot="prepend" placeholder="请选择">
                             <el-option label="天数" value="2"></el-option>
@@ -92,11 +98,13 @@
                         <el-button v-if="uploadData.style === '1'" slot="append" disabled>次</el-button>
                         <el-button v-else slot="append" disabled>天</el-button>
                     </el-input>
-                </el-row>
-                <el-row>
-                    <el-radio-group v-model="uploadData.type">
-                        <el-radio label="1"><div class="el-icon-document-add"></div>文件</el-radio>
-                        <el-radio label="2"><div class="el-icon-document"></div>文本</el-radio>
+                    <el-radio-group style="margin-left: 18px" v-model="uploadData.type">
+                        <el-radio label="1">
+                            文件
+                        </el-radio>
+                        <el-radio label="2">
+                            文本
+                        </el-radio>
                     </el-radio-group>
                 </el-row>
 
@@ -125,9 +133,18 @@
                         v-model="uploadData.text">
                 </el-input>
                 <div class="el-upload__tip">
-                    <el-button @click="pageNum=0"><div class="el-icon-back"></div> 取件</el-button>
-                    <el-button @click="jiDrawer=true"><div class="el-icon-takeaway-box"></div> 我的文件</el-button>
-                    <el-button v-if="uploadData.type === '2'" @click="toUploadData"><div class="el-icon-upload2"></div> 存入</el-button>
+                    <el-button round @click="pageNum=0">
+                        <div class="el-icon-back"></div>
+                        取件
+                    </el-button>
+                    <el-button round @click="jiDrawer=true">
+                        <div class="el-icon-takeaway-box"></div>
+                        我的文件
+                    </el-button>
+                    <el-button round v-if="uploadData.type === '2'" @click="toUploadData">
+                        <div class="el-icon-upload2"></div>
+                        存入
+                    </el-button>
                 </div>
             </el-card>
         </el-col>
