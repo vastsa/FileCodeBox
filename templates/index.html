@@ -68,32 +68,38 @@
                 <el-button @click="listenInput('9')">9</el-button>
             </el-col>
             <el-col :span=8>
-                <el-button @click="pageNum=1">寄</el-button>
+                <el-button type="primary"  @click="pageNum=1"><div style="height: 10px" class="el-icon-upload2"></div></el-button>
             </el-col>
             <el-col :span=8>
                 <el-button @click="listenInput('0')">0</el-button>
             </el-col>
             <el-col :span=8>
-                <el-button @click="quDrawer=true">取</el-button>
+                <el-button type="primary" plain @click="quDrawer=true"><div class="el-icon-takeaway-box"></div></el-button>
             </el-col>
         </el-card>
     </el-row>
     <el-row v-else style="width:400px;margin: 20vh auto 0 auto">
         <el-col :span="24" style="margin: 1rem 0">
             <el-card>
-                <el-input style="width: 200px" placeholder="数量" v-model="uploadData.value"
-                          class="input-with-select">
-                    <el-select style="width: 75px" v-model="uploadData.style" slot="prepend" placeholder="请选择">
-                        <el-option label="天数" value="2"></el-option>
-                        <el-option label="次数" value="1"></el-option>
-                    </el-select>
-                    <el-button v-if="uploadData.style === '1'" slot="append" disabled>次</el-button>
-                    <el-button v-else slot="append" disabled>天</el-button>
-                </el-input>
-                <el-radio-group v-model="uploadData.type" style="margin-left: 18px">
-                    <el-radio label="1">文件</el-radio>
-                    <el-radio label="2">文本</el-radio>
-                </el-radio-group>
+
+                <el-row>
+                    <el-input style="width: 200px" placeholder="数量" v-model="uploadData.value"
+                              class="input-with-select">
+                        <el-select style="width: 75px" v-model="uploadData.style" slot="prepend" placeholder="请选择">
+                            <el-option label="天数" value="2"></el-option>
+                            <el-option label="次数" value="1"></el-option>
+                        </el-select>
+                        <el-button v-if="uploadData.style === '1'" slot="append" disabled>次</el-button>
+                        <el-button v-else slot="append" disabled>天</el-button>
+                    </el-input>
+                </el-row>
+                <el-row>
+                    <el-radio-group v-model="uploadData.type">
+                        <el-radio label="1"><div class="el-icon-document-add"></div>文件</el-radio>
+                        <el-radio label="2"><div class="el-icon-document"></div>文本</el-radio>
+                    </el-radio-group>
+                </el-row>
+
                 <el-upload
                         v-if="uploadData.type === '1'"
                         drag
@@ -115,13 +121,13 @@
                         type="textarea"
                         :autosize="{ minRows: 8}"
                         style="margin: 1rem 0"
-                        placeholder="请输入内容，完成之后点击下方寄出去"
+                        placeholder="请输入内容，使用按钮存入"
                         v-model="uploadData.text">
                 </el-input>
                 <div class="el-upload__tip">
-                    <el-button @click="pageNum=0">去取件</el-button>
-                    <el-button @click="jiDrawer=true">取件码</el-button>
-                    <el-button v-if="uploadData.type === '2'" @click="toUploadData">寄出去</el-button>
+                    <el-button @click="pageNum=0"><div class="el-icon-back"></div> 取件</el-button>
+                    <el-button @click="jiDrawer=true"><div class="el-icon-takeaway-box"></div> 我的文件</el-button>
+                    <el-button v-if="uploadData.type === '2'" @click="toUploadData"><div class="el-icon-upload2"></div> 存入</el-button>
                 </div>
             </el-card>
         </el-col>
