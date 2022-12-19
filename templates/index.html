@@ -7,224 +7,149 @@
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
     <link rel="stylesheet" href="/static/asserts/index.css">
     <link rel="shortcut icon" href="/static/asserts/favicon.ico" type="image/x-icon"/>
-    <title>{{title}}</title>
+    <title>后台管理-{{title}}</title>
     <meta name="description" content="{{description}}"/>
     <meta name="keywords" content="{{keywords}}"/>
     <meta name="generator" content="FileCodeBox"/>
-    <meta name="template" content="Lan-V1.5.8"/>
-    <meta name="description" content="{{description}}"/>
-    <meta name="keywords" content="{{keywords}}"/>
-    <meta name="generator" content="FileCodeBox"/>
-    <meta name="template" content="Lan-V1.5.8"/>
+    <meta name="template" content="Lan"/>
+    <script src="/static/asserts/vue.min.js"></script>
+    <script src="/static/asserts/index.js"></script>
     <style>
+        .el-menu-demo {
+            text-align: center;
+        }
+
         body {
             background: #f5f5f5;
         }
-
-        .qu .el-button {
-            width: 100px;
-            height: 100px;
-            margin: 0.2rem;
-            font-size: 30px;
-            font-weight: bold;
-        }
-
-        .qu .el-input__inner {
-            height: 100px;
-            margin: 1rem 0;
-            font-size: 30px;
-            font-weight: bold;
-            border-radius: 20px;
-        }
-
-        .el-card {
-            border-radius: 20px;
-        }
     </style>
-    <script src="/static/asserts/vue.min.js"></script>
-    <script src="/static/asserts/index.js"></script>
 </head>
 <body>
-<div id="app" style="text-align: center">
-    <el-row v-if="pageNum === 0" class="qu" style="width:400px;height: 596px;margin: 6vh auto 0 auto">
-        <el-card style="padding-bottom: 1rem">
-            <el-col :span="24">
-                <el-input round autofocus @change="changeInput" clearable v-model:value="code" maxlength="5"
-                          :disabled="inputDisable" placeholder="请输入五位取件码">
-                </el-input>
-            </el-col>
-            <el-col :span=8>
-                <el-button round @click="listenInput('1')">1</el-button>
-            </el-col>
-            <el-col :span=8>
-                <el-button round @click="listenInput('2')">2</el-button>
-            </el-col>
-            <el-col :span=8>
-                <el-button round @click="listenInput('3')">3</el-button>
-            </el-col>
-            <el-col :span=8>
-                <el-button round @click="listenInput('4')">4</el-button>
-            </el-col>
-            <el-col :span=8>
-                <el-button round @click="listenInput('5')">5</el-button>
-            </el-col>
-            <el-col :span=8>
-                <el-button round @click="listenInput('6')">6</el-button>
-            </el-col>
-            <el-col :span=8>
-                <el-button round @click="listenInput('7')">7</el-button>
-            </el-col>
-            <el-col :span=8>
-                <el-button round @click="listenInput('8')">8</el-button>
-            </el-col>
-            <el-col :span=8>
-                <el-button round @click="listenInput('9')">9</el-button>
-            </el-col>
-            <el-col :span=8>
-                <el-button round @click="pageNum=1">
-                    <div style="height: 10px" class="el-icon-upload2"></div>
-                </el-button>
-            </el-col>
-            <el-col :span=8>
-                <el-button round @click="listenInput('0')">0</el-button>
-            </el-col>
-            <el-col :span=8>
-                <el-button round @click="quDrawer=true">
-                    <div class="el-icon-takeaway-box"></div>
-                </el-button>
-            </el-col>
-        </el-card>
-    </el-row>
-    <el-row v-else style="width:400px;margin: 6vh auto 0 auto">
-        <el-col :span="24">
-            <el-card :body-style="{ padding: '0px 0px 20px 0px' }">
-                <div class="block" style="margin-bottom: 1rem">
-                    <el-carousel height="150px">
-                        <el-carousel-item v-for="item in banners" :key="item">
-                            <a :href="item.url" target="_blank">
-                                <img class="image" style="width: 400px" :src="item.src" :alt="item.text">
-                            </a>
-                        </el-carousel-item>
-                    </el-carousel>
-                </div>
-                <el-row>
-                    <el-input style="width: 190px" placeholder="数量" v-model="uploadData.value"
-                              class="input-with-select">
-                        <el-select style="width: 75px" v-model="uploadData.style" slot="prepend" placeholder="请选择">
-                            <el-option label="天数" value="2"></el-option>
-                            <el-option label="次数" value="1"></el-option>
-                        </el-select>
-                        <el-button v-if="uploadData.style === '1'" slot="append" disabled>次</el-button>
-                        <el-button v-else slot="append" disabled>天</el-button>
-                    </el-input>
-                    <el-radio-group style="margin-left: 18px" v-model="uploadData.type">
-                        <el-radio label="1">
-                            文件
-                        </el-radio>
-                        <el-radio label="2">
-                            文本
-                        </el-radio>
-                    </el-radio-group>
-                </el-row>
-                <el-upload
-                        v-if="uploadData.type === '1'"
-                        drag
-                        action="/share"
-                        multiple
-                        style="margin: 1rem 0;"
-                        :data="uploadData"
-                        :before-upload="beforeUpload"
-                        :headers="{'pwd':pwd}"
-                        :on-success="successUpload"
-                        :on-error="errorUpload"
-                >
-                    <i class="el-icon-upload"></i>
-                    <div class="el-upload__text">将文字、文件拖、粘贴到此处，或<em>点击上传</em></div>
-                    <div class="el-upload__text" style="font-size: 10px">天数<7或限制次数（24h后删除）</div>
-                </el-upload>
-                <el-input
-                        v-else
-                        type="textarea"
-                        :autosize="{ minRows: 8}"
-                        style="margin: 1rem 0"
-                        placeholder="请输入内容，使用按钮存入"
-                        v-model="uploadData.text">
-                </el-input>
-
-                <div class="el-upload__tip">
-                    <el-button round @click="pageNum=0">
-                        <div class="el-icon-back"></div>
-                        取件
-                    </el-button>
-                    <el-button round @click="jiDrawer=true">
-                        <div class="el-icon-takeaway-box"></div>
-                        我的文件
-                    </el-button>
-                    <el-button round v-if="uploadData.type === '2'" @click="toUploadData">
-                        <div class="el-icon-upload2"></div>
-                        存入
-                    </el-button>
-                </div>
+<div id="app">
+    <el-row v-if="login" :gutter="10">
+        <el-col :span="24" style="text-align: center">
+            <el-menu :default-active="activeIndex" class="el-menu-demo" mode="horizontal" @select="handleSelect">
+                <el-menu-item index="2">文件管理</el-menu-item>
+                <el-menu-item index="3">系统配置</el-menu-item>
+            </el-menu>
+        </el-col>
+        <el-col v-if="activeIndex === '2'">
+            <el-card style="height: 80vh;overflow: scroll;margin-bottom: 1rem">
+                <el-empty v-if="files.length === 0" description="暂时还没有文件"></el-empty>
+                <el-card v-for="file in files" :key="file.code">
+                    <el-row>
+                        <el-col :span="20">
+                            <div style="cursor: pointer;text-align: left">
+                                <div>取件码：${ file.code }</div>
+                                <div>文件名：${ file.name }</div>
+                                <div>次&nbsp;&nbsp; 数：${ file.count }</div>
+                                <div>到&nbsp;&nbsp; 期：${ file.exp_time.slice(0,19) }</div>
+                                <div v-if="file.type==='text'">
+                                    <span>内&nbsp;&nbsp; 容：${ file.text }</span>
+                                </div>
+                                <div v-else>
+                                    <span>链&nbsp;&nbsp; 接：</span>
+                                    <a :href="file.text" target="_blank"
+                                       style="color: #1E9FFF;text-underline: none"
+                                       type="primary">点击下载</a>
+                                </div>
+                            </div>
+                        </el-col>
+                        <el-col :span="4">
+                            <el-button type="danger" @click="deleteFile(file.code)">删除</el-button>
+                        </el-col>
+                    </el-row>
+                </el-card>
             </el-card>
+            <el-pagination
+                    background
+                    style="text-align: center"
+                    layout="prev, pager, next, sizes"
+                    :page-size="paginate.page_size"
+                    @current-change="updatePage"
+                    @size-change="updateSize"
+                    :total="paginate.total"
+            >
+            </el-pagination>
+        </el-col>
+        <el-col v-if="activeIndex === '3'">
+            <el-form ref="form" style="width: 50%;margin:2rem auto" :model="config" label-width="200px">
+                <!--?                <el-form-item label="错误限制">-->
+                <!--?                    <div>-->
+                <!--?                        间隔：-->
+                <!--?                        <el-input-number v-model="config.error_count" :min="1"></el-input-number>-->
+                <!--?                        分钟-->
+                <!--?                    </div>-->
+                <!--?                    <div>-->
+                <!--?                        数量：-->
+                <!--?                        <el-input-number v-model="config.error_minute" :min="1"></el-input-number>-->
+                <!--?                        个-->
+                <!--?                    </div>-->
+                <!--?                </el-form-item>-->
+                <!--?                <el-form-item label="上传限制">-->
+                <!--?                    <div>-->
+                <!--?                        开启上传：-->
+                <!--?                        <el-switch-->
+                <!--?                                v-model="config.enable_upload"-->
+                <!--?                                active-color="#13ce66"-->
+                <!--?                                inactive-color="#ff4949">-->
+                <!--?                        </el-switch>-->
+                <!--?                    </div>-->
+                <!--?                    <div>-->
+                <!--?                        间隔：-->
+                <!--?                        <el-input-number v-model="config.upload_minute" :min="1"></el-input-number>-->
+                <!--?                        分钟-->
+                <!--?                    </div>-->
+                <!--?                    <div>-->
+                <!--?                        数量：-->
+                <!--?                        <el-input-number v-model="config.upload_count" :min="1"></el-input-number>-->
+                <!--?                        个-->
+                <!--?                    </div>-->
+                <!--?                    <div>-->
+                <!--?                        最长：-->
+                <!--?                        <el-input-number v-model="config.max_days" :min="1"></el-input-number>-->
+                <!--?                        天-->
+                <!--?                    </div>-->
+                <!--?                    <div>-->
+                <!--?                        大小：-->
+                <!--?                        <el-input-number v-model="config.file_size_limit" :min="1"></el-input-number>-->
+                <!--?                        MB-->
+                <!--?                    </div>-->
+                <!--?                </el-form-item>-->
+                <!--?                <el-form-item label="删除间隔">-->
+                <!--?                    时长：-->
+                <!--?                    <el-input-number v-model="config.delete_expire_files_interval"></el-input-number>-->
+                <!--?                    分钟-->
+                <!--?                </el-form-item>-->
+                <!--?                <el-form-item label="管理员密码">-->
+                <!--?                    <el-input v-model="config.admin_password" type="password"></el-input>-->
+                <!--?                </el-form-item>-->
+                <el-form-item v-for="(banner,index) in config.banners" :label="'Banner'+ (index+1)">
+                    <div style="width: 50%;display: inline-block">
+                        <el-input v-model="banner.text" placeholder="文本"></el-input>
+                        <el-input v-model="banner.url" placeholder="跳转链接"></el-input>
+                        <el-input v-model="banner.src" placeholder="图片路径"></el-input>
+                    </div>
+                    <div style="display: inline-block">
+                        <el-button type="danger" @click="deleteBanner(index)">删除</el-button>
+                    </div>
+                </el-form-item>
+                <el-form-item>
+                    <el-button size="mini" @click="addBanner" type="primary">新增Banner</el-button>
+                </el-form-item>
+                <el-form-item>
+                    <el-button @click="updateConfig" type="primary">更新</el-button>
+                </el-form-item>
+            </el-form>
         </el-col>
     </el-row>
-    <el-drawer
-            title="文件箱"
-            :visible.sync="quDrawer"
-            :direction="direction"
-            size="50%"
-    >
-        <el-card v-for="(file,index) in files" :key="index" class="box-card">
-            <div style="cursor: pointer;text-align: left;margin-left: 2rem">
-                <div>取件码：${ file.code }</div>
-                <div>文件名：${ file.name }</div>
-                <div v-if="file.name==='文本分享'">
-                    <span @click="copyText(file.text,1)">内&nbsp;&nbsp; 容：${ file.text }</span>
-                </div>
-                <div v-else>
-                    <span>链&nbsp;&nbsp; 接：</span>
-                    <a :href="file.text" target="_blank"
-                       style="color: #1E9FFF;text-underline: none"
-                       type="primary">点击下载</a>
-                </div>
-            </div>
-        </el-card>
-        <el-empty v-if="files.length===0" description="请输入取件码，收取文件"></el-empty>
-    </el-drawer>
-    <el-drawer
-            title="文件箱"
-            :visible.sync="jiDrawer"
-            :direction="direction"
-            size="50%">
-        <el-card>
-            <el-empty v-if="files.length===0" description="请上传文件"></el-empty>
-            <el-card style="margin-top: 0.2rem" v-for="(file,index) in files" :key="index">
-                <el-row>
-                    <el-col :span="15">
-                        <el-row>
-                            <el-col :span="24" style="line-height: 45px">
-                                    ${ file.name }
-                            </el-col>
-                            <el-col :span="24">
-                                取件码：
-                                <h1 @click="copyText(file.code,0)" style="margin: 0;display: inline;cursor: pointer">
-                                        ${ file.code }
-                                </h1>
-                            </el-col>
-                        </el-row>
-                    </el-col>
-                    <el-col :span="4">
-                        <img style="width: 80px;height: 80px;"
-                             :src="qrcodeUrl(file)" alt="二维码" :alt="file.code">
-                    </el-col>
-                </el-row>
-            </el-card>
-        </el-card>
-    </el-drawer>
-    <div style="text-align: center; margin-top: 1rem;color: #606266">
-        <a style="text-decoration: none;color: #606266" target="_blank" href="https://github.com/vastsa/FileCodeBox">FileCodeBox</a>
+    <div v-else style="width: 250px;text-align: center;margin: 40vh auto">
+        <el-input v-model="pwd" placeholder="请输入登录密码">
+            <el-button slot="append" type="primary" @click="loginAdmin">登录</el-button>
+        </el-input>
     </div>
 </div>
+
 </body>
 <script src="/static/asserts/axios.min.js"></script>
 <script>
@@ -233,173 +158,105 @@
         delimiters: ['${', '}'],
         data: function () {
             return {
-                code: '',
-                quDrawer: false,
-                jiDrawer: false,
-                direction: 'btt',
+                login: false,
+                pwd: '',
+                activeIndex: '2',
+                config: {
+                    // enable_upload: true,
+                    // max_days: 7,
+                    // error_count: 3,
+                    // error_minute: 10,
+                    // upload_count: 10,
+                    // upload_minute: 10,
+                    // delete_expire_files_interval: 10,
+                    // admin_password: 'admin',
+                    // file_size_limit: 10,
+                    banners: []
+                },
                 files: [],
-                pageNum: 0,
-                inputDisable: false,
-                fileSizeLimit: '{{fileSizeLimit}}',
-                pwd: localStorage.getItem('pwd') || '',
-                banners: [],
-                uploadData: {
-                    style: '2',
-                    type: '1',
-                    value: 1,
-                    file: null,
-                    text: ''
+                paginate: {
+                    page: 1,
+                    size: 10,
+                    total: 0,
                 },
             };
         },
         mounted: function () {
-            // 进入网站时，判断Get是否有code参数，有则直接进行取件操作
-            let code = window.location.search.substring('code=='.length)
-            if (code) {
-                this.code = code
-                this.getFile()
-            }
-            // 剪切板监听
-            const that = this
-            document.addEventListener('paste', function (event) {
-                if (that.pageNum === 1) {
-                    const items = event.clipboardData && event.clipboardData.items;
-                    if (items && items.length) {
-                        for (let i = 0; i < items.length; i++) {
-                            if (items[i].kind === 'string') {
-                                if (items[i].type.match(/^text\/plain/) && that.uploadData.type !== '2') {
-                                    that.$message('剪切板文字正在上传，请稍等');
-                                    items[i].getAsString(function (str) {
-                                        that.uploadData.text = str;
-                                        that.toUploadData();
-                                    });
-                                }
-                            } else {
-                                const file = items[i].getAsFile();
-                                that.$message('剪切板文件正在上传，请稍等');
-                                that.uploadData.file = file
-                                that.toUploadData();
-                            }
-                        }
+            const pwd = localStorage.getItem('pwd');
+            if (pwd) {
+                login = true;
+                this.pwd = pwd;
+                axios.get('/config', {
+                    headers: {
+                        pwd: pwd
                     }
-                }
-            });
-            // 获取Banner
-            axios.get('/banner').then(res => {
-                this.banners = res.data.data
-            })
-        },
-        watch: {
-            code: function (code) {
-                if (code.length === 5) {
-                    this.inout_disable = true;
-                    this.getFile();
-                }
+                }).then(res => {
+                    console.log(res.data.data)
+                    this.config = res.data.data;
+                });
+                this.loginAdmin();
             }
         },
         methods: {
-            http: function (method, url, data = {}, config = {}) {
-                return new Promise((resolve, reject) => {
-                    axios({
-                        method: method,
-                        url: url,
-                        data: data,
-                        ...config
-                    }).then(res => {
-                        this.$message({
-                            message: res.data.detail,
-                            type: 'success'
-                        });
-                        resolve(res.data)
-                    }).catch(err => {
-                        this.$message({
-                            message: err.response.data.detail,
-                            type: 'error'
-                        });
-                    })
+            updateSize: function (value) {
+                this.paginate.size = value;
+                this.loginAdmin();
+            },
+            updatePage: function (value) {
+                this.paginate.page = value;
+                this.loginAdmin();
+            },
+            deleteBanner: function (index) {
+                this.config.banners.splice(index, 1);
+            },
+            addBanner: function () {
+                this.config.banners.push({
+                    'url': '',
+                    'src': '',
+                    'text': '',
                 })
             },
-            copyText: function (value, style = 1) {
-                if (style === 0) {
-                    value = `我在分享了给你文件，取件码：${value}，${window.location.href}?code=${value}`;
-                }
-                const input = document.createElement('input');
-                input.setAttribute('readonly', 'readonly');
-                input.setAttribute('value', value);
-                document.body.appendChild(input);
-                input.select();
-                if (document.execCommand('copy')) {
-                    document.execCommand('copy');
+            updateConfig: function () {
+                axios.patch('', this.config, {
+                    'headers': {
+                        'pwd': this.pwd,
+                        'Content-Type': 'multipart/json'
+                    }
+                }).then(res => {
                     this.$message({
-                        message: '复制成功，快去分享给你的朋友吧',
+                        message: res.data.detail,
                         type: 'success'
                     });
-                }
-                document.body.removeChild(input);
-            },
-            getFile: function () {
-                const that = this;
-                this.http('post', `?code=${that.code}`).then(res => {
-                    that.quDrawer = true;
-                    that.files.unshift(res.data);
                 })
-                that.code = '';
-                that.input_disable = false
             },
-            qrcodeUrl(file) {
-                return 'https://api.qrserver.com/v1/create-qr-code/?data=' + window.location.origin + '/?code=' + file.code
-            },
-            listenInput: function (value) {
-                if (this.code.length < 5) {
-                    this.code += value;
-                }
-            },
-            changeInput: function (value) {
-                this.code = value;
-            },
-            toUploadData: function () {
-                if (this.uploadData.text === '' && this.uploadData.file === null) {
-                    this.$message({
-                        message: '请先粘贴文字或者上传文件',
-                        type: 'error'
-                    });
-                } else {
-                    this.http('post', '/share', this.uploadData, {
-                        headers: {
-                            'Content-Type': 'multipart/form-data',
-                            'pwd': this.pwd
-                        }
-                    }).then(res => {
-                        this.files.unshift(res.data);
-                        this.jiDrawer = true;
-                        this.uploadData.text = '';
-                        this.uploadData.file = null;
-                    });
-                }
-            },
-            successUpload(response, file, fileList) {
-                this.$message({
-                    message: response.detail,
-                    type: 'success'
-                });
-                this.files.unshift(response.data);
-            },
-            errorUpload(error, file, fileList) {
-                error = JSON.parse(error.message)
-                this.$message({
-                    message: error.detail,
-                    type: 'error'
+            loginAdmin: function () {
+                axios.post('', this.paginate, {
+                    'headers': {
+                        'pwd': this.pwd,
+                        'Content-Type': 'multipart/form-data'
+                    }
+                }).then(res => {
+                    this.paginate = res.data.paginate;
+                    this.files = res.data.data
+                    this.login = true;
+                    localStorage.setItem('pwd', this.pwd);
+                }).catch(e => {
+                    localStorage.clear()
+                    this.$message({'message': e.response.data.detail, 'type': 'error'});
                 });
             },
-            beforeUpload: function (file) {
-                if (file.size > this.fileSizeLimit) {
+            handleSelect(key, keyPath) {
+                this.activeIndex = key;
+            },
+            deleteFile: function (code) {
+                axios.delete('?code=' + code, {'headers': {'pwd': this.pwd}}).then(res => {
+                    this.files = this.files.filter(item => item.code !== code)
                     this.$message({
-                        message: `文件大小不能超过${this.fileSizeLimit/1024/1024}MB`,
-                        type: 'error'
+                        message: res.data.detail,
+                        type: 'success'
                     });
-                    return false
-                }
-            }
+                })
+            },
         }
     })
 </script>
