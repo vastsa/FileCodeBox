@@ -87,9 +87,18 @@
             </el-col>
         </el-card>
     </el-row>
-    <el-row v-else style="width:400px;height: 596px;margin: 6vh auto 0 auto">
+    <el-row v-else style="width:400px;margin: 6vh auto 0 auto">
         <el-col :span="24">
-            <el-card style="padding-top: 20px">
+            <el-card :body-style="{ padding: '0px 0px 20px 0px' }">
+                <div class="block" style="margin-bottom: 1rem">
+                    <el-carousel height="150px">
+                        <el-carousel-item v-for="item in banners" :key="item">
+                            <a href="" target="_blank">
+                                <img class="image" style="width: 400px" :src="item" alt="1">
+                            </a>
+                        </el-carousel-item>
+                    </el-carousel>
+                </div>
                 <el-row>
                     <el-input style="width: 190px" placeholder="数量" v-model="uploadData.value"
                               class="input-with-select">
@@ -133,6 +142,7 @@
                         placeholder="请输入内容，使用按钮存入"
                         v-model="uploadData.text">
                 </el-input>
+
                 <div class="el-upload__tip">
                     <el-button round @click="pageNum=0">
                         <div class="el-icon-back"></div>
@@ -224,6 +234,7 @@
                 inputDisable: false,
                 fileSizeLimit: '{{fileSizeLimit}}',
                 pwd: localStorage.getItem('pwd') || '',
+                banners: [],
                 uploadData: {
                     style: '2',
                     type: '1',
@@ -265,6 +276,10 @@
                     }
                 }
             });
+            // 获取Banner
+            axios.get('/banner').then(res => {
+                this.banners = res.data.data
+            })
         },
         watch: {
             code: function (code) {

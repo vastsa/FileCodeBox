@@ -81,6 +81,14 @@ async def index():
     return HTMLResponse(index_html)
 
 
+@app.get('/banner')
+async def banner():
+    return {
+        'detail': 'banner',
+        'data': settings.UPLOAD_BANNERS.split(',')
+    }
+
+
 @app.get('/select')
 async def get_file(code: str, ip: str = Depends(error_ip_limit), s: AsyncSession = Depends(get_session)):
     # 查出数据库记录

@@ -41,5 +41,7 @@ TITLE = config('TITLE', cast=str, default="文件快递柜")
 DESCRIPTION = config('DESCRIPTION', cast=str, default="FileCodeBox，文件快递柜，口令传送箱，匿名口令分享文本，文件等文件")
 # 网站关键词
 KEYWORDS = config('KEYWORDS', cast=str, default="FileCodeBox，文件快递柜，口令传送箱，匿名口令分享文本，文件等文件")
+# 上传页Banner图片
+UPLOAD_BANNERS = config('UPLOAD_BANNERS', cast=str, default=["/static/banners/img_1.png", "/static/banners/img_2.png"])
 # 存储引擎
 STORAGE_ENGINE = config('STORAGE_ENGINE', cast=str, default="filesystem")
