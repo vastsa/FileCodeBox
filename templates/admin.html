@@ -66,7 +66,7 @@
                     style="text-align: center"
                     layout="prev, pager, next, sizes"
                     :page-size="paginate.page_size"
-                    @current-change="loginAdmin"
+                    @current-change="updatePage"
                     @size-change="updateSize"
                     :total="paginate.total"
             >
@@ -202,6 +202,10 @@
                 this.paginate.size = value;
                 this.loginAdmin();
             },
+            updatePage: function (value) {
+                this.paginate.page = value;
+                this.loginAdmin();
+            },
             deleteBanner: function (index) {
                 this.config.banners.splice(index, 1);
             },
@@ -225,8 +229,7 @@
                     });
                 })
             },
-            loginAdmin: function (current_page = 1) {
-                this.paginate.page = current_page;
+            loginAdmin: function () {
                 axios.post('', this.paginate, {
                     'headers': {
                         'pwd': this.pwd,
