@@ -93,8 +93,8 @@
                 <div class="block" style="margin-bottom: 1rem">
                     <el-carousel height="150px">
                         <el-carousel-item v-for="item in banners" :key="item">
-                            <a href="" target="_blank">
-                                <img class="image" style="width: 400px" :src="item" alt="1">
+                            <a :href="item.url" target="_blank">
+                                <img class="image" style="width: 400px" :src="item.src" :alt="item.text">
                             </a>
                         </el-carousel-item>
                     </el-carousel>

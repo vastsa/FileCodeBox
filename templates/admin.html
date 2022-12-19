@@ -12,18 +12,26 @@
     <meta name="keywords" content="{{keywords}}"/>
     <meta name="generator" content="FileCodeBox"/>
     <meta name="template" content="Lan"/>
-    <script src="/static/asserts/vue.min.js"></script>
+    <script src="/static/asserts/vue.js"></script>
     <script src="/static/asserts/index.js"></script>
+    <style>
+        .el-menu-demo {
+            text-align: center;
+        }
+    </style>
 </head>
 <body>
 <div id="app">
     <el-row v-if="login" :gutter="10">
-        <el-col :xs="0" :sm="4" :md="4" :lg="4" :xl="4">
-            &nbsp;
+        <el-col :span="24" style="text-align: center">
+            <el-menu :default-active="activeIndex" class="el-menu-demo" mode="horizontal" @select="handleSelect">
+                <el-menu-item index="2">文件管理</el-menu-item>
+                <el-menu-item index="3">系统配置</el-menu-item>
+            </el-menu>
         </el-col>
-        <el-col :xs="24" :sm="16" :md="16" :lg="16" :xl="16">
-            <el-card>
-                <el-empty v-if="files.length===0" description="暂时还没有文件"></el-empty>
+        <el-col v-if="activeIndex === '2'">
+            <el-card style="height: 80vh;overflow: scroll;margin-bottom: 1rem">
+                <el-empty v-if="files.length === 0" description="暂时还没有文件"></el-empty>
                 <el-card v-for="file in files" :key="file.code">
                     <el-row>
                         <el-col :span="20">
@@ -49,8 +57,87 @@
                     </el-row>
                 </el-card>
             </el-card>
+            <el-pagination
+                    background
+                    style="text-align: center"
+                    layout="prev, pager, next, sizes"
+                    :page-size="paginate.page_size"
+                    @current-change="loginAdmin"
+                    @size-change="updateSize"
+                    :total="paginate.total"
+            >
+            </el-pagination>
         </el-col>
-        <el-col :xs="0" :sm="4" :md="4" :lg="4" :xl="4">&nbsp;</el-col>
+        <el-col v-if="activeIndex === '3'">
+            <el-form ref="form" style="width: 50%;margin:2rem auto" :model="config" label-width="200px">
+                <!--?                <el-form-item label="错误限制">-->
+                <!--?                    <div>-->
+                <!--?                        间隔：-->
+                <!--?                        <el-input-number v-model="config.error_count" :min="1"></el-input-number>-->
+                <!--?                        分钟-->
+                <!--?                    </div>-->
+                <!--?                    <div>-->
+                <!--?                        数量：-->
+                <!--?                        <el-input-number v-model="config.error_minute" :min="1"></el-input-number>-->
+                <!--?                        个-->
+                <!--?                    </div>-->
+                <!--?                </el-form-item>-->
+                <!--?                <el-form-item label="上传限制">-->
+                <!--?                    <div>-->
+                <!--?                        开启上传：-->
+                <!--?                        <el-switch-->
+                <!--?                                v-model="config.enable_upload"-->
+                <!--?                                active-color="#13ce66"-->
+                <!--?                                inactive-color="#ff4949">-->
+                <!--?                        </el-switch>-->
+                <!--?                    </div>-->
+                <!--?                    <div>-->
+                <!--?                        间隔：-->
+                <!--?                        <el-input-number v-model="config.upload_minute" :min="1"></el-input-number>-->
+                <!--?                        分钟-->
+                <!--?                    </div>-->
+                <!--?                    <div>-->
+                <!--?                        数量：-->
+                <!--?                        <el-input-number v-model="config.upload_count" :min="1"></el-input-number>-->
+                <!--?                        个-->
+                <!--?                    </div>-->
+                <!--?                    <div>-->
+                <!--?                        最长：-->
+                <!--?                        <el-input-number v-model="config.max_days" :min="1"></el-input-number>-->
+                <!--?                        天-->
+                <!--?                    </div>-->
+                <!--?                    <div>-->
+                <!--?                        大小：-->
+                <!--?                        <el-input-number v-model="config.file_size_limit" :min="1"></el-input-number>-->
+                <!--?                        MB-->
+                <!--?                    </div>-->
+                <!--?                </el-form-item>-->
+                <!--?                <el-form-item label="删除间隔">-->
+                <!--?                    时长：-->
+                <!--?                    <el-input-number v-model="config.delete_expire_files_interval"></el-input-number>-->
+                <!--?                    分钟-->
+                <!--?                </el-form-item>-->
+                <!--?                <el-form-item label="管理员密码">-->
+                <!--?                    <el-input v-model="config.admin_password" type="password"></el-input>-->
+                <!--?                </el-form-item>-->
+                <el-form-item v-for="(banner,index) in config.banners" :label="'Banner'+ (index+1)">
+                    <div style="width: 50%;display: inline-block">
+                        <el-input v-model="banner.text" placeholder="文本"></el-input>
+                        <el-input v-model="banner.url" placeholder="跳转链接"></el-input>
+                        <el-input v-model="banner.src" placeholder="图片路径"></el-input>
+                    </div>
+                    <div style="display: inline-block">
+                        <el-button type="danger" @click="deleteBanner(index)">删除</el-button>
+                    </div>
+                </el-form-item>
+                <el-form-item>
+                    <el-button size="mini" @click="addBanner" type="primary">新增Banner</el-button>
+                </el-form-item>
+                <el-form-item>
+                    <el-button @click="updateConfig" type="primary">更新</el-button>
+                </el-form-item>
+            </el-form>
+        </el-col>
     </el-row>
     <div v-else style="width: 250px;text-align: center;margin: 40vh auto">
         <el-input v-model="pwd" placeholder="请输入登录密码">
@@ -69,12 +156,25 @@
             return {
                 login: false,
                 pwd: '',
-                files: [],
+                activeIndex: '2',
                 config: {
-                    error_count: 0,
-                    file_size: 0,
-                    admin_pwd: 'admin'
-                }
+                    // enable_upload: true,
+                    // max_days: 7,
+                    // error_count: 3,
+                    // error_minute: 10,
+                    // upload_count: 10,
+                    // upload_minute: 10,
+                    // delete_expire_files_interval: 10,
+                    // admin_password: 'admin',
+                    // file_size_limit: 10,
+                    banners: []
+                },
+                files: [],
+                paginate: {
+                    page: 1,
+                    size: 10,
+                    total: 0,
+                },
             };
         },
         mounted: function () {
@@ -82,19 +182,64 @@
             if (pwd) {
                 login = true;
                 this.pwd = pwd;
+                axios.get('/config', {
+                    headers: {
+                        pwd: pwd
+                    }
+                }).then(res => {
+                    console.log(res.data.data)
+                    this.config = res.data.data;
+                });
                 this.loginAdmin();
             }
         },
         methods: {
-            loginAdmin: function () {
-                axios.post('', {}, {'headers': {'pwd': this.pwd}}).then(res => {
-                    this.files = res.data.data;
+            updateSize: function (value) {
+                this.paginate.size = value;
+                this.loginAdmin();
+            },
+            deleteBanner: function (index) {
+                this.config.banners.splice(index, 1);
+            },
+            addBanner: function () {
+                this.config.banners.push({
+                    'url': '',
+                    'src': '',
+                    'text': '',
+                })
+            },
+            updateConfig: function () {
+                axios.patch('', this.config, {
+                    'headers': {
+                        'pwd': this.pwd,
+                        'Content-Type': 'multipart/json'
+                    }
+                }).then(res => {
+                    this.$message({
+                        message: res.data.detail,
+                        type: 'success'
+                    });
+                })
+            },
+            loginAdmin: function (current_page = 1) {
+                this.paginate.page = current_page;
+                axios.post('', this.paginate, {
+                    'headers': {
+                        'pwd': this.pwd,
+                        'Content-Type': 'multipart/form-data'
+                    }
+                }).then(res => {
+                    this.paginate = res.data.paginate;
+                    this.files = res.data.data
                     this.login = true;
                     localStorage.setItem('pwd', this.pwd);
                 }).catch(e => {
                     localStorage.clear()
                     this.$message({'message': e.response.data.detail, 'type': 'error'});
                 });
+            },
+            handleSelect(key, keyPath) {
+                this.activeIndex = key;
             },
             deleteFile: function (code) {
                 axios.delete('?code=' + code, {'headers': {'pwd': this.pwd}}).then(res => {

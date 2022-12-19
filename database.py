@@ -1,5 +1,5 @@
 import datetime
-from sqlalchemy import Boolean, Column, Integer, String, DateTime
+from sqlalchemy import Boolean, Column, Integer, String, DateTime, JSON
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.ext.asyncio import create_async_engine
 from sqlalchemy.ext.asyncio.session import AsyncSession
@@ -18,6 +18,13 @@ async def init_models():
 async def get_session():
     async with AsyncSession(engine, expire_on_commit=False) as s:
         yield s
+
+
+class Values(Base):
+    __tablename__ = 'values'
+    id = Column(Integer, primary_key=True, index=True)
+    key = Column(String, unique=True)
+    value = Column(JSON)
 
 
 class Codes(Base):

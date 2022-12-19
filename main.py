@@ -4,15 +4,16 @@ import asyncio
 from pathlib import Path
 
 from fastapi import FastAPI, Depends, UploadFile, Form, File, HTTPException, BackgroundTasks
+from starlette.requests import Request
 from starlette.responses import HTMLResponse, FileResponse
 from starlette.staticfiles import StaticFiles
 
-from sqlalchemy import select, update
+from sqlalchemy import select, update, func
 from sqlalchemy.ext.asyncio.session import AsyncSession
 
 import settings
 from utils import delete_expire_files, storage, get_code, error_ip_limit, upload_ip_limit
-from database import get_session, Codes, init_models
+from database import get_session, Codes, init_models, Values
 from depends import admin_required
 
 # 实例化FastAPI
@@ -48,16 +49,33 @@ admin_html = open('templates/admin.html', 'r', encoding='utf-8').read() \
     .replace('{{keywords}}', settings.KEYWORDS)
 
 
-@app.get(f'/{settings.ADMIN_ADDRESS}', description='管理页面', response_class=HTMLResponse)
+@app.get(f'/{settings.ADMIN_ADDRESS}', description='管理页面')
 async def admin():
     return HTMLResponse(admin_html)
 
 
 @app.post(f'/{settings.ADMIN_ADDRESS}', dependencies=[Depends(admin_required)], description='查询数据库列表')
-async def admin_post(s: AsyncSession = Depends(get_session)):
-    # 查询数据库列表
-    codes = (await s.execute(select(Codes))).scalars().all()
-    return {'detail': '查询成功', 'data': codes}
+async def admin_post(page: int = Form(default=1), size: int = Form(default=10), s: AsyncSession = Depends(get_session)):
+    codes = (await s.execute(select(Codes).offset((page - 1) * size).limit(size))).scalars().all()
+    total = (await s.execute(select(func.count(Codes.id)))).scalar()
+    return {'detail': '查询成功', 'data': codes, 'paginate': {
+        'page': page,
+        'size': size,
+        'total': total
+    }}
+
+
+@app.patch(f'/{settings.ADMIN_ADDRESS}', dependencies=[Depends(admin_required)], description='修改数据库数据')
+async def admin_patch(request: Request, s: AsyncSession = Depends(get_session)):
+    # 从数据库获取系统配置
+    # 如果不存在config这个key，就创建一个
+    config = (await s.execute(select(Values).filter(Values.key == 'config'))).scalar_one_or_none()
+    if not config:
+        s.add(Values(key='config', value=await request.json()))
+    else:
+        await s.execute(update(Values).where(Values.key == 'config').values(value=await request.json()))
+    await s.commit()
+    return {'detail': '修改成功'}
 
 
 @app.delete(f'/{settings.ADMIN_ADDRESS}', dependencies=[Depends(admin_required)], description='删除数据库记录')
@@ -76,16 +94,40 @@ async def admin_delete(code: str, s: AsyncSession = Depends(get_session)):
     return {'detail': '删除成功'}
 
 
+@app.get('/config', description='获取系统配置', dependencies=[Depends(admin_required)])
+async def config(s: AsyncSession = Depends(get_session)):
+    # 从数据库获取系统配置
+    data = (await s.execute(select(Values).filter(Values.key == 'config'))).scalar_one_or_none()
+    return {'detail': '获取成功', 'data': data.value}
+
+
 @app.get('/')
 async def index():
     return HTMLResponse(index_html)
 
 
 @app.get('/banner')
-async def banner():
+async def banner(s: AsyncSession = Depends(get_session)):
+    # 数据库查询config
+    config = (await s.execute(select(Values).filter(Values.key == 'config'))).scalar_one_or_none()
+    # 如果存在config，就返回config的value
+    if config and config.value.get('banners'):
+        return {
+            'detail': '查询成功',
+            'data': config.value['banners']
+        }
+    # 如果不存在config，就返回默认的banner
     return {
         'detail': 'banner',
-        'data': settings.UPLOAD_BANNERS.split(',')
+        'data': [{
+            'text': 'FileCodeBox',
+            'url': 'https://github.com/vastsa/FileCodeBox',
+            'src': '/static/banners/img_1.png'
+        }, {
+            'text': 'FileCodeBox',
+            'url': 'https://www.lanol.cn',
+            'src': '/static/banners/img_2.png'
+        }]
     }
 
 
