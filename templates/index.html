@@ -29,14 +29,16 @@
             border-radius: 20px;
         }
 
-
+        .el-card {
+            border-radius: 20px;
+        }
     </style>
     <script src="/static/asserts/vue.min.js"></script>
     <script src="/static/asserts/index.js"></script>
 </head>
 <body>
 <div id="app" style="text-align: center">
-    <el-row v-if="pageNum === 0" class="qu" style="width:400px;margin: 6vh auto 0 auto">
+    <el-row v-if="pageNum === 0" class="qu" style="width:400px;height: 596px;margin: 6vh auto 0 auto">
         <el-card style="padding-bottom: 1rem">
             <el-col :span="24">
                 <el-input round autofocus @change="changeInput" clearable v-model:value="code" maxlength="5"
@@ -85,9 +87,9 @@
             </el-col>
         </el-card>
     </el-row>
-    <el-row v-else style="width:400px;margin: 20vh auto 0 auto">
-        <el-col :span="24" style="margin: 1rem 0">
-            <el-card>
+    <el-row v-else style="width:400px;height: 596px;margin: 20vh auto 0 auto">
+        <el-col :span="24">
+            <el-card style="padding-top: 20px">
                 <el-row>
                     <el-input style="width: 190px" placeholder="数量" v-model="uploadData.value"
                               class="input-with-select">
@@ -107,7 +109,6 @@
                         </el-radio>
                     </el-radio-group>
                 </el-row>
-
                 <el-upload
                         v-if="uploadData.type === '1'"
                         drag
@@ -132,6 +133,9 @@
                         placeholder="请输入内容，使用按钮存入"
                         v-model="uploadData.text">
                 </el-input>
+                <!--?                <div style="height: 240px">-->
+                <!--?                </div>e="height: 240px">-->
+                <!--?                </div>-->
                 <div class="el-upload__tip">
                     <el-button round @click="pageNum=0">
                         <div class="el-icon-back"></div>
@@ -187,7 +191,10 @@
                                     ${ file.name }
                             </el-col>
                             <el-col :span="24">
-                                取件码：<h1 style="margin: 0;display: inline">${ file.code }</h1>
+                                取件码：
+                                <h1 @click="copyCode(file.code)" style="margin: 0;display: inline;cursor: pointer">
+                                        ${ file.code }
+                                </h1>
                             </el-col>
                         </el-row>
                     </el-col>
@@ -291,6 +298,21 @@
                         });
                     })
                 })
+            },
+            copyCode: function (value) {
+                const input = document.createElement('input');
+                input.setAttribute('readonly', 'readonly');
+                input.setAttribute('value', `我在${window.location.href}分享了给你文件，取件码：${value}`);
+                document.body.appendChild(input);
+                input.select();
+                if (document.execCommand('copy')) {
+                    document.execCommand('copy');
+                    this.$message({
+                        message: '复制成功，快去分享给你的朋友吧',
+                        type: 'success'
+                    });
+                }
+                document.body.removeChild(input);
             },
             getFile: function () {
                 const that = this;
