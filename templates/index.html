@@ -46,7 +46,7 @@
 </head>
 <body>
 <div id="app" style="text-align: center">
-    <el-row v-if="pageNum === 0" class="qu" style="width:400px;height: 596px;margin: 6vh auto 0 auto">
+    <el-row v-if="pageNum === 0" class="qu" style="max-width:400px;margin: 4rem auto 0 auto">
         <el-card style="padding-bottom: 1rem">
             <el-col :span="24">
                 <el-input round autofocus @change="changeInput" clearable v-model:value="code" maxlength="5"
@@ -95,7 +95,7 @@
             </el-col>
         </el-card>
     </el-row>
-    <el-row v-else style="width:400px;margin: 6vh auto 0 auto">
+    <el-row v-else style="max-width:400px;margin: 4rem auto 0 auto">
         <el-col :span="24">
             <el-card :body-style="{ padding: '0px 0px 20px 0px' }">
                 <div class="block" style="margin-bottom: 1rem">
