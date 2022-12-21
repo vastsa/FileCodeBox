@@ -152,6 +152,13 @@ STORAGE_ENGINE=filesystem
 </tr>
 </table>    
 
+## 常见问题
+1. 413 Request Entity Too Large
+Nginx限制：
+找到自己主机的nginx.conf配置文件，打开
+在http{}中加入 client_max_body_size 10m;
+然后重启nginx
+
 ## 免责声明
 
 本项目开源仅供学习使用，不得用于任何违法用途，否则后果自负，与本人无关。使用请保留项目地址谢谢。
