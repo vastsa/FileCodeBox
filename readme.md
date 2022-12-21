@@ -39,6 +39,21 @@
 
 [https://share.lanol.cn](https://share.lanol.cn)
 
+### 暗黑模式
+
+<table style="width:100%">
+
+<tr style="width: 100%">
+<td style="width: 50%">
+<img src="https://raw.githubusercontent.com/vastsa/FileCodeBox/master/images/img_10.png" alt="寄文件">
+
+</td>
+<td style="width: 50%">
+<img src="https://raw.githubusercontent.com/vastsa/FileCodeBox/master/images/img_11.png" alt="寄文件">
+
+</td>
+</tr>
+</table>
 ### 寄件
 
 <table style="width: 100%">
@@ -153,11 +168,12 @@ STORAGE_ENGINE=filesystem
 </table>    
 
 ## 常见问题
+
 1. 413 Request Entity Too Large
-Nginx限制：
-找到自己主机的nginx.conf配置文件，打开
-在http{}中加入 client_max_body_size 10m;
-然后重启nginx
+   Nginx限制：
+   找到自己主机的nginx.conf配置文件，打开
+   在http{}中加入 client_max_body_size 10m;
+   然后重启nginx
 
 ## 免责声明
 
