@@ -20,7 +20,27 @@
 - [x] 管理面板：查看所有文件，删除文件
 - [x] 一键部署：docker一键部署
 
-## 未来规划
+## 部署方式
+
+### Docker一键部署
+
+#### AMD
+
+```bash
+docker run -d --restart=always -p 12345:12345 -v /opt/FileCodeBox/:/app/data --name filecodebox lanol/filecodebox:latest
+```
+
+#### ARM
+
+```bash
+docker run -d --restart=always -p 12345:12345 -v /opt/FileCodeBox/:/app/data --name filecodebox lanol/filecodebox:arm
+```
+
+### 其他方式
+
+仅供参考，历史版本->[部署文档](https://www.yuque.com/lxyo/work/zd0kvzy7fofx6w7v)
+
+## 项目规划
 
 2022年12月14日
 
@@ -94,24 +114,6 @@
 ### 管理
 
 ![管理](https://raw.githubusercontent.com/vastsa/FileCodeBox/master/images/img_7.png)
-
-## 部署方式
-
-### Docker一键部署
-
-#### AMD
-```bash
-docker run -d --restart=always -p 12345:12345 -v /opt/FileCodeBox/:/app/data --name filecodebox lanol/filecodebox:latest
-```
-
-#### ARM
-```bash
-docker run -d --restart=always -p 12345:12345 -v /opt/FileCodeBox/:/app/data --name filecodebox lanol/filecodebox:arm
-```
-
-### 其他方式
-
-仅供参考，历史版本->[部署文档](https://www.yuque.com/lxyo/work/zd0kvzy7fofx6w7v)
 
 ## 配置文件
 

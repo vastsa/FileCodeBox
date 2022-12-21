@@ -20,7 +20,27 @@
 - [x] management Panel: View all files and delete them
 - [x] one-click deployment: docker one-click deployment
 
-## Future Plan
+## Deployment method
+
+### One-click Docker deployment
+
+#### AMD
+
+```bash
+docker run -d --restart=always -p 12345:12345 -v /opt/FileCodeBox/:/app/data --name filecodebox lanol/filecodebox:latest
+```
+
+#### ARM
+
+```bash
+docker run -d --restart=always -p 12345:12345 -v /Users/lan/soft/FileCodeBox/:/app/data --name filecodebox lanol/filecodebox:arm
+```
+
+### Other methods
+
+For reference only, historical version->[部署文档](https://www.yuque.com/lxyo/work/zd0kvzy7fofx6w7v)
+
+## Project Plan
 
 December 14, 2022
 This project is mainly light-weight, mainly single-user, offline environment, so there is no need to add too many
@@ -98,25 +118,6 @@ If you have better ideas and suggestions, welcome to file an issue.
 ### Manage
 
 ![管理](https://raw.githubusercontent.com/vastsa/FileCodeBox/master/images/img_7.png)
-
-## Deployment method
-
-### One-click Docker deployment
-
-#### AMD
-```bash
-docker run -d --restart=always -p 12345:12345 -v /opt/FileCodeBox/:/app/data --name filecodebox lanol/filecodebox:latest
-```
-
-#### ARM
-```bash
-docker run -d --restart=always -p 12345:12345 -v /Users/lan/soft/FileCodeBox/:/app/data --name filecodebox lanol/filecodebox:arm
-```
-
-
-### Other methods
-
-For reference only, historical version->[部署文档](https://www.yuque.com/lxyo/work/zd0kvzy7fofx6w7v)
 
 ## Configuration file
 
