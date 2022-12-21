@@ -37,9 +37,29 @@
             border-radius: 20px;
         }
 
-        .el-card {
-            border-radius: 20px;
+        @media (prefers-color-scheme: dark) {
+
+            body {
+                background-color: #18181c;
+            }
+
+            .el-card, .el-button, .el-textarea__inner, .el-upload-dragger {
+                border-radius: 20px;
+                border: 1px solid transparent;
+                background-color: rgba(255, 255, 255, 0.1);
+                box-shadow: 5px 5px 0 0 rgba(0, 0, 0, 0.2);
+            }
+
+            * {
+                color: #ccc !important;
+            }
+
+            .el-input-group__prepend, .el-input__inner, .el-input-group__append, .el-drawer, #el-drawer__title, .el-empty__description, .el-select-dropdown {
+                border: 1px solid transparent;
+                background-color: rgba(0, 0, 0, 0.1);
+            }
         }
+
     </style>
     <script src="/static/asserts/vue.min.js"></script>
     <script src="/static/asserts/index.js"></script>
@@ -47,7 +67,7 @@
 <body>
 <div id="app" style="text-align: center">
     <el-row v-if="pageNum === 0" class="qu" style="max-width:400px;margin: 4rem auto 0 auto">
-        <el-card style="padding-bottom: 1rem">
+        <el-card class="glass" style="padding-bottom: 1rem">
             <el-col :span="24">
                 <el-input round autofocus @change="changeInput" clearable v-model:value="code" maxlength="5"
                           :disabled="inputDisable" placeholder="请输入五位取件码">
@@ -196,29 +216,27 @@
             :visible.sync="jiDrawer"
             :direction="direction"
             size="50%">
-        <el-card>
-            <el-empty v-if="files.length===0" description="请上传文件"></el-empty>
-            <el-card style="margin-top: 0.2rem" v-for="(file,index) in files" :key="index">
-                <el-row>
-                    <el-col :span="15">
-                        <el-row>
-                            <el-col :span="24" style="line-height: 45px">
-                                    ${ file.name }
-                            </el-col>
-                            <el-col :span="24">
-                                取件码：
-                                <h1 @click="copyText(file.code,0)" style="margin: 0;display: inline;cursor: pointer">
-                                        ${ file.code }
-                                </h1>
-                            </el-col>
-                        </el-row>
-                    </el-col>
-                    <el-col :span="4">
-                        <img style="width: 80px;height: 80px;"
-                             :src="qrcodeUrl(file)" alt="二维码" :alt="file.code">
-                    </el-col>
-                </el-row>
-            </el-card>
+        <el-empty v-if="files.length===0" description="请上传文件"></el-empty>
+        <el-card style="margin-top: 0.2rem" v-for="(file,index) in files" :key="index">
+            <el-row>
+                <el-col :span="15">
+                    <el-row>
+                        <el-col :span="24" style="line-height: 45px">
+                                ${ file.name }
+                        </el-col>
+                        <el-col :span="24">
+                            取件码：
+                            <h1 @click="copyText(file.code,0)" style="margin: 0;display: inline;cursor: pointer">
+                                    ${ file.code }
+                            </h1>
+                        </el-col>
+                    </el-row>
+                </el-col>
+                <el-col :span="4">
+                    <img style="width: 80px;height: 80px;"
+                         :src="qrcodeUrl(file)" alt="二维码" :alt="file.code">
+                </el-col>
+            </el-row>
         </el-card>
     </el-drawer>
     <div style="text-align: center; margin-top: 1rem;color: #606266">
