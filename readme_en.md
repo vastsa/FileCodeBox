@@ -43,6 +43,22 @@ If you have better ideas and suggestions, welcome to file an issue.
 
 [https://share.lanol.cn](https://share.lanol.cn)
 
+### Dark Theme
+
+<table style="width:100%">
+
+<tr style="width: 100%">
+<td style="width: 50%">
+<img src="https://raw.githubusercontent.com/vastsa/FileCodeBox/master/images/img_10.png" alt="寄文件">
+
+</td>
+<td style="width: 50%">
+<img src="https://raw.githubusercontent.com/vastsa/FileCodeBox/master/images/img_11.png" alt="寄文件">
+
+</td>
+</tr>
+</table>
+
 ### Send
 
 <table style="width: 100%">
@@ -87,9 +103,16 @@ If you have better ideas and suggestions, welcome to file an issue.
 
 ### One-click Docker deployment
 
+#### AMD
 ```bash
 docker run -d --restart=always -p 12345:12345 -v /opt/FileCodeBox/:/app/data --name filecodebox lanol/filecodebox:latest
 ```
+
+#### ARM
+```bash
+docker run -d --restart=always -p 12345:12345 -v /Users/lan/soft/FileCodeBox/:/app/data --name filecodebox lanol/filecodebox:arm
+```
+
 
 ### Other methods
 
