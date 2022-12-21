@@ -321,7 +321,7 @@
             },
             copyText: function (value, style = 1) {
                 if (style === 0) {
-                    value = `我在分享了给你文件，取件码：${value}，${window.location.href}?code=${value}`;
+                    value = `我给你分享了文件，取件码：${value}，${window.location.href}?code=${value}`;
                 }
                 const input = document.createElement('input');
                 input.setAttribute('readonly', 'readonly');
