@@ -49,7 +49,8 @@ class FileSystemStorage:
 
     async def delete_file(self, text: str):
         filepath = await self.get_filepath(text)
-        await asyncio.to_thread(os.remove, filepath)
+        if filepath.exists():
+            await asyncio.to_thread(os.remove, filepath)
 
     async def delete_files(self, texts):
         tasks = [self.delete_file(text) for text in texts]
