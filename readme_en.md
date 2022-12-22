@@ -35,6 +35,16 @@ docker run -d --restart=always -p 12345:12345 -v /opt/FileCodeBox/:/app/data --n
 ```bash
 docker run -d --restart=always -p 12345:12345 -v /Users/lan/soft/FileCodeBox/:/app/data --name filecodebox lanol/filecodebox:arm
 ```
+### Update
+
+```bash
+// 找到容器ID
+docker ps -a
+// 停止容器并删除
+docker stop 容器ID && docker rm 容器ID
+// 重新运行容器
+docker run -d --restart=always -p 12345:12345 -v /opt/FileCodeBox/:/app/data --name filecodebox lanol/filecodebox:latest
+```
 
 ### Other methods
 
