@@ -37,6 +37,7 @@ docker run -d --restart=always -p 12345:12345 -v /opt/FileCodeBox/:/app/data --n
 ```
 
 ### 更新方式
+
 ```bash
 // 找到容器ID
 docker ps -a
@@ -46,10 +47,10 @@ docker stop 容器ID && docker rm 容器ID
 docker run -d --restart=always -p 12345:12345 -v /opt/FileCodeBox/:/app/data --name filecodebox lanol/filecodebox:latest
 ```
 
-```
 ### 其他方式
 
 仅供参考，历史版本->[部署文档](https://www.yuque.com/lxyo/work/zd0kvzy7fofx6w7v)
+
 ## 项目规划
 
 2022年12月14日
