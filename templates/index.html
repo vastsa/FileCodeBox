@@ -199,7 +199,7 @@
             :direction="direction"
             size="50%"
     >
-        <el-card v-for="(file,index) in files" :key="index" class="box-card">
+        <el-card v-for="(file,index) in quFiles" :key="index" class="box-card">
             <div style="cursor: pointer;text-align: left;margin-left: 2rem">
                 <div>取件码：${ file.code }</div>
                 <div>文件名：${ file.name }</div>
@@ -214,15 +214,15 @@
                 </div>
             </div>
         </el-card>
-        <el-empty v-if="files.length===0" description="请输入取件码，收取文件"></el-empty>
+        <el-empty v-if="quFiles.length===0" description="请输入取件码，收取文件"></el-empty>
     </el-drawer>
     <el-drawer
             title="文件箱"
             :visible.sync="jiDrawer"
             :direction="direction"
             size="50%">
-        <el-empty v-if="files.length===0" description="请上传文件"></el-empty>
-        <el-card style="margin-top: 0.2rem" v-for="(file,index) in files" :key="index">
+        <el-empty v-if="jiFiles.length===0" description="请上传文件"></el-empty>
+        <el-card style="margin-top: 0.2rem" v-for="(file,index) in jiFiles" :key="index">
             <el-row>
                 <el-col :span="15">
                     <el-row>
@@ -260,7 +260,8 @@
                 quDrawer: false,
                 jiDrawer: false,
                 direction: 'btt',
-                files: [],
+                quFiles: [],
+                jiFiles: [],
                 pageNum: 0,
                 inputDisable: false,
                 fileSizeLimit: '{{fileSizeLimit}}',
@@ -364,7 +365,7 @@
                 const that = this;
                 this.http('post', `?code=${that.code}`).then(res => {
                     that.quDrawer = true;
-                    that.files.unshift(res.data);
+                    that.quFiles.unshift(res.data);
                 })
                 that.code = '';
                 that.input_disable = false
@@ -393,7 +394,7 @@
                             'pwd': this.pwd
                         }
                     }).then(res => {
-                        this.files.unshift(res.data);
+                        this.jiFiles.unshift(res.data);
                         this.jiDrawer = true;
                         this.uploadData.text = '';
                         this.uploadData.file = null;
@@ -405,7 +406,7 @@
                     message: response.detail,
                     type: 'success'
                 });
-                this.files.unshift(response.data);
+                this.jiFiles.unshift(response.data);
             },
             errorUpload(error, file, fileList) {
                 error = JSON.parse(error.message)

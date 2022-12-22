@@ -201,7 +201,7 @@ async def share(background_tasks: BackgroundTasks, text: str = Form(default=None
     upload_ip_limit.add_ip(ip)
     return {
         'detail': '分享成功，请点击取件码按钮查看上传列表',
-        'data': {'code': code, 'key': key, 'name': name, 'text': _text}
+        'data': {'code': code, 'key': key, 'name': name}
     }
 
 
