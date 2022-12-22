@@ -370,7 +370,7 @@
                 that.input_disable = false
             },
             qrcodeUrl(file) {
-                return 'https://api.qrserver.com/v1/create-qr-code/?data=' + window.location.origin + '/?code=' + file.code
+                return 'https://api.qrserver.com/v1/create-qr-code/?data=' + window.location.href + '/?code=' + file.code
             },
             listenInput: function (value) {
                 if (this.code.length < 5) {
