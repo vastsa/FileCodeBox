@@ -271,6 +271,7 @@
                 fileSizeLimit: '{{fileSizeLimit}}',
                 pwd: localStorage.getItem('pwd') || '',
                 banners: [],
+                enableUpload: false,
                 uploadData: {
                     style: '2',
                     type: '1',
@@ -313,7 +314,12 @@
                 }
             });
             // 获取Banner
-            axios.get('/banner').then(res => {
+            axios.get('/banner', {
+                headers: {
+                    pwd: localStorage.getItem('pwd')
+                }
+            }).then(res => {
+                this.enableUpload = res.data.enable
                 this.banners = res.data.data
             })
         },
@@ -385,6 +391,22 @@
             changeInput: function (value) {
                 this.code = value;
             },
+            checkFile: function (file) {
+                if (!this.enable) {
+                    this.$message({
+                        message: '上传功能已关闭',
+                        type: 'error'
+                    });
+                    return false
+                }
+                if (file.size > this.fileSizeLimit) {
+                    this.$message({
+                        message: `文件大小不能超过${this.fileSizeLimit/1024/1024}MB`,
+                        type: 'error'
+                    });
+                    return false
+                }
+            },
             toUploadData: function () {
                 if (this.uploadData.text === '' && this.uploadData.file === null) {
                     this.$message({
@@ -392,17 +414,19 @@
                         type: 'error'
                     });
                 } else {
-                    this.http('post', '/share', this.uploadData, {
-                        headers: {
-                            'Content-Type': 'multipart/form-data',
-                            'pwd': this.pwd
-                        }
-                    }).then(res => {
-                        this.jiFiles.unshift(res.data);
-                        this.jiDrawer = true;
-                        this.uploadData.text = '';
-                        this.uploadData.file = null;
-                    });
+                    if (this.checkFile(this.uploadData.file)) {
+                        this.http('post', '/share', this.uploadData, {
+                            headers: {
+                                'Content-Type': 'multipart/form-data',
+                                'pwd': this.pwd
+                            }
+                        }).then(res => {
+                            this.jiFiles.unshift(res.data);
+                            this.jiDrawer = true;
+                            this.uploadData.text = '';
+                            this.uploadData.file = null;
+                        });
+                    }
                 }
             },
             successUpload(response, file, fileList) {
@@ -420,13 +444,7 @@
                 });
             },
             beforeUpload: function (file) {
-                if (file.size > this.fileSizeLimit) {
-                    this.$message({
-                        message: `文件大小不能超过${this.fileSizeLimit/1024/1024}MB`,
-                        type: 'error'
-                    });
-                    return false
-                }
+                return this.checkFile(file);
             }
         }
     })

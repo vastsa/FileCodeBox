@@ -41,8 +41,8 @@ index_html = open('templates/index.html', 'r', encoding='utf-8').read() \
     .replace('{{title}}', settings.TITLE) \
     .replace('{{description}}', settings.DESCRIPTION) \
     .replace('{{keywords}}', settings.KEYWORDS) \
-    .replace("'{{fileSizeLimit}}'", str(settings.FILE_SIZE_LIMIT))
-# 管理页面
+    .replace("'{{fileSizeLimit}}'", str(settings.FILE_SIZE_LIMIT)) \
+    # 管理页面
 admin_html = open('templates/admin.html', 'r', encoding='utf-8').read() \
     .replace('{{title}}', settings.TITLE) \
     .replace('{{description}}', settings.DESCRIPTION) \
@@ -107,7 +107,7 @@ async def index():
 
 
 @app.get('/banner')
-async def banner(s: AsyncSession = Depends(get_session)):
+async def banner(request: Request, s: AsyncSession = Depends(get_session)):
     # 数据库查询config
     config = (await s.execute(select(Values).filter(Values.key == 'config'))).scalar_one_or_none()
     # 如果存在config，就返回config的value
@@ -119,6 +119,7 @@ async def banner(s: AsyncSession = Depends(get_session)):
     # 如果不存在config，就返回默认的banner
     return {
         'detail': 'banner',
+        'enable': request.headers.get('pwd', '') == settings.ADMIN_PASSWORD,
         'data': [{
             'text': 'FileCodeBox',
             'url': 'https://github.com/vastsa/FileCodeBox',
