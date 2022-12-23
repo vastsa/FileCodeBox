@@ -75,10 +75,20 @@ class FileSystemStorage:
         filepath = await self.get_filepath(text)
         if filepath.exists():
             await asyncio.to_thread(os.remove, filepath)
+            await asyncio.to_thread(self.judge_delete_folder, filepath)
 
     async def delete_files(self, texts):
         tasks = [self.delete_file(text) for text in texts]
         await asyncio.gather(*tasks)
+
+    def judge_delete_folder(self, filepath):
+        currpath = os.path.dirname(filepath)
+        if os.listdir(currpath):
+            return
+        while str(currpath) != (str(self.DATA_ROOT) + '\\upload'):
+            if not os.listdir(currpath):
+                os.rmdir(os.path.abspath(currpath))
+            currpath = os.path.dirname(currpath)
 
 
 STORAGE_ENGINE = {
