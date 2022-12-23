@@ -172,6 +172,10 @@ STORAGE_ENGINE=filesystem
 
 ![Alt](https://repobeats.axiom.co/api/embed/7a6c92f1d96ee57e6fb67f0df371528397b0c9ac.svg "Repobeats analytics image")
 
+## Star History
+
+[![Star History Chart](https://api.star-history.com/svg?repos=vastsa/FileCodeBox&type=Date)](https://star-history.com/#vastsa/FileCodeBox&Date)
+
 ## 赞赏
 
 <table style="width: 100%">
