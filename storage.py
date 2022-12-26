@@ -85,7 +85,7 @@ class FileSystemStorage:
         currpath = os.path.dirname(filepath)
         if os.listdir(currpath):
             return
-        while str(currpath) != (str(self.DATA_ROOT) + '\\upload'):
+        while str(currpath) != (str(os.path.join(self.DATA_ROOT, 'upload'))):
             if not os.listdir(currpath):
                 os.rmdir(os.path.abspath(currpath))
             currpath = os.path.dirname(currpath)
