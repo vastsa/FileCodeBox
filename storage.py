@@ -9,30 +9,6 @@ from fastapi import UploadFile
 import settings
 
 
-class TencentCOS:
-    def __init__(self, bucket: str, region: str, secret_id: str, secret_key: str):
-        self.bucket = bucket
-        self.region = region
-        self.secret_id = secret_id
-        self.secret_key = secret_key
-
-    def upload(self, file: UploadFile, path: str) -> str:
-        # 上传文件
-        pass
-
-    def download(self, path: str) -> BinaryIO:
-        # 下载文件
-        pass
-
-    def delete(self, path: str) -> None:
-        # 删除文件
-        pass
-
-    def get_url(self, path: str) -> str:
-        # 获取文件访问链接
-        pass
-
-
 class FileSystemStorage:
     DATA_ROOT = Path(settings.DATA_ROOT)
     STATIC_URL = settings.STATIC_URL

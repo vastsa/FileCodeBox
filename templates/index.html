@@ -397,20 +397,23 @@
                 this.code = value;
             },
             checkFile: function (file) {
-                if (!this.enable) {
+                if (!this.enableUpload) {
                     this.$message({
                         message: '上传功能已关闭',
                         type: 'error'
                     });
                     return false
                 }
-                if (file.size > this.fileSizeLimit) {
-                    this.$message({
-                        message: `文件大小不能超过${this.fileSizeLimit/1024/1024}MB`,
-                        type: 'error'
-                    });
-                    return false
+                if (file != null) {
+                    if (file.size > this.fileSizeLimit) {
+                        this.$message({
+                            message: `文件大小不能超过${this.fileSizeLimit/1024/1024}MB`,
+                            type: 'error'
+                        });
+                        return false;
+                    }
                 }
+                return true;
             },
             toUploadData: function () {
                 if (this.uploadData.text === '' && this.uploadData.file === null) {

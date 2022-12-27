@@ -16,11 +16,8 @@ async def admin_required(pwd: Union[str, None] = Header(default=None), request: 
 
 
 class IPRateLimit:
-    ips = {}
-    count = 0
-    minutes = 0
-
     def __init__(self, count, minutes):
+        self.ips = {}
         self.count = count
         self.minutes = minutes
 
