@@ -119,7 +119,7 @@ async def banner(request: Request, s: AsyncSession = Depends(get_session)):
     # 如果不存在config，就返回默认的banner
     return {
         'detail': 'banner',
-        'enable': request.headers.get('pwd', '') == settings.ADMIN_PASSWORD,
+        'enable': request.headers.get('pwd', '') == settings.ADMIN_PASSWORD or settings.ENABLE_UPLOAD,
         'data': [{
             'text': 'FileCodeBox',
             'url': 'https://github.com/vastsa/FileCodeBox',
