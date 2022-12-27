@@ -57,14 +57,14 @@ class FileSystemStorage:
         tasks = [self.delete_file(text) for text in texts]
         await asyncio.gather(*tasks)
 
-    async def judge_delete_folder(self, filepath):
-        currpath = os.path.dirname(filepath)
-        if os.listdir(currpath):
-            return
-        while str(currpath) != (str(os.path.join(self.DATA_ROOT, 'upload'))):
-            if not os.listdir(currpath):
-                os.rmdir(os.path.abspath(currpath))
-            currpath = os.path.dirname(currpath)
+    def judge_delete_folder(self, filepath):
+        current = filepath.parent
+        while current != self.DATA_ROOT:
+            if not list(current.iterdir()):
+                os.rmdir(current)
+                current = current.parent
+            else:
+                break
 
 
 STORAGE_ENGINE = {

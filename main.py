@@ -98,7 +98,7 @@ async def admin_delete(code: str, s: AsyncSession = Depends(get_session)):
 async def config(s: AsyncSession = Depends(get_session)):
     # 从数据库获取系统配置
     data = (await s.execute(select(Values).filter(Values.key == 'config'))).scalar_one_or_none()
-    return {'detail': '获取成功', 'data': data.value}
+    return {'detail': '获取成功', 'data': data.value if data else {}}
 
 
 @app.get('/')
