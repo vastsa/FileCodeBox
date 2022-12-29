@@ -98,7 +98,7 @@ async def admin_delete(code: str, s: AsyncSession = Depends(get_session)):
 async def config(s: AsyncSession = Depends(get_session)):
     # 从数据库获取系统配置
     data = (await s.execute(select(Values).filter(Values.key == 'config'))).scalar_one_or_none()
-    return {'detail': '获取成功', 'data': data.value if data else {}}
+    return {'detail': '获取成功', 'data': data.value if data else {'banners': []}}
 
 
 @app.get('/')
@@ -114,7 +114,8 @@ async def banner(request: Request, s: AsyncSession = Depends(get_session)):
     if config and config.value.get('banners'):
         return {
             'detail': '查询成功',
-            'data': config.value['banners']
+            'data': config.value['banners'],
+            'enable': request.headers.get('pwd', '') == settings.ADMIN_PASSWORD or settings.ENABLE_UPLOAD,
         }
     # 如果不存在config，就返回默认的banner
     return {
