@@ -5,3 +5,4 @@ python-multipart==0.0.5
 uvicorn==0.15.0
 greenlet==2.0.1
 starlette~=0.22.0
+chardet == 5.1.0

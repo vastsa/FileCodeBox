@@ -4,6 +4,7 @@ import asyncio
 from pathlib import Path
 import os
 try:
+    import chardet
     from fastapi import FastAPI, Depends, UploadFile, Form, File, HTTPException, BackgroundTasks
     from starlette.requests import Request
     from starlette.responses import HTMLResponse, FileResponse
@@ -12,6 +13,7 @@ try:
     from sqlalchemy.ext.asyncio.session import AsyncSession
 except ImportError:
     os.system("pip install -r requirements.txt")
+    import chardet
     from fastapi import FastAPI, Depends, UploadFile, Form, File, HTTPException, BackgroundTasks
     from starlette.requests import Request
     from starlette.responses import HTMLResponse, FileResponse
