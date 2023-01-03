@@ -2,14 +2,24 @@ import datetime
 import uuid
 import asyncio
 from pathlib import Path
-
-from fastapi import FastAPI, Depends, UploadFile, Form, File, HTTPException, BackgroundTasks
-from starlette.requests import Request
-from starlette.responses import HTMLResponse, FileResponse
-from starlette.staticfiles import StaticFiles
-
-from sqlalchemy import select, update, func
-from sqlalchemy.ext.asyncio.session import AsyncSession
+import os
+try:
+    import chardet
+    from fastapi import FastAPI, Depends, UploadFile, Form, File, HTTPException, BackgroundTasks
+    from starlette.requests import Request
+    from starlette.responses import HTMLResponse, FileResponse
+    from starlette.staticfiles import StaticFiles
+    from sqlalchemy import select, update, func
+    from sqlalchemy.ext.asyncio.session import AsyncSession
+except ImportError:
+    os.system("pip install -r requirements.txt")
+    import chardet
+    from fastapi import FastAPI, Depends, UploadFile, Form, File, HTTPException, BackgroundTasks
+    from starlette.requests import Request
+    from starlette.responses import HTMLResponse, FileResponse
+    from starlette.staticfiles import StaticFiles
+    from sqlalchemy import select, update, func
+    from sqlalchemy.ext.asyncio.session import AsyncSession
 
 import settings
 from utils import delete_expire_files, storage, get_code, error_ip_limit, upload_ip_limit
