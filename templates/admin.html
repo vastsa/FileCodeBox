@@ -73,58 +73,7 @@
             </el-pagination>
         </el-col>
         <el-col v-if="activeIndex === '3'">
-            <el-form ref="form" style="width: 50%;margin:2rem auto" :model="config" label-width="200px">
-                <!--?                <el-form-item label="错误限制">-->
-                <!--?                    <div>-->
-                <!--?                        间隔：-->
-                <!--?                        <el-input-number v-model="config.error_count" :min="1"></el-input-number>-->
-                <!--?                        分钟-->
-                <!--?                    </div>-->
-                <!--?                    <div>-->
-                <!--?                        数量：-->
-                <!--?                        <el-input-number v-model="config.error_minute" :min="1"></el-input-number>-->
-                <!--?                        个-->
-                <!--?                    </div>-->
-                <!--?                </el-form-item>-->
-                <!--?                <el-form-item label="上传限制">-->
-                <!--?                    <div>-->
-                <!--?                        开启上传：-->
-                <!--?                        <el-switch-->
-                <!--?                                v-model="config.enable_upload"-->
-                <!--?                                active-color="#13ce66"-->
-                <!--?                                inactive-color="#ff4949">-->
-                <!--?                        </el-switch>-->
-                <!--?                    </div>-->
-                <!--?                    <div>-->
-                <!--?                        间隔：-->
-                <!--?                        <el-input-number v-model="config.upload_minute" :min="1"></el-input-number>-->
-                <!--?                        分钟-->
-                <!--?                    </div>-->
-                <!--?                    <div>-->
-                <!--?                        数量：-->
-                <!--?                        <el-input-number v-model="config.upload_count" :min="1"></el-input-number>-->
-                <!--?                        个-->
-                <!--?                    </div>-->
-                <!--?                    <div>-->
-                <!--?                        最长：-->
-                <!--?                        <el-input-number v-model="config.max_days" :min="1"></el-input-number>-->
-                <!--?                        天-->
-                <!--?                    </div>-->
-                <!--?                    <div>-->
-                <!--?                        大小：-->
-                <!--?                        <el-input-number v-model="config.file_size_limit" :min="1"></el-input-number>-->
-                <!--?                        MB-->
-                <!--?                    </div>-->
-                <!--?                </el-form-item>-->
-                <!--?                <el-form-item label="删除间隔">-->
-                <!--?                    时长：-->
-                <!--?                    <el-input-number v-model="config.delete_expire_files_interval"></el-input-number>-->
-                <!--?                    分钟-->
-                <!--?                </el-form-item>-->
-                <!--?                <el-form-item label="管理员密码">-->
-                <!--?                    <el-input v-model="config.admin_password" type="password"></el-input>-->
-                <!--?                </el-form-item>-->
-                <el-form-item v-for="(banner,index) in config.banners" :label="'Banner'+ (index+1)">
+            <el-form ref="form" style="width: 50%;margin:2rem auto" :model="config" label-width="200px"><el-form-item v-for="(banner,index) in config.banners" :label="'Banner'+ (index+1)">
                     <div style="width: 50%;display: inline-block">
                         <el-input v-model="banner.text" placeholder="文本"></el-input>
                         <el-input v-model="banner.url" placeholder="跳转链接"></el-input>
@@ -162,15 +111,6 @@
                 pwd: '',
                 activeIndex: '2',
                 config: {
-                    // enable_upload: true,
-                    // max_days: 7,
-                    // error_count: 3,
-                    // error_minute: 10,
-                    // upload_count: 10,
-                    // upload_minute: 10,
-                    // delete_expire_files_interval: 10,
-                    // admin_password: 'admin',
-                    // file_size_limit: 10,
                     banners: []
                 },
                 files: [],

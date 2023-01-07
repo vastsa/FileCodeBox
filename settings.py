@@ -1,19 +1,17 @@
 from starlette.config import Config
-from utf8togbk import convert_encoding
 import os
 import shutil
+import encoding_convert
+
 # 配置文件.env
 # 请将.env移动至data目录，方便docker部署
-
 # 判断根目录下是否存在.env文件
 if os.path.exists('.env'):
     # 将文件复制到data目录
     shutil.copy('.env', 'data/.env')
+if os.path.exists('data/.env'):
     # 获取data目录下的.env文件编码，如果为utf-8编码，就转换为gbk编码
-    convert_encoding('./data/.env')
-elif os.path.exists('data/.env'):
-    # 获取data目录下的.env文件编码，如果为utf-8编码，就转换为gbk编码
-    convert_encoding('./data/.env')
+    encoding_convert.convert_encoding('./data/.env')
 
 config = Config("data/.env")
 # 是否开启DEBUG模式

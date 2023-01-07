@@ -1,5 +1,5 @@
 import datetime
-from sqlalchemy import Boolean, Column, Integer, String, DateTime, JSON
+from sqlalchemy import Boolean, Column, Integer, String, DateTime, JSON, Text
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.ext.asyncio import create_async_engine
 from sqlalchemy.ext.asyncio.session import AsyncSession
@@ -35,7 +35,7 @@ class Codes(Base):
     name = Column(String(500))
     size = Column(Integer)
     type = Column(String(20))
-    text = Column(String(500))
+    text = Column(Text)
     used = Column(Boolean, default=False)
     count = Column(Integer, default=-1)
     use_time = Column(DateTime, default=datetime.datetime.now, onupdate=datetime.datetime.now)

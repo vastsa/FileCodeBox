@@ -212,7 +212,7 @@ async def share(background_tasks: BackgroundTasks, text: str = Form(default=None
     await s.commit()
     upload_ip_limit.add_ip(ip)
     return {
-        'detail': '分享成功，请点击取件码按钮查看上传列表',
+        'detail': '分享成功，请点击我的文件按钮查看上传列表',
         'data': {'code': code, 'key': key, 'name': name}
     }
 
@@ -220,4 +220,4 @@ async def share(background_tasks: BackgroundTasks, text: str = Form(default=None
 if __name__ == '__main__':
     import uvicorn
 
-    uvicorn.run('main:app', host='0.0.0.0', port=settings.PORT, reload=settings.DEBUG)
+    uvicorn.run('main:app', host=':', port=settings.PORT, reload=settings.DEBUG)
