@@ -3,6 +3,7 @@ import uuid
 import asyncio
 from pathlib import Path
 import os
+
 try:
     import chardet
     from fastapi import FastAPI, Depends, UploadFile, Form, File, HTTPException, BackgroundTasks
@@ -116,6 +117,25 @@ async def index():
     return HTMLResponse(index_html)
 
 
+@app.post('/')
+async def index(code: str, ip: str = Depends(error_ip_limit), s: AsyncSession = Depends(get_session)):
+    query = select(Codes).where(Codes.code == code)
+    info = (await s.execute(query)).scalars().first()
+    if not info:
+        error_count = settings.ERROR_COUNT - error_ip_limit.add_ip(ip)
+        raise HTTPException(status_code=404, detail=f"取件码错误，{error_count}次后将被禁止{settings.ERROR_MINUTE}分钟")
+    if info.exp_time < datetime.datetime.now() or info.count == 0:
+        raise HTTPException(status_code=404, detail="取件码已失效，请联系寄件人")
+    await s.execute(update(Codes).where(Codes.id == info.id).values(count=info.count - 1))
+    await s.commit()
+    if info.type != 'text':
+        info.text = f'/select?code={code}'
+    return {
+        'detail': f'取件成功，文件将在{settings.DELETE_EXPIRE_FILES_INTERVAL}分钟后删除',
+        'data': {'type': info.type, 'text': info.text, 'name': info.name, 'code': info.code}
+    }
+
+
 @app.get('/banner')
 async def banner(request: Request, s: AsyncSession = Depends(get_session)):
     # 数据库查询config
@@ -159,25 +179,6 @@ async def get_file(code: str, ip: str = Depends(error_ip_limit), s: AsyncSession
     else:
         filepath = await storage.get_filepath(info.text)
         return FileResponse(filepath, filename=info.name)
-
-
-@app.post('/')
-async def index(code: str, ip: str = Depends(error_ip_limit), s: AsyncSession = Depends(get_session)):
-    query = select(Codes).where(Codes.code == code)
-    info = (await s.execute(query)).scalars().first()
-    if not info:
-        error_count = settings.ERROR_COUNT - error_ip_limit.add_ip(ip)
-        raise HTTPException(status_code=404, detail=f"取件码错误，{error_count}次后将被禁止{settings.ERROR_MINUTE}分钟")
-    if info.exp_time < datetime.datetime.now() or info.count == 0:
-        raise HTTPException(status_code=404, detail="取件码已失效，请联系寄件人")
-    await s.execute(update(Codes).where(Codes.id == info.id).values(count=info.count - 1))
-    await s.commit()
-    if info.type != 'text':
-        info.text = f'/select?code={code}'
-    return {
-        'detail': f'取件成功，文件将在{settings.DELETE_EXPIRE_FILES_INTERVAL}分钟后删除',
-        'data': {'type': info.type, 'text': info.text, 'name': info.name, 'code': info.code}
-    }
 
 
 @app.post('/share', dependencies=[Depends(admin_required)], description='分享文件')
