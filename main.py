@@ -5,7 +5,6 @@ from pathlib import Path
 import os
 
 try:
-    import chardet
     from fastapi import FastAPI, Depends, UploadFile, Form, File, HTTPException, BackgroundTasks
     from starlette.requests import Request
     from starlette.responses import HTMLResponse, FileResponse
@@ -14,7 +13,6 @@ try:
     from sqlalchemy.ext.asyncio.session import AsyncSession
 except ImportError:
     os.system("pip install -r requirements.txt")
-    import chardet
     from fastapi import FastAPI, Depends, UploadFile, Form, File, HTTPException, BackgroundTasks
     from starlette.requests import Request
     from starlette.responses import HTMLResponse, FileResponse
@@ -80,8 +78,8 @@ async def admin_post(page: int = Form(default=1), size: int = Form(default=10), 
 async def admin_patch(request: Request, s: AsyncSession = Depends(get_session)):
     # 从数据库获取系统配置
     # 如果不存在config这个key，就创建一个
-    config = (await s.execute(select(Values).filter(Values.key == 'config'))).scalar_one_or_none()
-    if not config:
+    value = (await s.execute(select(Values).filter(Values.key == 'config'))).scalar_one_or_none()
+    if not value:
         s.add(Values(key='config', value=await request.json()))
     else:
         await s.execute(update(Values).where(Values.key == 'config').values(value=await request.json()))
