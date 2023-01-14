@@ -4,6 +4,8 @@
 <p><em>匿名口令分享文本，文件，像拿快递一样取文件</em></p>
 </div>
 
+![banner](https://raw.githubusercontent.com/vastsa/FileCodeBox/master/static/banners/img_1.png)
+
 ---
 
 [简体中文](./readme.md) | [English](./readme_en.md)

@@ -4,6 +4,9 @@
 <p><em>share text and files with anonymous passwords, and take files like express delivery </em></p>
 </div>
 
+![banner](https://raw.githubusercontent.com/vastsa/FileCodeBox/master/static/banners/img_1.png)
+
+
 ---
 
 [简体中文](./readme.md) | [English](./readme_en.md)
