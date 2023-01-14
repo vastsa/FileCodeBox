@@ -1,4 +1,4 @@
-<div style="text-align: center">
+<div align="center">
 <h1>文件快递柜-轻量</h1>
 <h2>FileCodeBox-Lite</h2>
 <p><em>匿名口令分享文本，文件，像拿快递一样取文件</em></p>

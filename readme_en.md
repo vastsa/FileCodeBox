@@ -1,4 +1,4 @@
-<div style="text-align: center">
+<div align="center">
 <h1>File Express Cabinet - Lite</h1>
 <h2>FileCodeBox - Lite</h2>
 <p><em>share text and files with anonymous passwords, and take files like express delivery </em></p>
