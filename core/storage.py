@@ -4,11 +4,19 @@ from datetime import datetime
 from pathlib import Path
 from typing import BinaryIO
 from fastapi import UploadFile
-import settings
-import oss2
+
+from core.database import Codes
+from settings import settings
+
+if settings.STORAGE_ENGINE == 'aliyunsystem':
+    try:
+        import oss2
+    except ImportError:
+        os.system('pip install oss2')
+        import oss2
 
 
-class AliyunFileStore:
+class AliyunFileStorage:
     def __init__(self):
         auth = oss2.Auth(settings.KeyId, settings.KeySecret)
         self.bucket = oss2.Bucket(auth, settings.OSS_ENDPOINT, settings.BUCKET_NAME)
@@ -21,10 +29,10 @@ class AliyunFileStore:
         now = datetime.now()
         path = f"FileCodeBox/upload/{now.year}/{now.month}/{now.day}"
         text = f"{path}/{f'{key}.{ext}'}"
-        return text
+        return f"https://{settings.BUCKET_NAME}.{settings.OSS_ENDPOINT}/{text}"
 
-    async def get_filepath(self, text: str):
-        text = text.strip(f"https://{settings.BUCKET_NAME}.{settings.OSS_ENDPOINT}/")
+    async def get_url(self, info: Codes):
+        text = info.text.strip(f"https://{settings.BUCKET_NAME}.{settings.OSS_ENDPOINT}/")
         url = self.bucket.sign_url('GET', text, settings.ACCESSTIME, slash_safe=True)
         return url
 
@@ -47,10 +55,10 @@ class AliyunFileStore:
 
     async def save_file(self, file: UploadFile, remote_filepath: str):
         now = int(datetime.now().timestamp())
-        upload_filepath = settings.DATA_ROOT+str(now)
+        upload_filepath = settings.DATA_ROOT + str(now)
         await asyncio.to_thread(self._save, upload_filepath, file.file)
-        self.upload_file(upload_filepath,remote_filepath)
-        await asyncio.to_thread(os.remove,upload_filepath)
+        self.upload_file(upload_filepath, remote_filepath)
+        await asyncio.to_thread(os.remove, upload_filepath)
 
     async def delete_files(self, texts):
         tasks = [self.delete_file(text) for text in texts]
@@ -66,9 +74,13 @@ class FileSystemStorage:
         self.DATA_ROOT = Path(settings.DATA_ROOT)
         self.STATIC_URL = settings.STATIC_URL
         self.NAME = "filesystem"
+        self.DOWN_PATH = '/select'
 
     async def get_filepath(self, text: str):
         return self.DATA_ROOT / text.lstrip(self.STATIC_URL + '/')
+
+    async def get_url(self, info: Codes):
+        return f'{self.DOWN_PATH}?code={info.code}'
 
     async def get_text(self, file: UploadFile, key: str):
         ext = file.filename.split('.')[-1]
@@ -122,5 +134,5 @@ class FileSystemStorage:
 
 STORAGE_ENGINE = {
     "filesystem": FileSystemStorage,
-    "aliyunsystem": AliyunFileStore
+    "aliyunsystem": AliyunFileStorage
 }

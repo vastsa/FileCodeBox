@@ -3,10 +3,10 @@ import random
 import asyncio
 from sqlalchemy import or_, select, delete
 from sqlalchemy.ext.asyncio.session import AsyncSession
-import settings
-from database import Codes, engine
-from depends import IPRateLimit
-from storage import STORAGE_ENGINE
+from .database import Codes, engine
+from .depends import IPRateLimit
+from .storage import STORAGE_ENGINE
+from settings import settings
 
 storage = STORAGE_ENGINE[settings.STORAGE_ENGINE]()
 

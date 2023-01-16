@@ -1,29 +1,18 @@
 import datetime
 import uuid
-import asyncio
 from pathlib import Path
-import os
+from sqlalchemy import select, func, update
+from sqlalchemy.ext.asyncio import AsyncSession
+from starlette.requests import Request
+from starlette.responses import HTMLResponse, FileResponse
+from starlette.staticfiles import StaticFiles
 
-try:
-    from fastapi import FastAPI, Depends, UploadFile, Form, File, HTTPException, BackgroundTasks
-    from starlette.requests import Request
-    from starlette.responses import HTMLResponse, FileResponse
-    from starlette.staticfiles import StaticFiles
-    from sqlalchemy import select, update, func
-    from sqlalchemy.ext.asyncio.session import AsyncSession
-except ImportError:
-    os.system("pip install -r requirements.txt")
-    from fastapi import FastAPI, Depends, UploadFile, Form, File, HTTPException, BackgroundTasks
-    from starlette.requests import Request
-    from starlette.responses import HTMLResponse, FileResponse
-    from starlette.staticfiles import StaticFiles
-    from sqlalchemy import select, update, func
-    from sqlalchemy.ext.asyncio.session import AsyncSession
+from core.utils import error_ip_limit, upload_ip_limit, get_code, storage
+from core.depends import admin_required
+from settings import settings
+from fastapi import FastAPI, Depends, UploadFile, Form, File, HTTPException, BackgroundTasks
 
-import settings
-from utils import delete_expire_files, storage, get_code, error_ip_limit, upload_ip_limit
-from database import get_session, Codes, init_models, Values
-from depends import admin_required
+from core.database import init_models, Options, Codes, get_session
 
 # 实例化FastAPI
 app = FastAPI(debug=settings.DEBUG, docs_url=None, redoc_url=None)
@@ -34,28 +23,30 @@ if not DATA_ROOT.exists():
     DATA_ROOT.mkdir(parents=True)
 
 # 静态文件夹，这个固定就行了，静态资源都放在这里
-app.mount(settings.STATIC_URL, StaticFiles(directory='./static'), name="static")
+app.mount('/static', StaticFiles(directory='./static'), name="static")
+# 首页页面
+index_html = open('templates/index.html', 'r', encoding='utf-8').read() \
+    .replace('{{title}}', settings.TITLE) \
+    .replace('{{description}}', settings.DESCRIPTION) \
+    .replace('{{keywords}}', settings.KEYWORDS) \
+    .replace("'{{fileSizeLimit}}'", str(settings.FILE_SIZE_LIMIT))
+# 管理页面
+admin_html = open('templates/admin.html', 'r', encoding='utf-8').read() \
+    .replace('{{title}}', settings.TITLE) \
+    .replace('{{description}}', settings.DESCRIPTION) \
+    .replace('{{admin_address}}', settings.ADMIN_ADDRESS) \
+    .replace('{{keywords}}', settings.KEYWORDS)
 
 
 @app.on_event('startup')
 async def startup():
     # 初始化数据库
     await init_models()
-    # 启动后台任务，不定时删除过期文件
-    asyncio.create_task(delete_expire_files())
 
 
-# 首页页面
-index_html = open('templates/index.html', 'r', encoding='utf-8').read() \
-    .replace('{{title}}', settings.TITLE) \
-    .replace('{{description}}', settings.DESCRIPTION) \
-    .replace('{{keywords}}', settings.KEYWORDS) \
-    .replace("'{{fileSizeLimit}}'", str(settings.FILE_SIZE_LIMIT)) \
-    # 管理页面
-admin_html = open('templates/admin.html', 'r', encoding='utf-8').read() \
-    .replace('{{title}}', settings.TITLE) \
-    .replace('{{description}}', settings.DESCRIPTION) \
-    .replace('{{keywords}}', settings.KEYWORDS)
+@app.get('/')
+async def index():
+    return HTMLResponse(index_html)
 
 
 @app.get(f'/{settings.ADMIN_ADDRESS}', description='管理页面')
@@ -65,26 +56,19 @@ async def admin():
 
 @app.post(f'/{settings.ADMIN_ADDRESS}', dependencies=[Depends(admin_required)], description='查询数据库列表')
 async def admin_post(page: int = Form(default=1), size: int = Form(default=10), s: AsyncSession = Depends(get_session)):
-    codes = (await s.execute(select(Codes).offset((page - 1) * size).limit(size))).scalars().all()
-    total = (await s.execute(select(func.count(Codes.id)))).scalar()
-    return {'detail': '查询成功', 'data': codes, 'paginate': {
-        'page': page,
-        'size': size,
-        'total': total
-    }}
+    return {
+        'detail': '查询成功',
+        'data': (await s.execute(select(Codes).offset((page - 1) * size).limit(size))).scalars().all(),
+        'paginate': {
+            'page': page,
+            'size': size,
+            'total': (await s.execute(select(func.count(Codes.id)))).scalar()
+        }}
 
 
-@app.patch(f'/{settings.ADMIN_ADDRESS}', dependencies=[Depends(admin_required)], description='修改数据库数据')
-async def admin_patch(request: Request, s: AsyncSession = Depends(get_session)):
-    # 从数据库获取系统配置
-    # 如果不存在config这个key，就创建一个
-    value = (await s.execute(select(Values).filter(Values.key == 'config'))).scalar_one_or_none()
-    if not value:
-        s.add(Values(key='config', value=await request.json()))
-    else:
-        await s.execute(update(Values).where(Values.key == 'config').values(value=await request.json()))
-    await s.commit()
-    return {'detail': '修改成功'}
+# @app.patch(f'/{settings.ADMIN_ADDRESS}', dependencies=[Depends(admin_required)], description='修改数据库数据')
+# async def admin_patch(request: Request, s: AsyncSession = Depends(get_session)):
+#     return {'detail': '修改成功'}
 
 
 @app.delete(f'/{settings.ADMIN_ADDRESS}', dependencies=[Depends(admin_required)], description='删除数据库记录')
@@ -103,11 +87,9 @@ async def admin_delete(code: str, s: AsyncSession = Depends(get_session)):
     return {'detail': '删除成功'}
 
 
-@app.get('/config', description='获取系统配置', dependencies=[Depends(admin_required)])
+@app.get(f'/{settings.ADMIN_ADDRESS}/config', description='获取系统配置', dependencies=[Depends(admin_required)])
 async def config(s: AsyncSession = Depends(get_session)):
-    # 从数据库获取系统配置
-    data = (await s.execute(select(Values).filter(Values.key == 'config'))).scalar_one_or_none()
-    return {'detail': '获取成功', 'data': data.value if data else {'banners': []}}
+    return {'detail': '获取成功', 'data': (await s.execute(select(Options))).scalars().all()}
 
 
 @app.get('/')
@@ -127,57 +109,25 @@ async def index(code: str, ip: str = Depends(error_ip_limit), s: AsyncSession = 
     await s.execute(update(Codes).where(Codes.id == info.id).values(count=info.count - 1))
     await s.commit()
     if info.type != 'text':
-        if settings.STORAGE_ENGINE == 'filesystem':
-            info.text = f'/select?code={code}'
-            return {
-                'detail': f'取件成功，文件将在{settings.DELETE_EXPIRE_FILES_INTERVAL}分钟后删除',
-                'data': {'type': info.type, 'text': info.text, 'name': info.name, 'code': info.code}
-            }
-        elif settings.STORAGE_ENGINE == 'aliyunsystem':
-            info.text = await storage.get_filepath(info.text)
-        return {
-            'detail': f'取件成功，链接将在{settings.ACCESSTIME}秒后失效',
-            'data': {'type': info.type, 'text': info.text, 'name': info.name, 'code': info.code}
-        }
+        info.text = await storage.get_url(info)
+    return {
+        'detail': f'取件成功，文件将在{settings.DELETE_EXPIRE_FILES_INTERVAL}分钟后删除',
+        'data': {'type': info.type, 'text': info.text, 'name': info.name, 'code': info.code}
+    }
 
-@app.post('/adminDownloadFile',dependencies=[Depends(admin_required)], description='管理员获取资源链接')
-async def admindownloadfile(filetext: str, s: AsyncSession = Depends(get_session)):
-    if storage.STORAGE_ENGINE == 'aliyunsystem':
-        filetext = await storage.get_filepath(filetext)
-        return {
-            'detail': f'获取文件链接成功，链接将在{settings.ACCESSTIME}秒后失效',
-            'fileURL': filetext
-        }
-    elif storage.STORAGE_ENGINE == 'filesystem':
-        return {
-            'detail': f'获取文件链接成功',
-            'fileURL':filetext
-        }
+
+@app.post(f'/{settings.ADMIN_ADDRESS}/download', dependencies=[Depends(admin_required)])
+async def admin_download_file(filetext: str):
+    return await storage.get_text(filetext)
+
 
 @app.get('/banner')
-async def banner(request: Request, s: AsyncSession = Depends(get_session)):
+async def banner(request: Request):
     # 数据库查询config
-    config = (await s.execute(select(Values).filter(Values.key == 'config'))).scalar_one_or_none()
-    # 如果存在config，就返回config的value
-    if config and config.value.get('banners'):
-        return {
-            'detail': '查询成功',
-            'data': config.value['banners'],
-            'enable': request.headers.get('pwd', '') == settings.ADMIN_PASSWORD or settings.ENABLE_UPLOAD,
-        }
-    # 如果不存在config，就返回默认的banner
     return {
-        'detail': 'banner',
+        'detail': '查询成功',
+        'data': settings.BANNERS,
         'enable': request.headers.get('pwd', '') == settings.ADMIN_PASSWORD or settings.ENABLE_UPLOAD,
-        'data': [{
-            'text': 'FileCodeBox',
-            'url': 'https://github.com/vastsa/FileCodeBox',
-            'src': '/static/banners/img_1.png'
-        }, {
-            'text': 'FileCodeBox',
-            'url': 'https://www.lanol.cn',
-            'src': '/static/banners/img_2.png'
-        }]
     }
 
 
@@ -196,10 +146,7 @@ async def get_file(code: str, ip: str = Depends(error_ip_limit), s: AsyncSession
     # 如果是文件，返回文件
     else:
         filepath = await storage.get_filepath(info.text)
-        if settings.STORAGE_ENGINE == 'filesystem':
-            return FileResponse(filepath, filename=info.name)
-        else:
-            return {'detail': '查询成功', 'data': filepath}
+        return FileResponse(filepath, filename=info.name)
 
 
 @app.post('/share', dependencies=[Depends(admin_required)], description='分享文件')
@@ -229,10 +176,7 @@ async def share(background_tasks: BackgroundTasks, text: str = Form(default=None
         background_tasks.add_task(storage.save_file, file, _text)
     else:
         size, _text, _type, name = len(text), text, 'text', '文本分享'
-    if settings.STORAGE_ENGINE == 'aliyunsystem':
-        _text = f"https://{settings.BUCKET_NAME}.{settings.OSS_ENDPOINT}/"+_text
-    info = Codes(code=code, text=_text, size=size, type=_type, name=name, count=exp_count, exp_time=exp_time, key=key)
-    s.add(info)
+    s.add(Codes(code=code, text=_text, size=size, type=_type, name=name, count=exp_count, exp_time=exp_time, key=key))
     await s.commit()
     upload_ip_limit.add_ip(ip)
     return {

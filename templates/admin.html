@@ -126,12 +126,11 @@
             if (pwd) {
                 login = true;
                 this.pwd = pwd;
-                axios.get('/config', {
+                axios.get('{{admin_address}}/config', {
                     headers: {
                         pwd: pwd
                     }
                 }).then(res => {
-                    console.log(res.data.data)
                     this.config = res.data.data;
                 });
                 this.loginAdmin();
