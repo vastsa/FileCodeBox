@@ -172,7 +172,7 @@ async def index(code: str, ip: str = Depends(error_ip_limit), s: AsyncSession = 
     if info.type != 'text':
         info.text = await storage.get_url(info)
     return {
-        'detail': f'取件成功，文件将在{settings.DELETE_EXPIRE_FILES_INTERVAL}分钟后删除',
+        'detail': f'取件成功，请立即下载，避免失效！',
         'data': {'type': info.type, 'text': info.text, 'name': info.name, 'code': info.code}
     }
 

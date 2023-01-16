@@ -40,7 +40,7 @@
                 color: #ccc !important;
             }
 
-            .el-input-group__prepend, .el-menu, .btn-prev, .el-input__inner, .el-input-group__append, .el-empty__description, .el-select-dropdown, .el-button {
+            .el-input-group__prepend, .el-menu, .el-menu-item, .el-input__inner, .el-input-group__append, .el-empty__description, .el-select-dropdown, .el-button {
                 border: 1px solid transparent;
                 background-color: rgba(0, 0, 0, 0.2);
             }
@@ -157,9 +157,12 @@
                         </div>
                         <div v-else-if="updateTab=='WEBSITE'">
                             <el-form ref="form" style="margin:1rem auto" :model="config" label-width="200px">
+                                <el-form-item label="后台密码">
+                                    <el-input type="password" v-model="config.ADMIN_PASSWORD" placeholder="网站名称"></el-input>
+                                </el-form-item>
                                 <el-form-item>
                                     <el-alert
-                                            title="当前页面信息修改后需要手动重启系统"
+                                            title="下列信息修改后需要手动重启系统"
                                             type="warning">
                                     </el-alert>
                                 </el-form-item>
@@ -171,6 +174,9 @@
                                 </el-form-item>
                                 <el-form-item label="网站关键词">
                                     <el-input v-model="config.KEYWORDS" placeholder="网站关键词"></el-input>
+                                </el-form-item>
+                                <el-form-item label="后台地址">
+                                    <el-input v-model="config.ADMIN_ADDRESS" placeholder="后台地址"></el-input>
                                 </el-form-item>
                                 <el-form-item label="存储引擎">
                                     <el-input v-model="config.STORAGE_ENGINE" placeholder="存储引擎"></el-input>
