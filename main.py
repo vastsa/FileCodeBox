@@ -56,9 +56,18 @@ async def admin():
 
 @app.post(f'/{settings.ADMIN_ADDRESS}', dependencies=[Depends(admin_required)], description='查询数据库列表')
 async def admin_post(page: int = Form(default=1), size: int = Form(default=10), s: AsyncSession = Depends(get_session)):
+    infos = (await s.execute(select(Codes).offset((page - 1) * size).limit(size))).scalars().all()
+    data = [{
+        'id': info.id,
+        'code': info.code,
+        'name': info.name,
+        'exp_time': info.exp_time,
+        'count': info.count,
+        'text': info.text if info.type == 'text' else await storage.get_url(info),
+    } for info in infos]
     return {
         'detail': '查询成功',
-        'data': (await s.execute(select(Codes).offset((page - 1) * size).limit(size))).scalars().all(),
+        'data': data,
         'paginate': {
             'page': page,
             'size': size,
@@ -114,11 +123,6 @@ async def index(code: str, ip: str = Depends(error_ip_limit), s: AsyncSession = 
         'detail': f'取件成功，文件将在{settings.DELETE_EXPIRE_FILES_INTERVAL}分钟后删除',
         'data': {'type': info.type, 'text': info.text, 'name': info.name, 'code': info.code}
     }
-
-
-@app.post(f'/{settings.ADMIN_ADDRESS}/download', dependencies=[Depends(admin_required)])
-async def admin_download_file(filetext: str):
-    return await storage.get_text(filetext)
 
 
 @app.get('/banner')
