@@ -18,9 +18,13 @@ from core.database import init_models, Options, Codes, get_session
 app = FastAPI(debug=settings.DEBUG, docs_url=None, redoc_url=None)
 
 # 数据存储文件夹
-DATA_ROOT = Path(settings.DATA_ROOT + '/files')
+DATA_ROOT = Path(settings.DATA_ROOT)
 if not DATA_ROOT.exists():
     DATA_ROOT.mkdir(parents=True)
+# 本地文件文件夹
+LOCAL_ROOT = Path(settings.LOCAL_ROOT)
+if not LOCAL_ROOT.exists():
+    LOCAL_ROOT.mkdir(parents=True)
 
 # 静态文件夹，这个固定就行了，静态资源都放在这里
 app.mount('/static', StaticFiles(directory='./static'), name="static")
@@ -57,7 +61,7 @@ async def admin():
 @app.get(f'/{settings.ADMIN_ADDRESS}/files', dependencies=[Depends(admin_required)])
 async def get_files():
     files = []
-    for i, j, k in os.walk(f'{DATA_ROOT}'):
+    for i, j, k in os.walk(f'{LOCAL_ROOT}'):
         files.extend([{'name': _.split('/')[-1], 'path': i} for _ in k])
     return {'data': files}
 
@@ -68,12 +72,12 @@ async def share_file(name=Form(...), path=File(...), s: AsyncSession = Depends(g
     key = uuid.uuid4().hex
     code = await get_code(s)
     now = datetime.datetime.now()
-    path = f"{settings.DATA_ROOT}/upload/{now.year}/{now.month}/{now.day}/"
+    path = f"{settings.LOCAL_ROOT}/upload/{now.year}/{now.month}/{now.day}/"
     if not os.path.exists(path):
         os.makedirs(path)
     text = f"{path}/{f'{key}{name}'}"
     exp_time = datetime.datetime.now() + datetime.timedelta(days=1)
-    s.add(Codes(code=code, text=text.replace(f'{settings.DATA_ROOT}/', ''), type='file', name=name, count=-1,
+    s.add(Codes(code=code, text=text.replace(f'{settings.LOCAL_ROOT}/', ''), type='file', name=name, count=-1,
                 exp_time=exp_time, key=key))
     await s.commit()
     shutil.move(file_path, text)
