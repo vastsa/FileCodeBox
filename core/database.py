@@ -68,7 +68,7 @@ async def init_models():
             )
         else:
             # 从数据库更新缓存中的setting
-            await settings.update(await conn.execute(select(Options).filter()))
+            await settings.updates(await conn.execute(select(Options).filter()))
 
 
 async def get_session():

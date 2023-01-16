@@ -22,6 +22,34 @@
         body {
             background: #f5f5f5;
         }
+
+        @media (prefers-color-scheme: dark) {
+
+            body {
+                background-color: #18181c;
+            }
+
+            .el-card, .el-textarea__inner, .el-upload-dragger {
+                border-radius: 20px;
+                border: 1px solid transparent;
+                background-color: rgba(255, 255, 255, 0.1);
+                box-shadow: 5px 5px 0 0 rgba(0, 0, 0, 0.2);
+            }
+
+            #app * {
+                color: #ccc !important;
+            }
+
+            .el-input-group__prepend, .el-menu, .btn-prev, .el-input__inner, .el-input-group__append, .el-empty__description, .el-select-dropdown, .el-button {
+                border: 1px solid transparent;
+                background-color: rgba(0, 0, 0, 0.2);
+            }
+
+            .el-drawer, #el-drawer__title, .el-drawer__body, .el-drawer__wrapper {
+                background-color: rgba(0, 0, 0, 0.5);
+                border: 1px solid transparent;
+            }
+        }
     </style>
 </head>
 <body>
@@ -29,8 +57,9 @@
     <el-row v-if="login" :gutter="10">
         <el-col :span="24" style="text-align: center">
             <el-menu :default-active="activeIndex" class="el-menu-demo" mode="horizontal" @select="handleSelect">
-                <el-menu-item index="2">文件管理</el-menu-item>
-                <el-menu-item index="3">系统配置</el-menu-item>
+                <el-menu-item index="2">分享文件管理</el-menu-item>
+                <el-menu-item index="3">本地文件列表</el-menu-item>
+                <el-menu-item index="4">系统配置</el-menu-item>
             </el-menu>
         </el-col>
         <el-col v-if="activeIndex === '2'">
@@ -72,24 +101,113 @@
             >
             </el-pagination>
         </el-col>
-        <el-col v-if="activeIndex === '3'">
-            <el-form ref="form" style="width: 50%;margin:2rem auto" :model="config" label-width="200px"><el-form-item v-for="(banner,index) in config.banners" :label="'Banner'+ (index+1)">
-                    <div style="width: 50%;display: inline-block">
-                        <el-input v-model="banner.text" placeholder="文本"></el-input>
-                        <el-input v-model="banner.url" placeholder="跳转链接"></el-input>
-                        <el-input v-model="banner.src" placeholder="图片路径"></el-input>
-                    </div>
-                    <div style="display: inline-block">
-                        <el-button type="danger" @click="deleteBanner(index)">删除</el-button>
-                    </div>
-                </el-form-item>
-                <el-form-item>
-                    <el-button size="mini" @click="addBanner" type="primary">新增Banner</el-button>
-                </el-form-item>
-                <el-form-item>
-                    <el-button @click="updateConfig" type="primary">更新</el-button>
-                </el-form-item>
-            </el-form>
+        <el-col v-if="activeIndex === '4'">
+            <el-row>
+                <el-col :span="5" style="height: 88vh;overflow: scroll" :gutter="10">
+                    <el-card v-for="menu in menus" :key="menu.key">
+                        <div style="cursor: pointer;" @click="updateTab=menu.key">${menu.name}</div>
+                    </el-card>
+                </el-col>
+                <el-col :span="19">
+                    <el-card style="height: 88vh;overflow: scroll">
+                        <div v-if="updateTab=='INSTALL'">
+                            <div>
+                                <h1>FileCodeBox V${config.INSTALL}</h1>
+                                <h2>Github：<a target="_blank"
+                                              href="https://github.com/vastsa/FileCodeBox">FileCodeBox</a></h2>
+                            </div>
+                        </div>
+                        <div v-else-if="updateTab=='BANNERS'">
+                            <el-form ref="form" style="margin:1rem auto" :model="config" label-width="200px">
+                                <el-form-item v-for="(banner,index) in config.BANNERS" :label="'Banner'+ (index+1)">
+                                    <div style="display: inline-block">
+                                        <el-input v-model="banner.text" placeholder="文本"></el-input>
+                                        <el-input v-model="banner.url" placeholder="跳转链接"></el-input>
+                                        <el-input v-model="banner.src" placeholder="图片路径"></el-input>
+                                    </div>
+                                    <div style="display: inline-block">
+                                        <el-button type="danger" @click="deleteBanner(index)">删除</el-button>
+                                    </div>
+                                </el-form-item>
+                                <el-form-item>
+                                    <el-button size="mini" @click="addBanner" type="primary">新增Banner</el-button>
+                                </el-form-item>
+                                <el-form-item>
+                                    <el-button @click="updateConfig" type="primary">更新</el-button>
+                                </el-form-item>
+                            </el-form>
+                        </div>
+                        <div v-else-if="updateTab=='WEBSITE'">
+                            <el-form ref="form" style="margin:1rem auto" :model="config" label-width="200px">
+                                <el-form-item>
+                                    <el-alert
+                                            title="当前页面信息修改后需要手动重启系统"
+                                            type="warning">
+                                    </el-alert>
+                                </el-form-item>
+                                <el-form-item label="网站名称">
+                                    <el-input v-model="config.TITLE" placeholder="网站名称"></el-input>
+                                </el-form-item>
+                                <el-form-item label="网站描述">
+                                    <el-input v-model="config.DESCRIPTION" placeholder="网站描述"></el-input>
+                                </el-form-item>
+                                <el-form-item label="网站关键词">
+                                    <el-input v-model="config.KEYWORDS" placeholder="网站关键词"></el-input>
+                                </el-form-item>
+                                <el-form-item label="存储引擎">
+                                    <el-input v-model="config.STORAGE_ENGINE" placeholder="存储引擎"></el-input>
+                                </el-form-item>
+                                <el-form-item>
+                                    <el-button @click="updateConfig" type="primary">更新</el-button>
+                                </el-form-item>
+                            </el-form>
+                        </div>
+                        <div v-else-if="updateTab=='SHARE'">
+                            <el-form ref="form" style="margin:1rem auto" :model="config" label-width="200px">
+                                <el-form-item label="开启上传">
+                                    <el-input v-model="config.ENABLE_UPLOAD" placeholder="开启上传"></el-input>
+                                </el-form-item>
+                                <el-form-item label="最长天数">
+                                    <el-input v-model="config.MAX_DAYS" placeholder="最长允许保留多少天"></el-input>
+                                </el-form-item>
+                                <el-form-item label="删除过期间隔">
+                                    <el-input v-model="config.DELETE_EXPIRE_FILES_INTERVAL"
+                                              placeholder="删除过期文件的间隔（分钟）"></el-input>
+                                </el-form-item>
+                                <el-form-item label="上传大小限制">
+                                    <small>单位:（bit),1mb=1 * 1024 * 1024</small>
+                                    <el-input v-model="config.FILE_SIZE_LIMIT"
+                                              placeholder="上传大小限制（bit）"></el-input>
+                                </el-form-item>
+                                <el-form-item>
+                                    <el-alert
+                                            title="下列信息修改后需要手动重启系统"
+                                            type="warning">
+                                    </el-alert>
+                                </el-form-item>
+                                <el-form-item label="口令错误限制">
+                                    <small>每几分钟</small>
+                                    <el-input v-model="config.ERROR_MINUTE"
+                                              placeholder="错误次数过多后限制时间"></el-input>
+                                    <small>允许错误几次</small>
+                                    <el-input v-model="config.ERROR_COUNT" placeholder="允许错误次数"></el-input>
+                                </el-form-item>
+                                <el-form-item label="上传次数限制">
+                                    <small>每几分钟</small>
+                                    <el-input v-model="config.UPLOAD_MINUTE"
+                                              placeholder="每几分钟"></el-input>
+                                    <small>允许上传几次</small>
+                                    <el-input v-model="config.UPLOAD_COUNT"
+                                              placeholder="允许次数"></el-input>
+                                </el-form-item>
+                                <el-form-item>
+                                    <el-button @click="updateConfig" type="primary">更新</el-button>
+                                </el-form-item>
+                            </el-form>
+                        </div>
+                    </el-card>
+                </el-col>
+            </el-row>
         </el-col>
     </el-row>
     <div v-else style="width: 250px;text-align: center;margin: 40vh auto">
@@ -113,6 +231,8 @@
                 config: {
                     banners: []
                 },
+                menus: [],
+                updateTab: 'INSTALL',
                 files: [],
                 paginate: {
                     page: 1,
@@ -126,12 +246,13 @@
             if (pwd) {
                 login = true;
                 this.pwd = pwd;
-                axios.get('{{admin_address}}/config', {
+                axios.get(window.location.href + '/config', {
                     headers: {
                         pwd: pwd
                     }
                 }).then(res => {
                     this.config = res.data.data;
+                    this.menus = res.data.menus;
                 });
                 this.loginAdmin();
             }
@@ -146,10 +267,10 @@
                 this.loginAdmin();
             },
             deleteBanner: function (index) {
-                this.config.banners.splice(index, 1);
+                this.config.BANNERS.splice(index, 1);
             },
             addBanner: function () {
-                this.config.banners.push({
+                this.config.BANNERS.push({
                     'url': '',
                     'src': '',
                     'text': '',

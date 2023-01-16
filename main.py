@@ -75,9 +75,15 @@ async def admin_post(page: int = Form(default=1), size: int = Form(default=10), 
         }}
 
 
-# @app.patch(f'/{settings.ADMIN_ADDRESS}', dependencies=[Depends(admin_required)], description='修改数据库数据')
-# async def admin_patch(request: Request, s: AsyncSession = Depends(get_session)):
-#     return {'detail': '修改成功'}
+@app.patch(f'/{settings.ADMIN_ADDRESS}', dependencies=[Depends(admin_required)], description='修改数据库数据')
+async def admin_patch(request: Request, s: AsyncSession = Depends(get_session)):
+    data = await request.json()
+    data.pop('INSTALL')
+    for key, value in data.items():
+        await s.execute(update(Options).where(Options.key == key).values(value=value))
+        await settings.update(key, value)
+    await s.commit()
+    return {'detail': '修改成功'}
 
 
 @app.delete(f'/{settings.ADMIN_ADDRESS}', dependencies=[Depends(admin_required)], description='删除数据库记录')
@@ -98,7 +104,17 @@ async def admin_delete(code: str, s: AsyncSession = Depends(get_session)):
 
 @app.get(f'/{settings.ADMIN_ADDRESS}/config', description='获取系统配置', dependencies=[Depends(admin_required)])
 async def config(s: AsyncSession = Depends(get_session)):
-    return {'detail': '获取成功', 'data': (await s.execute(select(Options))).scalars().all()}
+    # 查询数据库
+    data = {}
+    for i in (await s.execute(select(Options))).scalars().all():
+        data[i.key] = i.value
+    return {'detail': '获取成功', 'data': data, 'menus': [
+        {'key': 'INSTALL', 'name': '版本信息'},
+        {'key': 'WEBSITE', 'name': '网站设置'},
+        {'key': 'SHARE', 'name': '分享设置'},
+        {'key': 'BANNERS', 'name': 'Banner'},
+        {'key': 'WEBSITE', 'name': '网站设置'},
+    ]}
 
 
 @app.get('/')

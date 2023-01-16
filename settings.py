@@ -61,11 +61,16 @@ class Settings:
         'url': 'https://www.lanol.cn',
         'src': '/static/banners/img_2.png'
     }]
+    int_dict = {'PORT', 'MAX_DAYS', 'ERROR_COUNT', 'ERROR_MINUTE', 'UPLOAD_COUNT', 'UPLOAD_MINUTE',
+                'DELETE_EXPIRE_FILES_INTERVAL', 'FILE_SIZE_LIMIT'}
 
-    async def update(self, options) -> None:
+    async def update(self, key, value) -> None:
+        if hasattr(self, key):
+            setattr(self, key, int(value) if key in self.int_dict else value)
+
+    async def updates(self, options) -> None:
         for i, key, value in options:
-            if hasattr(self, key):
-                setattr(self, key, value)
+            await self.update(key, value)
 
 
 settings = Settings()
