@@ -48,5 +48,16 @@ TITLE = config('TITLE', cast=str, default="文件快递柜")
 DESCRIPTION = config('DESCRIPTION', cast=str, default="FileCodeBox，文件快递柜，口令传送箱，匿名口令分享文本，文件等文件")
 # 网站关键词
 KEYWORDS = config('KEYWORDS', cast=str, default="FileCodeBox，文件快递柜，口令传送箱，匿名口令分享文本，文件等文件")
-# 存储引擎
+# 存储引擎：['aliyunsystem','filesystem']
 STORAGE_ENGINE = config('STORAGE_ENGINE', cast=str, default="filesystem")
+# 如果使用阿里云OSS的话需要创建如下参数
+# 阿里云账号AccessKey
+KeyId = config('KeyId', cast=str, default="阿里云账号AccessKey")
+# 阿里云账号AccessKeySecret
+KeySecret = config('KeySecret', cast=str, default="阿里云账号AccessKeySecret")
+# 阿里云OSS Bucket的地域节点
+OSS_ENDPOINT = config('BUCKET_URL', cast=str, default="阿里云OSS Bucket的地域节点")
+# 阿里云OSS Bucket的BucketName
+BUCKET_NAME = config('BUCKET_NAME', cast=str, default="阿里云OSS Bucket的BucketName")
+# 访问文件的读取时长（s）
+ACCESSTIME = config('ACCESSTIME', cast=int, default=60)

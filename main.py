@@ -127,12 +127,32 @@ async def index(code: str, ip: str = Depends(error_ip_limit), s: AsyncSession = 
     await s.execute(update(Codes).where(Codes.id == info.id).values(count=info.count - 1))
     await s.commit()
     if info.type != 'text':
-        info.text = f'/select?code={code}'
-    return {
-        'detail': f'取件成功，文件将在{settings.DELETE_EXPIRE_FILES_INTERVAL}分钟后删除',
-        'data': {'type': info.type, 'text': info.text, 'name': info.name, 'code': info.code}
-    }
+        if settings.STORAGE_ENGINE == 'filesystem':
+            info.text = f'/select?code={code}'
+            return {
+                'detail': f'取件成功，文件将在{settings.DELETE_EXPIRE_FILES_INTERVAL}分钟后删除',
+                'data': {'type': info.type, 'text': info.text, 'name': info.name, 'code': info.code}
+            }
+        elif settings.STORAGE_ENGINE == 'aliyunsystem':
+            info.text = await storage.get_filepath(info.text)
+        return {
+            'detail': f'取件成功，链接将在{settings.ACCESSTIME}秒后失效',
+            'data': {'type': info.type, 'text': info.text, 'name': info.name, 'code': info.code}
+        }
 
+@app.post('/adminDownloadFile',dependencies=[Depends(admin_required)], description='管理员获取资源链接')
+async def admindownloadfile(filetext: str, s: AsyncSession = Depends(get_session)):
+    if storage.STORAGE_ENGINE == 'aliyunsystem':
+        filetext = await storage.get_filepath(filetext)
+        return {
+            'detail': f'获取文件链接成功，链接将在{settings.ACCESSTIME}秒后失效',
+            'fileURL': filetext
+        }
+    elif storage.STORAGE_ENGINE == 'filesystem':
+        return {
+            'detail': f'获取文件链接成功',
+            'fileURL':filetext
+        }
 
 @app.get('/banner')
 async def banner(request: Request, s: AsyncSession = Depends(get_session)):
@@ -176,7 +196,10 @@ async def get_file(code: str, ip: str = Depends(error_ip_limit), s: AsyncSession
     # 如果是文件，返回文件
     else:
         filepath = await storage.get_filepath(info.text)
-        return FileResponse(filepath, filename=info.name)
+        if settings.STORAGE_ENGINE == 'filesystem':
+            return FileResponse(filepath, filename=info.name)
+        else:
+            return {'detail': '查询成功', 'data': filepath}
 
 
 @app.post('/share', dependencies=[Depends(admin_required)], description='分享文件')
@@ -206,6 +229,8 @@ async def share(background_tasks: BackgroundTasks, text: str = Form(default=None
         background_tasks.add_task(storage.save_file, file, _text)
     else:
         size, _text, _type, name = len(text), text, 'text', '文本分享'
+    if settings.STORAGE_ENGINE == 'aliyunsystem':
+        _text = f"https://{settings.BUCKET_NAME}.{settings.OSS_ENDPOINT}/"+_text
     info = Codes(code=code, text=_text, size=size, type=_type, name=name, count=exp_count, exp_time=exp_time, key=key)
     s.add(info)
     await s.commit()

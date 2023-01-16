@@ -22,6 +22,7 @@
 - [x] anonymous sharing: no registration, no login
 - [x] management Panel: View all files and delete them
 - [x] one-click deployment: docker one-click deployment
+- [x] A variety of storage methods : Aliyun OSS、 local file flow
 
 ## Deployment method
 
@@ -175,6 +176,15 @@ DESCRIPTION=FileCodeBox，文件快递柜，口令传送箱，匿名口令分享
 KEYWORDS=FileCodeBox，文件快递柜，口令传送箱，匿名口令分享文本，文件，图片，视频，音频，压缩包等文件
 # 存储引擎
 STORAGE_ENGINE=filesystem
+# 如果使用阿里云OSS服务的话需要额外创建如下参数：
+# 阿里云账号AccessKey
+KeyId=阿里云账号AccessKey
+# 阿里云账号AccessKeySecret
+KeySecret=阿里云账号AccessKeySecret
+# 阿里云OSS Bucket的地域节点
+OSS_ENDPOINT=阿里云OSS Bucket的地域节点
+# 阿里云OSS Bucket的BucketName
+BUCKET_NAME=阿里云OSS Bucket的BucketName
 ```
 
 ## Status

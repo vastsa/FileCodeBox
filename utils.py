@@ -1,8 +1,6 @@
 import datetime
 import random
 import asyncio
-
-import chardet
 from sqlalchemy import or_, select, delete
 from sqlalchemy.ext.asyncio.session import AsyncSession
 import settings
