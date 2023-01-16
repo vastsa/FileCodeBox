@@ -58,6 +58,8 @@ class AliyunFileStorage:
         upload_filepath = settings.DATA_ROOT + str(now)
         await asyncio.to_thread(self._save, upload_filepath, file.file)
         self.upload_file(upload_filepath, remote_filepath)
+        remote_filepath = remote_filepath.strip(f"https://{settings.BUCKET_NAME}.{settings.OSS_ENDPOINT}/")
+        self.upload_file(upload_filepath, remote_filepath)
         await asyncio.to_thread(os.remove, upload_filepath)
 
     async def delete_files(self, texts):

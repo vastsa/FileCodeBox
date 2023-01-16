@@ -22,34 +22,6 @@
         body {
             background: #f5f5f5;
         }
-
-        @media (prefers-color-scheme: dark) {
-
-            body {
-                background-color: #18181c;
-            }
-
-            .el-card, .el-textarea__inner, .el-upload-dragger {
-                border-radius: 20px;
-                border: 1px solid transparent;
-                background-color: rgba(255, 255, 255, 0.1);
-                box-shadow: 5px 5px 0 0 rgba(0, 0, 0, 0.2);
-            }
-
-            #app * {
-                color: #ccc !important;
-            }
-
-            .el-input-group__prepend, .el-menu, .el-menu-item, .el-input__inner, .el-input-group__append, .el-empty__description, .el-select-dropdown, .el-button {
-                border: 1px solid transparent;
-                background-color: rgba(0, 0, 0, 0.2);
-            }
-
-            .el-drawer, #el-drawer__title, .el-drawer__body, .el-drawer__wrapper {
-                background-color: rgba(0, 0, 0, 0.5);
-                border: 1px solid transparent;
-            }
-        }
     </style>
 </head>
 <body>
@@ -74,7 +46,7 @@
                                 <div>次&nbsp;&nbsp; 数：${ file.count }</div>
                                 <div>到&nbsp;&nbsp; 期：${ file.exp_time.slice(0,19) }</div>
                                 <div v-if="file.type==='text'">
-                                    <span>内&nbsp;&nbsp; 容：${ file.text }</span>
+                                    <span style="white-space: pre-line">内&nbsp;&nbsp; 容：${ file.text }</span>
                                 </div>
                                 <div v-else>
                                     <span>链&nbsp;&nbsp; 接：</span>
@@ -121,12 +93,12 @@
         </el-col>
         <el-col v-if="activeIndex === '4'">
             <el-row>
-                <el-col :span="5" style="height: 88vh;overflow: scroll" :gutter="10">
+                <el-col :span="4" style="height: 88vh;overflow: scroll;text-align: center" :gutter="10">
                     <el-card v-for="menu in menus" :key="menu.key">
                         <div style="cursor: pointer;" @click="updateTab=menu.key">${menu.name}</div>
                     </el-card>
                 </el-col>
-                <el-col :span="19">
+                <el-col :span="20">
                     <el-card style="height: 88vh;overflow: scroll">
                         <div v-if="updateTab=='INSTALL'">
                             <div>
@@ -158,13 +130,8 @@
                         <div v-else-if="updateTab=='WEBSITE'">
                             <el-form ref="form" style="margin:1rem auto" :model="config" label-width="200px">
                                 <el-form-item label="后台密码">
-                                    <el-input type="password" v-model="config.ADMIN_PASSWORD" placeholder="网站名称"></el-input>
-                                </el-form-item>
-                                <el-form-item>
-                                    <el-alert
-                                            title="下列信息修改后需要手动重启系统"
-                                            type="warning">
-                                    </el-alert>
+                                    <el-input type="password" v-model="config.ADMIN_PASSWORD"
+                                              placeholder="网站名称"></el-input>
                                 </el-form-item>
                                 <el-form-item label="网站名称">
                                     <el-input v-model="config.TITLE" placeholder="网站名称"></el-input>
@@ -174,6 +141,12 @@
                                 </el-form-item>
                                 <el-form-item label="网站关键词">
                                     <el-input v-model="config.KEYWORDS" placeholder="网站关键词"></el-input>
+                                </el-form-item>
+                                <el-form-item>
+                                    <el-alert
+                                            title="下列信息修改后需要手动重启系统"
+                                            type="warning">
+                                    </el-alert>
                                 </el-form-item>
                                 <el-form-item label="后台地址">
                                     <el-input v-model="config.ADMIN_ADDRESS" placeholder="后台地址"></el-input>
@@ -272,19 +245,21 @@
             if (pwd) {
                 login = true;
                 this.pwd = pwd;
-                axios.get(window.location.href + '/config', {
-                    headers: {
-                        pwd: pwd
-                    }
-                }).then(res => {
-                    this.config = res.data.data;
-                    this.menus = res.data.menus;
-                });
                 this.loginAdmin();
                 this.getLocalFiles();
             }
         },
         methods: {
+            getConfig: function () {
+                axios.get(window.location.href + '/config', {
+                    headers: {
+                        pwd: this.pwd
+                    }
+                }).then(res => {
+                    this.config = res.data.data;
+                    this.menus = res.data.menus;
+                });
+            },
             updateSize: function (value) {
                 this.paginate.size = value;
                 this.loginAdmin();
@@ -327,6 +302,7 @@
                     this.files = res.data.data
                     this.login = true;
                     localStorage.setItem('pwd', this.pwd);
+                    this.getConfig();
                 }).catch(e => {
                     localStorage.clear()
                     this.$message({'message': e.response.data.detail, 'type': 'error'});

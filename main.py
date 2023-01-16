@@ -1,3 +1,4 @@
+import asyncio
 import datetime
 import uuid
 from pathlib import Path
@@ -6,16 +7,25 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from starlette.requests import Request
 from starlette.responses import HTMLResponse, FileResponse
 from starlette.staticfiles import StaticFiles
-import os, shutil
-from core.utils import error_ip_limit, upload_ip_limit, get_code, storage
+import os
+import shutil
+from core.utils import error_ip_limit, upload_ip_limit, get_code, storage, delete_expire_files
 from core.depends import admin_required
-from settings import settings
 from fastapi import FastAPI, Depends, UploadFile, Form, File, HTTPException, BackgroundTasks
-
 from core.database import init_models, Options, Codes, get_session
+from settings import settings
 
 # 实例化FastAPI
-app = FastAPI(debug=settings.DEBUG, docs_url=None, redoc_url=None)
+app = FastAPI(debug=settings.DEBUG, redoc_url=None, )
+
+
+@app.on_event('startup')
+async def startup(s: AsyncSession = Depends(get_session)):
+    # 初始化数据库
+    await init_models(s)
+    # 启动后台任务，不定时删除过期文件
+    asyncio.create_task(delete_expire_files())
+
 
 # 数据存储文件夹
 DATA_ROOT = Path(settings.DATA_ROOT)
@@ -28,34 +38,27 @@ if not LOCAL_ROOT.exists():
 
 # 静态文件夹，这个固定就行了，静态资源都放在这里
 app.mount('/static', StaticFiles(directory='./static'), name="static")
+
 # 首页页面
-index_html = open('templates/index.html', 'r', encoding='utf-8').read() \
-    .replace('{{title}}', settings.TITLE) \
-    .replace('{{description}}', settings.DESCRIPTION) \
-    .replace('{{keywords}}', settings.KEYWORDS) \
-    .replace("'{{fileSizeLimit}}'", str(settings.FILE_SIZE_LIMIT))
+index_html = open('templates/index.html', 'r', encoding='utf-8').read()
 # 管理页面
-admin_html = open('templates/admin.html', 'r', encoding='utf-8').read() \
-    .replace('{{title}}', settings.TITLE) \
-    .replace('{{description}}', settings.DESCRIPTION) \
-    .replace('{{admin_address}}', settings.ADMIN_ADDRESS) \
-    .replace('{{keywords}}', settings.KEYWORDS)
-
-
-@app.on_event('startup')
-async def startup():
-    # 初始化数据库
-    await init_models()
+admin_html = open('templates/admin.html', 'r', encoding='utf-8').read()
 
 
 @app.get('/')
 async def index():
-    return HTMLResponse(index_html)
+    return HTMLResponse(
+        index_html.replace('{{title}}', settings.TITLE).replace('{{description}}', settings.DESCRIPTION).replace(
+            '{{keywords}}', settings.KEYWORDS).replace("'{{fileSizeLimit}}'", str(settings.FILE_SIZE_LIMIT))
+    )
 
 
 @app.get(f'/{settings.ADMIN_ADDRESS}', description='管理页面')
 async def admin():
-    return HTMLResponse(admin_html)
+    return HTMLResponse(
+        admin_html.replace('{{title}}', settings.TITLE).replace('{{description}}', settings.DESCRIPTION).replace(
+            '{{admin_address}}', settings.ADMIN_ADDRESS).replace('{{keywords}}', settings.KEYWORDS)
+    )
 
 
 @app.get(f'/{settings.ADMIN_ADDRESS}/files', dependencies=[Depends(admin_required)])
@@ -150,12 +153,8 @@ async def admin_patch(request: Request, s: AsyncSession = Depends(get_session)):
         await s.execute(update(Options).where(Options.key == key).values(value=value))
         await settings.update(key, value)
     await s.commit()
+    await settings.updates([[i.id, i.key, i.value] for i in (await s.execute(select(Options))).scalars().all()])
     return {'detail': '修改成功'}
-
-
-@app.get('/')
-async def index():
-    return HTMLResponse(index_html)
 
 
 @app.post('/')

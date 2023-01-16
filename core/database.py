@@ -4,10 +4,10 @@ from sqlalchemy import Boolean, Column, Integer, String, DateTime, JSON, Text, s
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.ext.asyncio import create_async_engine
 from sqlalchemy.ext.asyncio.session import AsyncSession
+
 from settings import settings
 
 engine = create_async_engine(settings.DATABASE_URL)
-
 Base = declarative_base()
 
 
@@ -33,7 +33,7 @@ class Codes(Base):
     exp_time = Column(DateTime, nullable=True)
 
 
-async def init_models():
+async def init_models(s):
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
         if await conn.scalar(select(Options).filter(Options.key == 'INSTALL')) is None:
@@ -41,6 +41,12 @@ async def init_models():
             await conn.execute(delete(table=Options))
             await conn.execute(insert(table=Options, values=[
                 {'key': 'INSTALL', 'value': settings.VERSION},
+                {'key': 'DEBUG', 'value': settings.DEBUG},
+                {'key': 'DATABASE_FILE', 'value': settings.DATABASE_FILE},
+                {'key': 'PORT', 'value': settings.PORT},
+                {'key': 'DATA_ROOT', 'value': settings.DATA_ROOT},
+                {'key': 'LOCAL_ROOT', 'value': settings.LOCAL_ROOT},
+                {'key': 'STATIC_URL', 'value': settings.STATIC_URL},
                 {'key': 'BANNERS', 'value': settings.BANNERS},
                 {'key': 'ENABLE_UPLOAD', 'value': settings.ENABLE_UPLOAD},
                 {'key': 'MAX_DAYS', 'value': settings.MAX_DAYS},
@@ -66,9 +72,12 @@ async def init_models():
                 f'请尽快修改后台信息！\n'
                 f'FileCodeBox https://github.com/vastsa/FileCodeBox'
             )
-        else:
-            # 从数据库更新缓存中的setting
-            await settings.updates(await conn.execute(select(Options).filter()))
+        await settings.updates(await conn.execute(select(Options).filter()))
+
+
+async def get_config(key):
+    async with engine.begin() as conn:
+        return await conn.scalar(select(Options.value).filter(Options.key == key))
 
 
 async def get_session():

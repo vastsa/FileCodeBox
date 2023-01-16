@@ -1,8 +1,8 @@
 import uuid
+
 from starlette.config import Config
 
-# 配置文件.env
-# 请将.env移动至data目录，方便docker部署
+# 配置文件.env，存放为data/.env
 config = Config("data/.env")
 
 
@@ -65,14 +65,25 @@ class Settings:
     }]
     int_dict = {'PORT', 'MAX_DAYS', 'ERROR_COUNT', 'ERROR_MINUTE', 'UPLOAD_COUNT', 'UPLOAD_MINUTE',
                 'DELETE_EXPIRE_FILES_INTERVAL', 'FILE_SIZE_LIMIT'}
+    bool_dict = {'DEBUG', 'ENABLE_UPLOAD'}
 
     async def update(self, key, value) -> None:
         if hasattr(self, key):
-            setattr(self, key, int(value) if key in self.int_dict else value)
+            if key in self.int_dict:
+                value = int(value)
+            elif key in self.bool_dict:
+                value = value == 'true'
+            setattr(self, key, value)
 
     async def updates(self, options) -> None:
-        for i, key, value in options:
-            await self.update(key, value)
+        with open('data/.env', 'w', encoding='utf-8') as f:
+            for i, key, value in options:
+                print(i, key, value)
+                # 更新env文件
+                f.write(f"{key}={value}\n")
+                # 更新配置
+                await self.update(key, value)
+            f.flush()
 
 
 settings = Settings()
