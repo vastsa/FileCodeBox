@@ -209,7 +209,8 @@
                 <div>取件码：${ file.code }</div>
                 <div>文件名：${ file.name }</div>
                 <div v-if="file.name==='文本分享'">
-                    <span @click="copyText(file.text,1)">内&nbsp;&nbsp; 容：${ file.text }</span>
+                    <span style="white-space: pre-line"
+                          @click="copyText(file.text,1)">内&nbsp;&nbsp; 容：${ file.text }</span>
                 </div>
                 <div v-else>
                     <span>链&nbsp;&nbsp; 接：</span>
