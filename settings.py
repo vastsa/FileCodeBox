@@ -78,7 +78,6 @@ class Settings:
     async def updates(self, options) -> None:
         with open('data/.env', 'w', encoding='utf-8') as f:
             for i, key, value in options:
-                print(i, key, value)
                 # 更新env文件
                 f.write(f"{key}={value}\n")
                 # 更新配置
