@@ -9,8 +9,9 @@ import oss2
 
 
 class AliyunFileStore:
-    auth = oss2.Auth(settings.KeyId, settings.KeySecret)
-    bucket = oss2.Bucket(auth, settings.OSS_ENDPOINT, settings.BUCKET_NAME)
+    def __init__(self):
+        auth = oss2.Auth(settings.KeyId, settings.KeySecret)
+        self.bucket = oss2.Bucket(auth, settings.OSS_ENDPOINT, settings.BUCKET_NAME)
 
     def upload_file(self, upload_filepath, remote_filepath):
         self.bucket.put_object_from_file(remote_filepath, upload_filepath)
@@ -23,7 +24,9 @@ class AliyunFileStore:
         return text
 
     async def get_filepath(self, text: str):
-        return text
+        text = text.strip(f"https://{settings.BUCKET_NAME}.{settings.OSS_ENDPOINT}/")
+        url = self.bucket.sign_url('GET', text, settings.ACCESSTIME, slash_safe=True)
+        return url
 
     @staticmethod
     async def get_size(file: UploadFile):
@@ -54,13 +57,15 @@ class AliyunFileStore:
         await asyncio.gather(*tasks)
 
     async def delete_file(self, text: str):
+        text = text.strip(f"https://{settings.BUCKET_NAME}.{settings.OSS_ENDPOINT}/")
         self.bucket.delete_object(text)
 
 
 class FileSystemStorage:
-    DATA_ROOT = Path(settings.DATA_ROOT)
-    STATIC_URL = settings.STATIC_URL
-    NAME = "filesystem"
+    def __init__(self):
+        self.DATA_ROOT = Path(settings.DATA_ROOT)
+        self.STATIC_URL = settings.STATIC_URL
+        self.NAME = "filesystem"
 
     async def get_filepath(self, text: str):
         return self.DATA_ROOT / text.lstrip(self.STATIC_URL + '/')

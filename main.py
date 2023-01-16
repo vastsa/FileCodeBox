@@ -129,11 +129,30 @@ async def index(code: str, ip: str = Depends(error_ip_limit), s: AsyncSession = 
     if info.type != 'text':
         if settings.STORAGE_ENGINE == 'filesystem':
             info.text = f'/select?code={code}'
-    return {
-        'detail': f'取件成功，文件将在{settings.DELETE_EXPIRE_FILES_INTERVAL}分钟后删除',
-        'data': {'type': info.type, 'text': info.text, 'name': info.name, 'code': info.code}
-    }
+            return {
+                'detail': f'取件成功，文件将在{settings.DELETE_EXPIRE_FILES_INTERVAL}分钟后删除',
+                'data': {'type': info.type, 'text': info.text, 'name': info.name, 'code': info.code}
+            }
+        elif settings.STORAGE_ENGINE == 'aliyunsystem':
+            info.text = await storage.get_filepath(info.text)
+        return {
+            'detail': f'取件成功，链接将在{settings.ACCESSTIME}秒后失效',
+            'data': {'type': info.type, 'text': info.text, 'name': info.name, 'code': info.code}
+        }
 
+@app.post('/adminDownloadFile',dependencies=[Depends(admin_required)], description='管理员获取资源链接')
+async def admindownloadfile(filetext: str, s: AsyncSession = Depends(get_session)):
+    if storage.STORAGE_ENGINE == 'aliyunsystem':
+        filetext = await storage.get_filepath(filetext)
+        return {
+            'detail': f'获取文件链接成功，链接将在{settings.ACCESSTIME}秒后失效',
+            'fileURL': filetext
+        }
+    elif storage.STORAGE_ENGINE == 'filesystem':
+        return {
+            'detail': f'获取文件链接成功',
+            'fileURL':filetext
+        }
 
 @app.get('/banner')
 async def banner(request: Request, s: AsyncSession = Depends(get_session)):
@@ -176,11 +195,11 @@ async def get_file(code: str, ip: str = Depends(error_ip_limit), s: AsyncSession
         return {'detail': '查询成功', 'data': info.text}
     # 如果是文件，返回文件
     else:
+        filepath = await storage.get_filepath(info.text)
         if settings.STORAGE_ENGINE == 'filesystem':
-            filepath = await storage.get_filepath(info.text)
             return FileResponse(filepath, filename=info.name)
         else:
-            return {'detail': '查询成功', 'data': info.text}
+            return {'detail': '查询成功', 'data': filepath}
 
 
 @app.post('/share', dependencies=[Depends(admin_required)], description='分享文件')
