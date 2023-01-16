@@ -36,6 +36,7 @@ class IPRateLimit:
     def add_ip(self, ip):
         ip_info = self.ips.get(ip, {'count': 0, 'time': datetime.now()})
         ip_info['count'] += 1
+        ip_info['time'] = datetime.now()
         self.ips[ip] = ip_info
         return ip_info['count']
 
