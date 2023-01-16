@@ -185,6 +185,8 @@ KeySecret=阿里云账号AccessKeySecret
 OSS_ENDPOINT=阿里云OSS Bucket的地域节点
 # 阿里云OSS Bucket的BucketName
 BUCKET_NAME=阿里云OSS Bucket的BucketName
+# 访问文件的读取时长（s）
+ACCESSTIME=60
 ```
 
 ## Status

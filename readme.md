@@ -170,6 +170,8 @@ KeySecret=阿里云账号AccessKeySecret
 OSS_ENDPOINT=阿里云OSS Bucket的地域节点
 # 阿里云OSS Bucket的BucketName
 BUCKET_NAME=阿里云OSS Bucket的BucketName
+# 访问文件的读取时长（s）
+ACCESSTIME=60
 ```
 
 ## 接口文档
@@ -264,7 +266,7 @@ file: 文件
    找到自己主机的nginx.conf配置文件，打开
    在http{}中加入 client_max_body_size 10m;
    然后重启nginx
-
+2. 由于阿里云OSS存储服务为可选项，因此在使用阿里云OSS作为存储方式的时候需要在`requirements.txt`中或者在环境中安装`oss2==2.16.0`进行使用，否则会出现报错
 ## 免责声明
 
 本项目开源仅供学习使用，不得用于任何违法用途，否则后果自负，与本人无关。使用请保留项目地址谢谢。

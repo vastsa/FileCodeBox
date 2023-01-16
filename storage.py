@@ -5,7 +5,9 @@ from pathlib import Path
 from typing import BinaryIO
 from fastapi import UploadFile
 import settings
-import oss2
+
+if settings.STORAGE_ENGINE == "aliyunsystem":
+    import oss2
 
 
 class AliyunFileStore:
