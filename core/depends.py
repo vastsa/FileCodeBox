@@ -11,7 +11,6 @@ async def admin_required(pwd: Union[str, None] = Header(default=None), request: 
         if pwd != settings.ADMIN_PASSWORD and not settings.ENABLE_UPLOAD:
             raise HTTPException(status_code=403, detail='本站上传功能已关闭，仅管理员可用')
     else:
-        print(settings.ADMIN_PASSWORD)
         if settings.ADMIN_PASSWORD is None:
             raise HTTPException(status_code=404, detail='您未设置管理员密码，无法使用此功能，请更新配置文件后，重启系统')
         if not pwd or pwd != settings.ADMIN_PASSWORD:
