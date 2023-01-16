@@ -6,7 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from starlette.requests import Request
 from starlette.responses import HTMLResponse, FileResponse
 from starlette.staticfiles import StaticFiles
-
+import os, shutil
 from core.utils import error_ip_limit, upload_ip_limit, get_code, storage
 from core.depends import admin_required
 from settings import settings
@@ -18,7 +18,7 @@ from core.database import init_models, Options, Codes, get_session
 app = FastAPI(debug=settings.DEBUG, docs_url=None, redoc_url=None)
 
 # 数据存储文件夹
-DATA_ROOT = Path(settings.DATA_ROOT)
+DATA_ROOT = Path(settings.DATA_ROOT + '/files')
 if not DATA_ROOT.exists():
     DATA_ROOT.mkdir(parents=True)
 
@@ -54,6 +54,39 @@ async def admin():
     return HTMLResponse(admin_html)
 
 
+@app.get(f'/{settings.ADMIN_ADDRESS}/files', dependencies=[Depends(admin_required)])
+async def get_files():
+    files = []
+    for i, j, k in os.walk(f'{DATA_ROOT}'):
+        files.extend([{'name': _.split('/')[-1], 'path': i} for _ in k])
+    return {'data': files}
+
+
+@app.post(f'/{settings.ADMIN_ADDRESS}/files', dependencies=[Depends(admin_required)])
+async def share_file(name=Form(...), path=File(...), s: AsyncSession = Depends(get_session)):
+    file_path = path + f'/{name}'
+    key = uuid.uuid4().hex
+    code = await get_code(s)
+    now = datetime.datetime.now()
+    path = f"{settings.DATA_ROOT}/upload/{now.year}/{now.month}/{now.day}/"
+    if not os.path.exists(path):
+        os.makedirs(path)
+    text = f"{path}/{f'{key}{name}'}"
+    exp_time = datetime.datetime.now() + datetime.timedelta(days=1)
+    s.add(Codes(code=code, text=text.replace(f'{settings.DATA_ROOT}/', ''), type='file', name=name, count=-1,
+                exp_time=exp_time, key=key))
+    await s.commit()
+    shutil.move(file_path, text)
+    return {
+        'detail': '分享成功！请在24小时内使用分享使用！',
+        'data': {
+            'code': code,
+            'text': text,
+            'name': name,
+        }
+    }
+
+
 @app.post(f'/{settings.ADMIN_ADDRESS}', dependencies=[Depends(admin_required)], description='查询数据库列表')
 async def admin_post(page: int = Form(default=1), size: int = Form(default=10), s: AsyncSession = Depends(get_session)):
     infos = (await s.execute(select(Codes).offset((page - 1) * size).limit(size))).scalars().all()
@@ -73,17 +106,6 @@ async def admin_post(page: int = Form(default=1), size: int = Form(default=10), 
             'size': size,
             'total': (await s.execute(select(func.count(Codes.id)))).scalar()
         }}
-
-
-@app.patch(f'/{settings.ADMIN_ADDRESS}', dependencies=[Depends(admin_required)], description='修改数据库数据')
-async def admin_patch(request: Request, s: AsyncSession = Depends(get_session)):
-    data = await request.json()
-    data.pop('INSTALL')
-    for key, value in data.items():
-        await s.execute(update(Options).where(Options.key == key).values(value=value))
-        await settings.update(key, value)
-    await s.commit()
-    return {'detail': '修改成功'}
 
 
 @app.delete(f'/{settings.ADMIN_ADDRESS}', dependencies=[Depends(admin_required)], description='删除数据库记录')
@@ -113,8 +135,18 @@ async def config(s: AsyncSession = Depends(get_session)):
         {'key': 'WEBSITE', 'name': '网站设置'},
         {'key': 'SHARE', 'name': '分享设置'},
         {'key': 'BANNERS', 'name': 'Banner'},
-        {'key': 'WEBSITE', 'name': '网站设置'},
     ]}
+
+
+@app.patch(f'/{settings.ADMIN_ADDRESS}', dependencies=[Depends(admin_required)], description='修改数据库数据')
+async def admin_patch(request: Request, s: AsyncSession = Depends(get_session)):
+    data = await request.json()
+    data.pop('INSTALL')
+    for key, value in data.items():
+        await s.execute(update(Options).where(Options.key == key).values(value=value))
+        await settings.update(key, value)
+    await s.commit()
+    return {'detail': '修改成功'}
 
 
 @app.get('/')

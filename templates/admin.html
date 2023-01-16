@@ -101,6 +101,24 @@
             >
             </el-pagination>
         </el-col>
+        <el-col v-if="activeIndex === '3'">
+            <el-card style="height: 80vh;overflow: scroll;margin-bottom: 1rem">
+                <el-empty v-if="locals.length === 0" description="暂时还没有文件"></el-empty>
+                <el-card v-for="file in locals" :key="file.code">
+                    <el-row>
+                        <el-col :span="20">
+                            <div style="cursor: pointer;text-align: left">
+                                <div>文件名：${ file.name }</div>
+                                <div>路径：${ file.path }</div>
+                            </div>
+                        </el-col>
+                        <el-col :span="4">
+                            <el-button type="primary" @click="shareFile(file)">分享</el-button>
+                        </el-col>
+                    </el-row>
+                </el-card>
+            </el-card>
+        </el-col>
         <el-col v-if="activeIndex === '4'">
             <el-row>
                 <el-col :span="5" style="height: 88vh;overflow: scroll" :gutter="10">
@@ -215,6 +233,7 @@
             <el-button slot="append" type="primary" @click="loginAdmin">登录</el-button>
         </el-input>
     </div>
+
 </div>
 
 </body>
@@ -234,6 +253,7 @@
                 menus: [],
                 updateTab: 'INSTALL',
                 files: [],
+                locals: [],
                 paginate: {
                     page: 1,
                     size: 10,
@@ -255,6 +275,7 @@
                     this.menus = res.data.menus;
                 });
                 this.loginAdmin();
+                this.getLocalFiles();
             }
         },
         methods: {
@@ -317,6 +338,30 @@
                     });
                 })
             },
+            getLocalFiles: function () {
+                axios.get(window.location.href + '/files', {
+                    'headers': {
+                        'pwd': this.pwd,
+                        'Content-Type': 'multipart/form-data'
+                    }
+                }).then(res => {
+                    this.locals = res.data.data;
+                })
+            },
+            shareFile: function (file) {
+                axios.post(window.location.href + '/files', file, {
+                    'headers': {
+                        'pwd': this.pwd,
+                        'Content-Type': 'multipart/form-data'
+                    }
+                }).then(res => {
+                    this.getLocalFiles()
+                    this.$alert(`请在24小时内使用：${res.data.data.code}`, '分享成功', {
+                        confirmButtonText: '确定',
+                    });
+                })
+
+            }
         }
     })
 </script>
