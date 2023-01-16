@@ -16,7 +16,7 @@ from core.database import init_models, Options, Codes, get_session
 from settings import settings
 
 # 实例化FastAPI
-app = FastAPI(debug=settings.DEBUG, redoc_url=None, )
+app = FastAPI(debug=settings.DEBUG, redoc_url=None, docs_url=None, openapi_url=None)
 
 
 @app.on_event('startup')
