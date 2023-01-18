@@ -72,7 +72,7 @@ class Settings:
             if key in self.int_dict:
                 value = int(value)
             elif key in self.bool_dict:
-                value = value == 'true'
+                value = bool(value)
             setattr(self, key, value)
 
     async def updates(self, options) -> None:
