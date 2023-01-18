@@ -45,7 +45,7 @@
                                 <div>文件名：${ file.name }</div>
                                 <div>次&nbsp;&nbsp; 数：${ file.count }</div>
                                 <div>到&nbsp;&nbsp; 期：${ file.exp_time.slice(0,19) }</div>
-                                <div v-if="file.type==='text'">
+                                <div v-if="file.name==='文本分享'">
                                     <span style="white-space: pre-line">内&nbsp;&nbsp; 容：${ file.text }</span>
                                 </div>
                                 <div v-else>
