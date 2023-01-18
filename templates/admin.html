@@ -75,7 +75,8 @@
         </el-col>
         <el-col v-if="activeIndex === '3'">
             <el-card style="height: 80vh;overflow: scroll;margin-bottom: 1rem">
-                <el-empty v-if="locals.length === 0" description="暂时还没有文件"></el-empty>
+                <el-empty v-if="locals.length === 0"
+                          description="暂时还没有文件，请上传至/opt/data/locals目录"></el-empty>
                 <el-card v-for="file in locals" :key="file.code">
                     <el-row>
                         <el-col :span="20">

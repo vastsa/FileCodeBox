@@ -48,9 +48,11 @@ docker stop filecodebox && docker rm filecodebox
 docker run -d --restart=always -p 12345:12345 -v /opt/FileCodeBox/:/app/data --name filecodebox lanol/filecodebox:latest
 ```
 
-###
+### 1.6版本注意
 
+这一版改变比较大，如果出现问题可以尝试清空/opt/FileCodeBox目录，有问题欢迎反馈留言
 注意，如果是第一次安装，请查看docker日志获取初始密码和后台地址，参考指令
+后台本地文件列表，需要将服务器文件移动至目录/opt/FileCodeBox/data/locals，这样就可以显示了。
 
 ```bash
 docker logs filecodebox
