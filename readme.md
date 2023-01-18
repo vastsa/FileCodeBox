@@ -48,6 +48,15 @@ docker stop filecodebox && docker rm filecodebox
 docker run -d --restart=always -p 12345:12345 -v /opt/FileCodeBox/:/app/data --name filecodebox lanol/filecodebox:latest
 ```
 
+###
+
+注意，如果是第一次安装，请查看docker日志获取初始密码和后台地址，参考指令
+
+```bash
+docker logs filecodebox
+
+```
+
 ### 其他方式
 
 仅供参考，历史版本->[部署文档](https://www.yuque.com/lxyo/work/zd0kvzy7fofx6w7v)
