@@ -4,7 +4,7 @@
 <p><em>share text and files with anonymous passwords, and take files like express delivery </em></p>
 </div>
 
-![banner](https://raw.githubusercontent.com/vastsa/FileCodeBox/master/static/banners/img_1.png)
+![banner](https://fastly.jsdelivr.net/gh/vastsa/FileCodeBox@V1.6Beta/static/banners/img_1.png)
 
 
 ---
@@ -84,11 +84,11 @@ If you have better ideas and suggestions, welcome to file an issue.
 
 <tr style="width: 100%">
 <td style="width: 50%">
-<img src="https://raw.githubusercontent.com/vastsa/FileCodeBox/master/images/img_10.png" alt="寄文件">
+<img src="https://fastly.jsdelivr.net/gh/vastsa/FileCodeBox@V1.6Beta/images/img_10.png" alt="寄文件">
 
 </td>
 <td style="width: 50%">
-<img src="https://raw.githubusercontent.com/vastsa/FileCodeBox/master/images/img_11.png" alt="寄文件">
+<img src="https://fastly.jsdelivr.net/gh/vastsa/FileCodeBox@V1.6Beta/images/img_11.png" alt="寄文件">
 
 </td>
 </tr>
@@ -99,15 +99,15 @@ If you have better ideas and suggestions, welcome to file an issue.
 <table style="width: 100%">
 <tr style="width: 100%">
 <td style="width: 50%">
-<img src="https://raw.githubusercontent.com/vastsa/FileCodeBox/master/images/img_1.png" alt="寄文件">
+<img src="https://fastly.jsdelivr.net/gh/vastsa/FileCodeBox@V1.6Beta/images/img_1.png" alt="寄文件">
 </td>
 <td style="width: 50%">
-<img src="https://raw.githubusercontent.com/vastsa/FileCodeBox/master/images/img_2.png" alt="寄文本">
+<img src="https://fastly.jsdelivr.net/gh/vastsa/FileCodeBox@V1.6Beta/images/img_2.png" alt="寄文本">
 </td>
 </tr>
 <tr style="width: 100%;">
 <td colspan="2" style="width: 100%;">
-<img src="https://raw.githubusercontent.com/vastsa/FileCodeBox/master/images/img_3.png" alt="寄文本">
+<img src="https://fastly.jsdelivr.net/gh/vastsa/FileCodeBox@V1.6Beta/images/img_3.png" alt="寄文本">
 </td>
 </tr>
 </table>
@@ -117,22 +117,22 @@ If you have better ideas and suggestions, welcome to file an issue.
 <table style="width: 100%">
 <tr style="width: 100%">
 <td style="width: 50%">
-<img src="https://raw.githubusercontent.com/vastsa/FileCodeBox/master/images/img_6.png" alt="取件">
+<img src="https://fastly.jsdelivr.net/gh/vastsa/FileCodeBox@V1.6Beta/images/img_6.png" alt="取件">
 </td>
 <td style="width: 50%">
-<img src="https://raw.githubusercontent.com/vastsa/FileCodeBox/master/images/img_5.png" alt="取件码错误">
+<img src="https://fastly.jsdelivr.net/gh/vastsa/FileCodeBox@V1.6Beta/images/img_5.png" alt="取件码错误">
 </td>
 </tr>
 <tr style="width: 100%;">
 <td colspan="2" style="width: 100%;">
-<img src="https://raw.githubusercontent.com/vastsa/FileCodeBox/master/images/img_4.png" alt="取文件">
+<img src="https://fastly.jsdelivr.net/gh/vastsa/FileCodeBox@V1.6Beta/images/img_4.png" alt="取文件">
 </td>
 </tr>
 </table>
 
 ### Manage
 
-![管理](https://raw.githubusercontent.com/vastsa/FileCodeBox/master/images/img_7.png)
+![管理](https://fastly.jsdelivr.net/gh/vastsa/FileCodeBox@V1.6Beta/images/img_7.png)
 
 ## Configuration file
 
@@ -201,11 +201,11 @@ BUCKET_NAME=阿里云OSS Bucket的BucketName
 <tr style="width: 100%">
 <td style="width: 50%;text-align: center;">
 支付宝
-<img src="https://raw.githubusercontent.com/vastsa/FileCodeBox/master/images/img_9.png" alt="支付宝">
+<img src="https://fastly.jsdelivr.net/gh/vastsa/FileCodeBox@V1.6Beta/images/img_9.png" alt="支付宝">
 </td>
 <td style="width: 50%;text-align: center">
 微信
-<img src="https://raw.githubusercontent.com/vastsa/FileCodeBox/master/images/img_8.png" alt="微信">
+<img src="https://fastly.jsdelivr.net/gh/vastsa/FileCodeBox@V1.6Beta/images/img_8.png" alt="微信">
 </td>
 </tr>
 </table>    
