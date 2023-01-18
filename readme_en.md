@@ -132,7 +132,21 @@ If you have better ideas and suggestions, welcome to file an issue.
 
 ### Manage
 
-![管理](https://fastly.jsdelivr.net/gh/vastsa/FileCodeBox@V1.6Beta/images/img_7.png)
+<table style="width: 100%">
+<tr style="width: 100%">
+<td style="width: 50%">
+<img src="https://fastly.jsdelivr.net/gh/vastsa/FileCodeBox@V1.6Beta/images/img_7.png" alt="admin">
+</td>
+<td style="width: 50%">
+<img src="https://fastly.jsdelivr.net/gh/vastsa/FileCodeBox@V1.6Beta/images/img_12.png" alt="admin">
+</td>
+</tr>
+<tr style="width: 100%;">
+<td colspan="2" style="width: 100%;">
+<img src="https://fastly.jsdelivr.net/gh/vastsa/FileCodeBox@V1.6Beta/images/img_13.png" alt="admin">
+</td>
+</tr>
+</table>
 
 ## Configuration file
 
