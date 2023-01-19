@@ -4,7 +4,7 @@
 <p><em>匿名口令分享文本，文件，像拿快递一样取文件</em></p>
 </div>
 
-![banner](https://fastly.jsdelivr.net/gh/vastsa/FileCodeBox@V1.6Beta/static/banners/img_1.png)
+![banner](https://fastly.jsdelivr.net/gh/vastsa/FileCodeBox@V1.6/static/banners/img_1.png)
 
 ---
 
@@ -82,11 +82,11 @@ docker logs filecodebox
 
 <tr style="width: 100%">
 <td style="width: 50%">
-<img src="https://fastly.jsdelivr.net/gh/vastsa/FileCodeBox@V1.6Beta/images/img_10.png" alt="寄文件">
+<img src="https://fastly.jsdelivr.net/gh/vastsa/FileCodeBox@V1.6/images/img_10.png" alt="寄文件">
 
 </td>
 <td style="width: 50%">
-<img src="https://fastly.jsdelivr.net/gh/vastsa/FileCodeBox@V1.6Beta/images/img_11.png" alt="寄文件">
+<img src="https://fastly.jsdelivr.net/gh/vastsa/FileCodeBox@V1.6/images/img_11.png" alt="寄文件">
 
 </td>
 </tr>
@@ -97,15 +97,15 @@ docker logs filecodebox
 <table style="width: 100%">
 <tr style="width: 100%">
 <td style="width: 50%">
-<img src="https://fastly.jsdelivr.net/gh/vastsa/FileCodeBox@V1.6Beta/images/img_1.png" alt="寄文件">
+<img src="https://fastly.jsdelivr.net/gh/vastsa/FileCodeBox@V1.6/images/img_1.png" alt="寄文件">
 </td>
 <td style="width: 50%">
-<img src="https://fastly.jsdelivr.net/gh/vastsa/FileCodeBox@V1.6Beta/images/img_2.png" alt="寄文本">
+<img src="https://fastly.jsdelivr.net/gh/vastsa/FileCodeBox@V1.6/images/img_2.png" alt="寄文本">
 </td>
 </tr>
 <tr style="width: 100%;">
 <td colspan="2" style="width: 100%;">
-<img src="https://fastly.jsdelivr.net/gh/vastsa/FileCodeBox@V1.6Beta/images/img_3.png" alt="寄文本">
+<img src="https://fastly.jsdelivr.net/gh/vastsa/FileCodeBox@V1.6/images/img_3.png" alt="寄文本">
 </td>
 </tr>
 </table>
@@ -115,15 +115,15 @@ docker logs filecodebox
 <table style="width: 100%">
 <tr style="width: 100%">
 <td style="width: 50%">
-<img src="https://fastly.jsdelivr.net/gh/vastsa/FileCodeBox@V1.6Beta/images/img_6.png" alt="取件">
+<img src="https://fastly.jsdelivr.net/gh/vastsa/FileCodeBox@V1.6/images/img_6.png" alt="取件">
 </td>
 <td style="width: 50%">
-<img src="https://fastly.jsdelivr.net/gh/vastsa/FileCodeBox@V1.6Beta/images/img_5.png" alt="取件码错误">
+<img src="https://fastly.jsdelivr.net/gh/vastsa/FileCodeBox@V1.6/images/img_5.png" alt="取件码错误">
 </td>
 </tr>
 <tr style="width: 100%;">
 <td colspan="2" style="width: 100%;">
-<img src="https://fastly.jsdelivr.net/gh/vastsa/FileCodeBox@V1.6Beta/images/img_4.png" alt="取文件">
+<img src="https://fastly.jsdelivr.net/gh/vastsa/FileCodeBox@V1.6/images/img_4.png" alt="取文件">
 </td>
 </tr>
 </table>
@@ -133,15 +133,15 @@ docker logs filecodebox
 <table style="width: 100%">
 <tr style="width: 100%">
 <td style="width: 50%">
-<img src="https://fastly.jsdelivr.net/gh/vastsa/FileCodeBox@V1.6Beta/images/img_7.png" alt="admin">
+<img src="https://fastly.jsdelivr.net/gh/vastsa/FileCodeBox@V1.6/images/img_7.png" alt="admin">
 </td>
 <td style="width: 50%">
-<img src="https://fastly.jsdelivr.net/gh/vastsa/FileCodeBox@V1.6Beta/images/img_12.png" alt="admin">
+<img src="https://fastly.jsdelivr.net/gh/vastsa/FileCodeBox@V1.6/images/img_12.png" alt="admin">
 </td>
 </tr>
 <tr style="width: 100%;">
 <td colspan="2" style="width: 100%;">
-<img src="https://fastly.jsdelivr.net/gh/vastsa/FileCodeBox@V1.6Beta/images/img_13.png" alt="admin">
+<img src="https://fastly.jsdelivr.net/gh/vastsa/FileCodeBox@V1.6/images/img_13.png" alt="admin">
 </td>
 </tr>
 </table>
@@ -273,11 +273,11 @@ file: 文件
 <tr style="width: 100%">
 <td style="width: 50%;text-align: center;">
 支付宝
-<img src="https://fastly.jsdelivr.net/gh/vastsa/FileCodeBox@V1.6Beta/images/img_9.png" alt="支付宝">
+<img src="https://fastly.jsdelivr.net/gh/vastsa/FileCodeBox@V1.6/images/img_9.png" alt="支付宝">
 </td>
 <td style="width: 50%;text-align: center">
 微信
-<img src="https://fastly.jsdelivr.net/gh/vastsa/FileCodeBox@V1.6Beta/images/img_8.png" alt="微信">
+<img src="https://fastly.jsdelivr.net/gh/vastsa/FileCodeBox@V1.6/images/img_8.png" alt="微信">
 </td>
 </tr>
 </table>    

@@ -6,3 +6,4 @@ uvicorn==0.15.0
 greenlet==2.0.1
 starlette~=0.22.0
 oss2==2.16.0
+uvicorn==0.15.0
