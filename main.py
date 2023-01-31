@@ -31,10 +31,6 @@ async def startup(s: AsyncSession = Depends(get_session)):
 DATA_ROOT = Path(settings.DATA_ROOT)
 if not DATA_ROOT.exists():
     DATA_ROOT.mkdir(parents=True)
-# 本地文件文件夹
-LOCAL_ROOT = Path(settings.LOCAL_ROOT)
-if not LOCAL_ROOT.exists():
-    LOCAL_ROOT.mkdir(parents=True)
 
 # 静态文件夹，这个固定就行了，静态资源都放在这里
 app.mount('/static', StaticFiles(directory='./static'), name="static")
