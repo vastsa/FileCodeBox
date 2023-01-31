@@ -61,39 +61,6 @@ async def admin():
     )
 
 
-@app.get(f'/{settings.ADMIN_ADDRESS}/files', dependencies=[Depends(admin_required)])
-async def get_files():
-    files = []
-    for i, j, k in os.walk(f'{LOCAL_ROOT}'):
-        files.extend([{'name': _.split('/')[-1], 'path': i} for _ in k])
-    return {'data': files}
-
-
-@app.post(f'/{settings.ADMIN_ADDRESS}/files', dependencies=[Depends(admin_required)])
-async def share_file(name=Form(...), path=File(...), s: AsyncSession = Depends(get_session)):
-    file_path = path + f'/{name}'
-    key = uuid.uuid4().hex
-    code = await get_code(s)
-    now = datetime.datetime.now()
-    path = f"{settings.LOCAL_ROOT}/upload/{now.year}/{now.month}/{now.day}/"
-    if not os.path.exists(path):
-        os.makedirs(path)
-    text = f"{path}/{f'{key}{name}'}"
-    exp_time = datetime.datetime.now() + datetime.timedelta(days=1)
-    s.add(Codes(code=code, text=text.replace(f'{settings.LOCAL_ROOT}/', ''), type='file', name=name, count=-1,
-                exp_time=exp_time, key=key))
-    await s.commit()
-    shutil.move(file_path, text)
-    return {
-        'detail': '分享成功！请在24小时内使用分享使用！',
-        'data': {
-            'code': code,
-            'text': text,
-            'name': name,
-        }
-    }
-
-
 @app.post(f'/{settings.ADMIN_ADDRESS}', dependencies=[Depends(admin_required)], description='查询数据库列表')
 async def admin_post(page: int = Form(default=1), size: int = Form(default=10), s: AsyncSession = Depends(get_session)):
     infos = (await s.execute(select(Codes).offset((page - 1) * size).limit(size))).scalars().all()

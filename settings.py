@@ -19,8 +19,6 @@ class Settings:
     DATABASE_URL = config('DATABASE_URL', cast=str, default=f"sqlite+aiosqlite:///{DATABASE_FILE}")
     # 数据存储文件夹，文件就不暴露在静态资源里面了
     DATA_ROOT = './data/' + config('DATA_ROOT', cast=str, default=f"static")
-    # 本地文件夹
-    LOCAL_ROOT = './data/' + config('LOCAL_ROOT', cast=str, default=f"local")
     # 静态文件夹URL
     STATIC_URL = config('STATIC_URL', cast=str, default="/static")
     # 开启上传

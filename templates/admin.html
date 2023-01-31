@@ -73,25 +73,6 @@
             >
             </el-pagination>
         </el-col>
-        <el-col v-if="activeIndex === '3'">
-            <el-card style="height: 80vh;overflow: scroll;margin-bottom: 1rem">
-                <el-empty v-if="locals.length === 0"
-                          description="暂时还没有文件，请上传至/opt/data/locals目录"></el-empty>
-                <el-card v-for="file in locals" :key="file.code">
-                    <el-row>
-                        <el-col :span="20">
-                            <div style="cursor: pointer;text-align: left">
-                                <div>文件名：${ file.name }</div>
-                                <div>路径：${ file.path }</div>
-                            </div>
-                        </el-col>
-                        <el-col :span="4">
-                            <el-button type="primary" @click="shareFile(file)">分享</el-button>
-                        </el-col>
-                    </el-row>
-                </el-card>
-            </el-card>
-        </el-col>
         <el-col v-if="activeIndex === '4'">
             <el-row>
                 <el-col :span="4" style="height: 88vh;overflow: scroll;text-align: center" :gutter="10">
