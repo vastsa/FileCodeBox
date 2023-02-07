@@ -1,6 +1,9 @@
 import datetime
+import hashlib
 import random
 import asyncio
+import time
+
 from sqlalchemy import or_, select, delete
 from sqlalchemy.ext.asyncio.session import AsyncSession
 from .database import Codes, engine
@@ -41,3 +44,7 @@ async def get_code(s: AsyncSession):
     while (await s.execute(select(Codes.id).where(Codes.code == code))).scalar():
         code = random.randint(10000, 99999)
     return str(code)
+
+
+async def get_token(ip, code):
+    return hashlib.sha256(f"{ip}{code}{int(time.time()) / 1000}000{settings.SECRET_KEY}".encode()).hexdigest()
