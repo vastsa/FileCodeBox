@@ -6,7 +6,7 @@ from pathlib import Path
 from sqlalchemy import select, func, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette.requests import Request
-from starlette.responses import HTMLResponse, FileResponse
+from starlette.responses import HTMLResponse, FileResponse, RedirectResponse
 from starlette.staticfiles import StaticFiles
 from core.utils import error_ip_limit, upload_ip_limit, get_code, storage, delete_expire_files, get_token
 from core.depends import admin_required
@@ -166,6 +166,9 @@ async def get_file(code: str, token: str, ip: str = Depends(error_ip_limit), s: 
     if info.type == 'text':
         return {'detail': '查询成功', 'data': info.text}
     # 如果是文件，返回文件
+    elif storage.NAME != 'filesystem':
+        # 重定向到文件存储服务器
+        return RedirectResponse(await storage.get_url(info))
     else:
         filepath = await storage.get_filepath(info.text)
         return FileResponse(filepath, filename=info.name)
