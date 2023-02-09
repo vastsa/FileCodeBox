@@ -130,7 +130,7 @@ async def index(code: str, ip: str = Depends(error_ip_limit), s: AsyncSession = 
     await s.execute(update(Codes).where(Codes.id == info.id).values(count=info.count - 1))
     await s.commit()
     if info.type != 'text':
-        info.text = f'/select?code={info.code}&token={get_token(code, ip)}'
+        info.text = f'/select?code={info.code}&token={await get_token(code, ip)}'
     return {
         'detail': f'取件成功，请立即下载，避免失效！',
         'data': {'type': info.type, 'text': info.text, 'name': info.name, 'code': info.code}
@@ -150,7 +150,7 @@ async def banner(request: Request):
 @app.get('/select')
 async def get_file(code: str, token: str, ip: str = Depends(error_ip_limit), s: AsyncSession = Depends(get_session)):
     # 验证token
-    if token != get_token(code, ip):
+    if token != await get_token(code, ip):
         error_ip_limit.add_ip(ip)
         raise HTTPException(status_code=403, detail="口令错误，或已过期，次数过多将被禁止访问")
     # 查出数据库记录

@@ -47,4 +47,4 @@ async def get_code(s: AsyncSession):
 
 
 async def get_token(ip, code):
-    return hashlib.sha256(f"{ip}{code}{int(time.time()) / 1000}000{settings.SECRET_KEY}".encode()).hexdigest()
+    return hashlib.sha256(f"{ip}{code}{int(time.time() / 1000)}000{settings.ADMIN_PASSWORD}".encode()).hexdigest()
