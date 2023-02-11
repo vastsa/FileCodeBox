@@ -176,11 +176,14 @@ async def get_file(code: str, token: str, ip: str = Depends(error_ip_limit), s: 
 async def share(background_tasks: BackgroundTasks, text: str = Form(default=None),
                 style: str = Form(default='2'), value: int = Form(default=1), file: UploadFile = File(default=None),
                 ip: str = Depends(upload_ip_limit), s: AsyncSession = Depends(get_session)):
-    code = await get_code(s)
     if style == '2':
         if value > settings.MAX_DAYS:
             raise HTTPException(status_code=400, detail=f"最大有效天数为{settings.MAX_DAYS}天")
-        exp_time = datetime.datetime.now() + datetime.timedelta(days=value)
+        # 如果天数大于0，就设置过期时间，否则就设置为永久，无过期时间
+        if settings.ENABLE_PERMANENT and value < 0:
+            exp_time = None
+        else:
+            exp_time = datetime.datetime.now() + datetime.timedelta(days=value)
         exp_count = -1
     elif style == '1':
         if value < 1:
@@ -199,6 +202,7 @@ async def share(background_tasks: BackgroundTasks, text: str = Form(default=None
         background_tasks.add_task(storage.save_file, file, _text)
     else:
         size, _text, _type, name = len(text), text, 'text', '文本分享'
+    code = await get_code(s)
     s.add(Codes(code=code, text=_text, size=size, type=_type, name=name, count=exp_count, exp_time=exp_time, key=key))
     await s.commit()
     upload_ip_limit.add_ip(ip)

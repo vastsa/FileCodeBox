@@ -1,7 +1,6 @@
 import uuid
 
 from starlette.config import Config
-import configparser
 
 # 配置文件.env，存放为data/.env
 config = Config("data/.env")
@@ -32,6 +31,8 @@ class Settings:
     ERROR_MINUTE = config('ERROR_MINUTE', cast=int, default=10)
     # 上传次数
     UPLOAD_COUNT = config('UPLOAD_COUNT', cast=int, default=60)
+    # 是否允许永久保存
+    ENABLE_PERMANENT = config('ENABLE_PERMANENT', cast=bool, default=True)
     # 上传限制分钟数
     UPLOAD_MINUTE = config('UPLOAD_MINUTE', cast=int, default=1)
     # 删除过期文件的间隔（分钟）

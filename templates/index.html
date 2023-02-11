@@ -138,15 +138,18 @@
                     </el-carousel>
                 </div>
                 <el-row>
-                    <el-input style="width: 190px" placeholder="数量" v-model="uploadData.value"
-                              class="input-with-select">
-                        <el-select style="width: 75px" v-model="uploadData.style" slot="prepend" placeholder="请选择">
-                            <el-option label="天数" value="2"></el-option>
-                            <el-option label="次数" value="1"></el-option>
-                        </el-select>
-                        <el-button v-if="uploadData.style === '1'" slot="append" disabled>次</el-button>
-                        <el-button v-else slot="append" disabled>天</el-button>
-                    </el-input>
+                    <el-tooltip class="item" effect="dark" content="天数为-1则为永久" placement="top">
+                        <el-input style="width: 190px" placeholder="数量" v-model="uploadData.value"
+                                  class="input-with-select">
+                            <el-select style="width: 75px" v-model="uploadData.style" slot="prepend"
+                                       placeholder="请选择">
+                                <el-option label="天数" value="2"></el-option>
+                                <el-option label="次数" value="1"></el-option>
+                            </el-select>
+                            <el-button v-if="uploadData.style === '1'" slot="append" disabled>次</el-button>
+                            <el-button v-else slot="append" disabled>天</el-button>
+                        </el-input>
+                    </el-tooltip>
                     <el-radio-group style="margin-left: 18px" v-model="uploadData.type">
                         <el-radio label="1">
                             文件
