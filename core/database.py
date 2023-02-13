@@ -45,7 +45,6 @@ async def init_models(s):
                 {'key': 'DATABASE_FILE', 'value': settings.DATABASE_FILE},
                 {'key': 'PORT', 'value': settings.PORT},
                 {'key': 'DATA_ROOT', 'value': settings.DATA_ROOT},
-                {'key': 'LOCAL_ROOT', 'value': settings.LOCAL_ROOT},
                 {'key': 'STATIC_URL', 'value': settings.STATIC_URL},
                 {'key': 'BANNERS', 'value': settings.BANNERS},
                 {'key': 'ENABLE_UPLOAD', 'value': settings.ENABLE_UPLOAD},
