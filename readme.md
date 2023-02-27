@@ -3,6 +3,7 @@
 <h2>FileCodeBox-Lite</h2>
 <p><em>匿名口令分享文本，文件，像拿快递一样取文件</em></p>
 <p>交流Q群：739673698，欢迎各位集思广益，项目构思重构中</p>
+<p>新仓库地址：https://github.com/vastsa/FileBoxPro</p>
 </div>
 
 ![banner](https://fastly.jsdelivr.net/gh/vastsa/FileCodeBox@V1.6/static/banners/img_1.png)
