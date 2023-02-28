@@ -1,5 +1,7 @@
 import os
 import asyncio
+import time
+import uuid
 from datetime import datetime
 from pathlib import Path
 from typing import BinaryIO
@@ -14,6 +16,101 @@ if settings.STORAGE_ENGINE == 'aliyunsystem':
     except ImportError:
         os.system('pip install oss2')
         import oss2
+
+
+class FileSystemStorage:
+    def __init__(self):
+        self.DATA_ROOT = Path(settings.DATA_ROOT)
+        self.STATIC_URL = settings.STATIC_URL
+        self.NAME = "filesystem"
+        self.DOWN_PATH = '/select'
+
+    async def get_filepath(self, text: str):
+        return self.DATA_ROOT / text.lstrip(self.STATIC_URL + '/')
+
+    async def get_url(self, info: Codes):
+        return f'{self.DOWN_PATH}?code={info.code}'
+
+    async def get_text(self, file: UploadFile, key: str):
+        ext = file.filename.split('.')[-1]
+        now = datetime.now()
+        path = self.DATA_ROOT / f"upload/{now.year}/{now.month}/{now.day}/"
+        if not path.exists():
+            path.mkdir(parents=True)
+        text = f"{self.STATIC_URL}/{(path / f'{key}.{ext}').relative_to(self.DATA_ROOT)}"
+        return text
+
+    @staticmethod
+    async def get_size(file: UploadFile):
+        f = file.file
+        f.seek(0, os.SEEK_END)
+        size = f.tell()
+        f.seek(0, os.SEEK_SET)
+        return size
+
+    @staticmethod
+    def _save(filepath, file: BinaryIO):
+        with open(filepath, 'wb') as f:
+            chunk_size = 256 * 1024
+            chunk = file.read(chunk_size)
+            while chunk:
+                f.write(chunk)
+                chunk = file.read(chunk_size)
+
+    @staticmethod
+    def _save_chunk(filepath, file: bytes):
+        with open(filepath, 'wb') as f:
+            f.write(file)
+
+    async def create_upload_file(self):
+        file_key = uuid.uuid4().hex
+        file_path = self.DATA_ROOT / f"temp/{file_key}"
+        if not file_path.exists():
+            file_path.mkdir(parents=True)
+        return file_key
+
+    async def save_chunk_file(self, file_key, file_chunk, chunk_index, chunk_total):
+        file_path = self.DATA_ROOT / f"temp/{file_key}/"
+        await asyncio.to_thread(self._save_chunk, file_path / f"{chunk_total}-{chunk_index}.temp", file_chunk)
+
+    async def merge_chunks(self, file_key, file_name, total_chunks: int):
+        ext = file_name.split('.')[-1]
+        now = datetime.now()
+        path = self.DATA_ROOT / f"upload/{now.year}/{now.month}/{now.day}/"
+        if not path.exists():
+            path.mkdir(parents=True)
+        text = f"{self.STATIC_URL}/{(path / f'{file_key}.{ext}').relative_to(self.DATA_ROOT)}"
+        with open(path / f'{file_key}.{ext}', 'wb') as f:
+            for i in range(1, total_chunks + 1):
+                now_temp = self.DATA_ROOT / f'temp/{file_key}/{total_chunks}-{i}.temp'
+                with open(now_temp, 'rb') as r:
+                    f.write(r.read())
+                    await asyncio.to_thread(os.remove, now_temp)
+        await asyncio.to_thread(os.rmdir, self.DATA_ROOT / f'temp/{file_key}/')
+        return text
+
+    async def save_file(self, file: UploadFile, text: str):
+        filepath = await self.get_filepath(text)
+        await asyncio.to_thread(self._save, filepath, file.file)
+
+    async def delete_file(self, text: str):
+        filepath = await self.get_filepath(text)
+        if filepath.exists():
+            await asyncio.to_thread(os.remove, filepath)
+            await asyncio.to_thread(self.judge_delete_folder, filepath)
+
+    async def delete_files(self, texts):
+        tasks = [self.delete_file(text) for text in texts]
+        await asyncio.gather(*tasks)
+
+    def judge_delete_folder(self, filepath):
+        current = filepath.parent
+        while current != self.DATA_ROOT:
+            if not list(current.iterdir()):
+                os.rmdir(current)
+                current = current.parent
+            else:
+                break
 
 
 class AliyunFileStorage:
@@ -69,69 +166,6 @@ class AliyunFileStorage:
     async def delete_file(self, text: str):
         text = text.strip(f"https://{settings.BUCKET_NAME}.{settings.OSS_ENDPOINT}/")
         self.bucket.delete_object(text)
-
-
-class FileSystemStorage:
-    def __init__(self):
-        self.DATA_ROOT = Path(settings.DATA_ROOT)
-        self.STATIC_URL = settings.STATIC_URL
-        self.NAME = "filesystem"
-        self.DOWN_PATH = '/select'
-
-    async def get_filepath(self, text: str):
-        return self.DATA_ROOT / text.lstrip(self.STATIC_URL + '/')
-
-    async def get_url(self, info: Codes):
-        return f'{self.DOWN_PATH}?code={info.code}'
-
-    async def get_text(self, file: UploadFile, key: str):
-        ext = file.filename.split('.')[-1]
-        now = datetime.now()
-        path = self.DATA_ROOT / f"upload/{now.year}/{now.month}/{now.day}/"
-        if not path.exists():
-            path.mkdir(parents=True)
-        text = f"{self.STATIC_URL}/{(path / f'{key}.{ext}').relative_to(self.DATA_ROOT)}"
-        return text
-
-    @staticmethod
-    async def get_size(file: UploadFile):
-        f = file.file
-        f.seek(0, os.SEEK_END)
-        size = f.tell()
-        f.seek(0, os.SEEK_SET)
-        return size
-
-    @staticmethod
-    def _save(filepath, file: BinaryIO):
-        with open(filepath, 'wb') as f:
-            chunk_size = 256 * 1024
-            chunk = file.read(chunk_size)
-            while chunk:
-                f.write(chunk)
-                chunk = file.read(chunk_size)
-
-    async def save_file(self, file: UploadFile, text: str):
-        filepath = await self.get_filepath(text)
-        await asyncio.to_thread(self._save, filepath, file.file)
-
-    async def delete_file(self, text: str):
-        filepath = await self.get_filepath(text)
-        if filepath.exists():
-            await asyncio.to_thread(os.remove, filepath)
-            await asyncio.to_thread(self.judge_delete_folder, filepath)
-
-    async def delete_files(self, texts):
-        tasks = [self.delete_file(text) for text in texts]
-        await asyncio.gather(*tasks)
-
-    def judge_delete_folder(self, filepath):
-        current = filepath.parent
-        while current != self.DATA_ROOT:
-            if not list(current.iterdir()):
-                os.rmdir(current)
-                current = current.parent
-            else:
-                break
 
 
 STORAGE_ENGINE = {

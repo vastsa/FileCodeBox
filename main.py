@@ -9,12 +9,12 @@ from starlette.responses import HTMLResponse, FileResponse, RedirectResponse
 from starlette.staticfiles import StaticFiles
 from core.utils import error_ip_limit, upload_ip_limit, get_code, storage, delete_expire_files, get_token
 from core.depends import admin_required
-from fastapi import FastAPI, Depends, UploadFile, Form, File, HTTPException, BackgroundTasks
+from fastapi import FastAPI, Depends, UploadFile, Form, File, HTTPException, BackgroundTasks, Header
 from core.database import init_models, Options, Codes, get_session
 from settings import settings
 
 # 实例化FastAPI
-app = FastAPI(debug=settings.DEBUG, redoc_url=None, docs_url=None, openapi_url=None)
+app = FastAPI(debug=settings.DEBUG, redoc_url=None, )
 
 
 @app.on_event('startup')
@@ -170,6 +170,24 @@ async def get_file(code: str, token: str, ip: str = Depends(error_ip_limit), s: 
     else:
         filepath = await storage.get_filepath(info.text)
         return FileResponse(filepath, filename=info.name)
+
+
+@app.post('/file/create/')
+async def create_file():
+    # 生成随机字符串
+    return {'code': 200, 'data': await storage.create_upload_file()}
+
+
+@app.post('/file/upload/{file_key}/')
+async def upload_file(file_key: str, file: bytes = File(...), chunk_index: int = Form(...),
+                      total_chunks: int = Form(...)):
+    await storage.save_chunk_file(file_key, file, chunk_index, total_chunks)
+    return {'code': 200}
+
+
+@app.get('/file/merge/{file_key}')
+async def merge_chunks(file_key: str, file_name: str, total_chunks: int):
+    return {'code': 200, 'data': await storage.merge_chunks(file_key, file_name, total_chunks)}
 
 
 @app.post('/share', dependencies=[Depends(admin_required)], description='分享文件')

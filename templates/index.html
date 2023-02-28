@@ -164,6 +164,7 @@
                         drag
                         action="/share"
                         multiple
+                        :http-request="uploadFile"
                         style="margin: 1rem 0;"
                         :data="uploadData"
                         :before-upload="beforeUpload"
@@ -183,7 +184,6 @@
                         placeholder="请输入内容，使用按钮存入"
                         v-model="uploadData.text">
                 </el-input>
-
                 <div class="el-upload__tip">
                     <el-button round @click="pageNum=0">
                         <div class="el-icon-back"></div>
@@ -253,7 +253,7 @@
             </el-row>
         </el-card>
     </el-drawer>
-    <div style="text-align: center; margin-top: 1rem;color: #606266">
+    <div style="text-align: center; margin-top: 1rem;color: #606266;visibility: hidden">
         <a style="text-decoration: none;color: #606266" target="_blank" href="https://github.com/vastsa/FileCodeBox">FileCodeBox
             V1.6 Beta</a>
     </div>
@@ -346,18 +346,50 @@
                         data: data,
                         ...config
                     }).then(res => {
-                        this.$message({
-                            message: res.data.detail,
-                            type: 'success'
-                        });
+                        if (res.data.detail) {
+                            this.$message({
+                                message: res.data.detail,
+                                type: 'success'
+                            });
+                        }
                         resolve(res.data)
                     }).catch(err => {
-                        this.$message({
-                            message: err.response.data.detail,
-                            type: 'error'
-                        });
+                        if (this.data.detail) {
+                            this.$message({
+                                message: err.response.data.detail,
+                                type: 'error'
+                            });
+                        }
                     })
                 })
+            },
+            uploadChunk: async function (chunk, file_key, chunk_index, total_chunks) {
+                const formData = new FormData();
+                formData.append('file', chunk);
+                formData.append('file_key', file_key);
+                formData.append('chunk_index', chunk_index);
+                formData.append('total_chunks', total_chunks);
+                await this.http('post', `/file/upload/${file_key}/`, formData)
+            },
+            uploadFile: async function (e) {
+                this.http('post', '/file/create/').then(async res => {
+                    const file = e.file;
+                    let chunk_index = 0;
+                    const shardSize = 1024 * 1024 * 5;
+                    const {name, size} = file;
+                    const total_chunks = Math.ceil(size / shardSize);
+                    while (chunk_index < total_chunks) {
+                        const start = chunk_index * shardSize
+                        const end = Math.min(start + shardSize, size)
+                        chunk_index += 1;
+                        await this.uploadChunk(file.slice(start, end), res.data, chunk_index, total_chunks);
+                    }
+                    this.http('get', `/file/merge/${res.data}/?file_name=${file.name}&total_chunks=${total_chunks}`).then(res => {
+                        console.log(res)
+                    })
+                    console.log(chunk_index, name, size, total_chunks);
+                })
+
             },
             copyText: function (value, style = 1) {
                 if (style === 0) {
@@ -439,11 +471,13 @@
                 }
             },
             successUpload(response, file, fileList) {
-                this.$message({
-                    message: response.detail,
-                    type: 'success'
-                });
-                this.jiFiles.unshift(response.data);
+                if (response) {
+                    this.$message({
+                        message: response.detail,
+                        type: 'success'
+                    });
+                    this.jiFiles.unshift(response.data);
+                }
             },
             errorUpload(error, file, fileList) {
                 error = JSON.parse(error.message)
