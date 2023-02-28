@@ -68,7 +68,7 @@
                 background-color: rgba(0, 0, 0, 0.3);
             }
 
-            .el-button:active {
+            .el-button:active, .el-select-dropdown__item.hover, .el-select-dropdown__item:hover, .el-input.is-disabled .el-input__inner {
                 background-color: rgba(0, 0, 0, 0.4);
             }
 
@@ -146,7 +146,7 @@
                     </el-carousel>
                 </div>
                 <el-row>
-                    <el-input style="width: 190px" :readonly="uploadData.exp_style==='forever'" placeholder="数量"
+                    <el-input style="width: 190px" :disabled="uploadData.exp_style==='forever'" placeholder="数量"
                               v-model="uploadData.exp_value"
                               class="input-with-select">
                         <el-select style="width: 75px" v-model="uploadData.exp_style" slot="prepend"
@@ -262,7 +262,7 @@
             </el-row>
         </el-card>
     </el-drawer>
-    <div style="text-align: center; margin-top: 1rem;color: #606266;visibility: hidden">
+    <div style="text-align: center; margin-top: 1rem;color: #606266">
         <a style="text-decoration: none;color: #606266" target="_blank" href="https://github.com/vastsa/FileCodeBox">FileCodeBox
             V1.6 Beta</a>
     </div>
