@@ -41,6 +41,10 @@ docker run -d --restart=always -p 12345:12345 -v /opt/FileCodeBox/:/app/data --n
 docker run -d --restart=always -p 12345:12345 -v /opt/FileCodeBox/:/app/data --name filecodebox lanol/filecodebox:arm
 ```
 
+### 宝塔部署
+
+https://www.yuque.com/lxyo/work/lc1oe0xqk8t9b976
+
 ### 更新方式
 
 ```bash
