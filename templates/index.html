@@ -18,10 +18,10 @@
         }
 
         .qu .el-button {
-            width: 100px;
-            height: 100px;
+            width: 6rem;
+            height: 6rem;
             margin: 0.2rem;
-            font-size: 30px;
+            font-size: 2rem;
             font-weight: bold;
         }
 
@@ -62,6 +62,14 @@
             .el-input-group__prepend, .el-input__inner, .el-input-group__append, .el-empty__description, .el-select-dropdown, .el-button {
                 border: 1px solid transparent;
                 background-color: rgba(0, 0, 0, 0.2);
+            }
+
+            .el-button:focus, .el-button:hover {
+                background-color: rgba(0, 0, 0, 0.3);
+            }
+
+            .el-button:active {
+                background-color: rgba(0, 0, 0, 0.4);
             }
 
             .el-drawer, #el-drawer__title, .el-drawer__body, .el-drawer__wrapper {
@@ -138,18 +146,19 @@
                     </el-carousel>
                 </div>
                 <el-row>
-                    <el-tooltip class="item" effect="dark" content="天数为-1则为永久" placement="top">
-                        <el-input style="width: 190px" placeholder="数量" v-model="uploadData.value"
-                                  class="input-with-select">
-                            <el-select style="width: 75px" v-model="uploadData.style" slot="prepend"
-                                       placeholder="请选择">
-                                <el-option label="天数" value="2"></el-option>
-                                <el-option label="次数" value="1"></el-option>
-                            </el-select>
-                            <el-button v-if="uploadData.style === '1'" slot="append" disabled>次</el-button>
-                            <el-button v-else slot="append" disabled>天</el-button>
-                        </el-input>
-                    </el-tooltip>
+                    <el-input style="width: 190px" :readonly="uploadData.exp_style==='forever'" placeholder="数量"
+                              v-model="uploadData.exp_value"
+                              class="input-with-select">
+                        <el-select style="width: 75px" v-model="uploadData.exp_style" slot="prepend"
+                                   placeholder="请选择">
+                            <el-option label="天数" value="day"></el-option>
+                            <el-option label="小时" value="hour"></el-option>
+                            <el-option label="分钟" value="minute"></el-option>
+                            <el-option label="永久" value="forever"></el-option>
+                            <el-option label="次数" value="count"></el-option>
+                        </el-select>
+                        <el-button slot="append" disabled>${exp_style_dict[uploadData.exp_style]}</el-button>
+                    </el-input>
                     <el-radio-group style="margin-left: 18px" v-model="uploadData.is_file">
                         <el-radio label="1">
                             文件
@@ -193,7 +202,7 @@
                         <div class="el-icon-takeaway-box"></div>
                         我的文件
                     </el-button>
-                    <el-button round v-if="uploadData.is_file === '0'" @click="toUploadData">
+                    <el-button round v-if="uploadData.is_file === '0'" @click="uploadText">
                         <div class="el-icon-upload2"></div>
                         存入
                     </el-button>
@@ -270,6 +279,13 @@
                 quDrawer: false,
                 jiDrawer: false,
                 direction: 'btt',
+                exp_style_dict: {
+                    'day': '天',
+                    'hour': '时',
+                    'minute': '分',
+                    'forever': '无',
+                    'count': '次',
+                },
                 quFiles: [],
                 jiFiles: [],
                 pageNum: 0,
@@ -279,12 +295,13 @@
                 banners: [],
                 enableUpload: false,
                 uploadData: {
-                    style: '2',
+                    exp_style: 'day',
+                    exp_value: 1,
                     type: 'text',
-                    value: 1,
-                    file: null,
+                    name: '文本分享',
                     is_file: '1',
-                    text: ''
+                    text: '',
+                    size: 0,
                 },
             };
         },
@@ -307,14 +324,13 @@
                                     that.$message('剪切板文字正在上传，请稍等');
                                     items[i].getAsString(function (str) {
                                         that.uploadData.text = str;
-                                        that.toUploadData();
+                                        that.uploadText();
                                     });
                                 }
                             } else {
                                 const file = items[i].getAsFile();
                                 that.$message('剪切板文件正在上传，请稍等');
-                                that.uploadData.file = file
-                                that.toUploadData();
+                                that.uploadFile({file: file});
                             }
                         }
                     }
@@ -355,7 +371,7 @@
                         }
                         resolve(res.data)
                     }).catch(err => {
-                        if (this.data.detail) {
+                        if (err.response.data.detail) {
                             this.$message({
                                 message: err.response.data.detail,
                                 type: 'error'
@@ -371,50 +387,6 @@
                 formData.append('chunk_index', chunk_index);
                 formData.append('total_chunks', total_chunks);
                 await this.http('post', `/file/upload/${file_key}/`, formData)
-            },
-            uploadFile: async function (e) {
-                if (this.checkFile(e.file)) {
-                    this.http('post', '/file/create/').then(async res => {
-                        const file = e.file;
-                        let chunk_index = 0;
-                        const shardSize = 1024 * 1024 * 5;
-                        const {name, size, type} = file;
-                        const total_chunks = Math.ceil(size / shardSize);
-                        while (chunk_index < total_chunks) {
-                            const start = chunk_index * shardSize
-                            const end = Math.min(start + shardSize, size)
-                            chunk_index += 1;
-                            await this.uploadChunk(file.slice(start, end), res.data, chunk_index, total_chunks);
-                        }
-                        this.http('get', `/file/merge/${res.data}/?file_name=${name}&total_chunks=${total_chunks}`).then(text => {
-                            this.http('post', '/share', {
-                                file_key: res.data,
-                                text: text.data,
-                                size: size,
-                                style: this.uploadData.style,
-                                type: type,
-                                name: name,
-                                value: this.uploadData.value,
-                                pwd: this.pwd
-                            }, {
-                                headers: {
-                                    'Content-Type': 'multipart/form-data',
-                                    'pwd': this.pwd
-                                }
-                            }).then(res => {
-                                console.log(res.data)
-                                this.jiFiles.unshift(res.data);
-                                this.jiDrawer = true;
-                                this.uploadData.text = '';
-                                this.uploadData.file = null;
-                                this.$message({
-                                    message: '上传成功',
-                                    type: 'success'
-                                });
-                            })
-                        })
-                    });
-                }
             },
             copyText: function (value, style = 1) {
                 if (style === 0) {
@@ -473,26 +445,67 @@
                 }
                 return true;
             },
-            toUploadData: function () {
-                if (this.uploadData.text === '' && this.uploadData.file === null) {
+            uploadText: function () {
+                if (this.uploadData.text === '') {
                     this.$message({
-                        message: '请先粘贴文字或者上传文件',
+                        message: '请先粘贴文字',
                         type: 'error'
                     });
                 } else {
-                    if (this.checkFile(this.uploadData.file)) {
-                        this.http('post', '/share', this.uploadData, {
-                            headers: {
-                                'Content-Type': 'multipart/form-data',
-                                'pwd': this.pwd
-                            }
-                        }).then(res => {
-                            this.jiFiles.unshift(res.data);
-                            this.jiDrawer = true;
-                            this.uploadData.text = '';
-                            this.uploadData.file = null;
+                    this.http('post', '/share/text/', this.uploadData, {
+                        headers: {
+                            'pwd': this.pwd
+                        }
+                    }).then(res => {
+                        this.jiFiles.unshift(res.data);
+                        this.jiDrawer = true;
+                        this.uploadData.text = '';
+                        this.$message({
+                            message: '上传成功',
+                            type: 'success'
                         });
-                    }
+                    })
+                }
+            },
+            uploadFile: async function (e) {
+                if (this.checkFile(e.file)) {
+                    this.http('post', '/file/create/').then(async res => {
+                        const file = e.file;
+                        let chunk_index = 0;
+                        const shardSize = 1024 * 1024 * 5;
+                        const {name, size, type} = file;
+                        const total_chunks = Math.ceil(size / shardSize);
+                        while (chunk_index < total_chunks) {
+                            const start = chunk_index * shardSize
+                            const end = Math.min(start + shardSize, size)
+                            chunk_index += 1;
+                            await this.uploadChunk(file.slice(start, end), res.data, chunk_index, total_chunks);
+                        }
+                        this.http('get', `/file/merge/${res.data}/?file_name=${name}&total_chunks=${total_chunks}`).then(text => {
+                            this.http('post', '/share/file/', {
+                                text: text.data,
+                                size: size,
+                                exp_style: this.uploadData.exp_style,
+                                exp_value: this.uploadData.exp_value,
+                                type: type,
+                                name: name,
+                                key: res.data,
+                            }, {
+                                headers: {
+                                    'pwd': this.pwd
+                                }
+                            }).then(res => {
+                                this.jiFiles.unshift(res.data);
+                                this.jiDrawer = true;
+                                this.uploadData.text = '';
+                                this.uploadData.file = null;
+                                this.$message({
+                                    message: '上传成功',
+                                    type: 'success'
+                                });
+                            })
+                        })
+                    });
                 }
             },
             successUpload(response, file, fileList) {
