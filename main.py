@@ -129,6 +129,7 @@ async def index(code: str, ip: str = Depends(error_ip_limit), s: AsyncSession = 
         raise HTTPException(status_code=404, detail="取件码已失效，请联系寄件人")
     await s.execute(update(Codes).where(Codes.id == info.id).values(count=info.count - 1))
     await s.commit()
+    print(info.type)
     if info.type != 'text':
         info.text = f'/select?code={info.code}&token={await get_token(code, ip)}'
     return {
@@ -191,8 +192,9 @@ async def merge_chunks(file_key: str, file_name: str, total_chunks: int):
 
 
 @app.post('/share', dependencies=[Depends(admin_required)], description='分享文件')
-async def share(background_tasks: BackgroundTasks, text: str = Form(default=None),
-                style: str = Form(default='2'), value: int = Form(default=1), file: UploadFile = File(default=None),
+async def share(text: str = Form(default=None), size: int = Form(default=0), file_key: str = Form(default=None),
+                _type: str = Form(default=None), name: str = Form(default='text'),
+                style: str = Form(default='2'), value: int = Form(default=1), is_file: int = Form(default=True),
                 ip: str = Depends(upload_ip_limit), s: AsyncSession = Depends(get_session)):
     if style == '2':
         if value > settings.MAX_DAYS:
@@ -211,14 +213,16 @@ async def share(background_tasks: BackgroundTasks, text: str = Form(default=None
     else:
         exp_time = datetime.datetime.now() + datetime.timedelta(days=1)
         exp_count = -1
-    key = uuid.uuid4().hex
-    if file:
-        size = await storage.get_size(file)
-        if size > settings.FILE_SIZE_LIMIT:
-            raise HTTPException(status_code=400, detail="文件过大")
-        _text, _type, name = await storage.get_text(file, key), file.content_type, file.filename
-        background_tasks.add_task(storage.save_file, file, _text)
+    print(is_file)
+    if is_file:
+        key = file_key
+        # size = await storage.get_size(file)
+        # if size > settings.FILE_SIZE_LIMIT:
+        #     raise HTTPException(status_code=400, detail="文件过大")
+        _text, size, name = text, size, name
+        # background_tasks.add_task(storage.save_file, file, _text)
     else:
+        key = uuid.uuid4().hex
         size, _text, _type, name = len(text), text, 'text', '文本分享'
     code = await get_code(s)
     s.add(Codes(code=code, text=_text, size=size, type=_type, name=name, count=exp_count, exp_time=exp_time, key=key))
