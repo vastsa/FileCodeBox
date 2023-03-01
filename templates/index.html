@@ -11,7 +11,7 @@
     <meta name="description" content="{{description}}"/>
     <meta name="keywords" content="{{keywords}}"/>
     <meta name="generator" content="FileCodeBox"/>
-    <meta name="template" content="V1.6 Beta"/>
+    <meta name="template" content="V1.7 Beta"/>
     <style>
         body {
             background: #f5f5f5;
@@ -288,6 +288,7 @@
                 },
                 quFiles: [],
                 jiFiles: [],
+                uploadGroup: [],
                 pageNum: 0,
                 inputDisable: false,
                 fileSizeLimit: '{{fileSizeLimit}}',
@@ -386,7 +387,11 @@
                 formData.append('file_key', file_key);
                 formData.append('chunk_index', chunk_index);
                 formData.append('total_chunks', total_chunks);
-                await this.http('post', `/file/upload/${file_key}/`, formData)
+                this.http('post', `/file/upload/${file_key}/`, formData).then((res) => {
+                    this.upload_groups[chunk_index - 1] = 1;
+                }).catch((res) => {
+                    this.upload_groups[chunk_index - 1] = 2;
+                })
             },
             copyText: function (value, style = 1) {
                 if (style === 0) {
@@ -475,36 +480,56 @@
                         const shardSize = 1024 * 1024 * 5;
                         const {name, size, type} = file;
                         const total_chunks = Math.ceil(size / shardSize);
+                        this.upload_groups = [];
+                        for (let i = 0; i < total_chunks; i++) {
+                            this.upload_groups.push(0);
+                        }
                         while (chunk_index < total_chunks) {
                             const start = chunk_index * shardSize
                             const end = Math.min(start + shardSize, size)
                             chunk_index += 1;
-                            await this.uploadChunk(file.slice(start, end), res.data, chunk_index, total_chunks);
+                            this.uploadChunk(file.slice(start, end), res.data, chunk_index, total_chunks);
                         }
-                        this.http('get', `/file/merge/${res.data}/?file_name=${name}&total_chunks=${total_chunks}`).then(text => {
-                            this.http('post', '/share/file/', {
-                                text: text.data,
-                                size: size,
-                                exp_style: this.uploadData.exp_style,
-                                exp_value: this.uploadData.exp_value,
-                                type: type,
-                                name: name,
-                                key: res.data,
-                            }, {
-                                headers: {
-                                    'pwd': this.pwd
+                        const interval = setInterval(() => {
+                            let flag = true;
+                            for (let i = 0; i < total_chunks; i++) {
+                                if (this.upload_groups[i] === 0) {
+                                    flag = false;
+                                } else if (this.upload_groups[i] === 2) {
+                                    flag = false;
+                                    start = chunk_index * shardSize;
+                                    const end = Math.min(start + shardSize, size)
+                                    this.uploadChunk(file.slice(start, end), res.data, chunk_index, total_chunks);
                                 }
-                            }).then(res => {
-                                this.jiFiles.unshift(res.data);
-                                this.jiDrawer = true;
-                                this.uploadData.text = '';
-                                this.uploadData.file = null;
-                                this.$message({
-                                    message: '上传成功',
-                                    type: 'success'
-                                });
-                            })
-                        })
+                            }
+                            if (flag) {
+                                clearInterval(interval);
+                                this.http('get', `/file/merge/${res.data}/?file_name=${name}&total_chunks=${total_chunks}`).then(text => {
+                                    this.http('post', '/share/file/', {
+                                        text: text.data,
+                                        size: size,
+                                        exp_style: this.uploadData.exp_style,
+                                        exp_value: this.uploadData.exp_value,
+                                        type: type,
+                                        name: name,
+                                        key: res.data,
+                                    }, {
+                                        headers: {
+                                            'pwd': this.pwd
+                                        }
+                                    }).then(res => {
+                                        this.jiFiles.unshift(res.data);
+                                        this.jiDrawer = true;
+                                        this.uploadData.text = '';
+                                        this.uploadData.file = null;
+                                        this.$message({
+                                            message: '上传成功',
+                                            type: 'success'
+                                        });
+                                    })
+                                })
+                            }
+                        }, 100);
                     });
                 }
             },

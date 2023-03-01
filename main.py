@@ -193,7 +193,7 @@ async def upload_file(file_key: str, file: bytes = File(...), chunk_index: int =
     return {'code': 200}
 
 
-@app.get('/file/merge/{file_key}')
+@app.get('/file/merge/{file_key}/')
 async def merge_chunks(file_key: str, file_name: str, total_chunks: int):
     return {'code': 200, 'data': await storage.merge_chunks(file_key, file_name, total_chunks)}
 

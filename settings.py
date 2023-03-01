@@ -18,7 +18,7 @@ class Settings:
     # Sqlite套接字
     DATABASE_URL = config('DATABASE_URL', cast=str, default=f"sqlite+aiosqlite:///{DATABASE_FILE}")
     # 数据存储文件夹，文件就不暴露在静态资源里面了
-    DATA_ROOT = './data/' + config('DATA_ROOT', cast=str, default=f"static")
+    DATA_ROOT = config('DATA_ROOT', cast=str, default=f"./data/static")
     # 静态文件夹URL
     STATIC_URL = config('STATIC_URL', cast=str, default="/static")
     # 开启上传
@@ -42,7 +42,7 @@ class Settings:
     # 管理密码
     ADMIN_PASSWORD = config('ADMIN_PASSWORD', cast=str, default=uuid.uuid4().hex)
     # 文件大小限制，默认10MB
-    FILE_SIZE_LIMIT = config('FILE_SIZE_LIMIT', cast=int, default=10) * 1024 * 1024
+    FILE_SIZE_LIMIT = config('FILE_SIZE_LIMIT', cast=int, default=10 * 1024 * 1024)
     # 网站标题
     TITLE = config('TITLE', cast=str, default="文件快递柜")
     # 网站描述
