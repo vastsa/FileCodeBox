@@ -515,7 +515,6 @@
                                 }
                             }
                             that.loadingText = `已上传${ (success/total_chunks*100).toFixed(2) }%`;
-                            console.log(this.loadingText)
                             if (flag) {
                                 clearInterval(interval);
                                 this.http('get', `/file/merge/${res.data}/?file_name=${name}&total_chunks=${total_chunks}`).then(text => {
@@ -537,7 +536,6 @@
                                         this.uploadData.text = '';
                                         this.uploadData.file = null;
                                         that.uploading = false;
-
                                         this.$message({
                                             message: '上传成功',
                                             type: 'success'
