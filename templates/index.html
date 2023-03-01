@@ -72,9 +72,13 @@
                 background-color: rgba(0, 0, 0, 0.4);
             }
 
-            .el-drawer, #el-drawer__title, .el-drawer__body, .el-drawer__wrapper {
+            .el-drawer, #el-drawer__title, .el-drawer__body, .el-drawer__wrapper .el-loading-mask {
                 background-color: rgba(0, 0, 0, 0.5);
                 border: 1px solid transparent;
+            }
+
+            .el-loading-mask {
+                background-color: rgba(0, 0, 0, 0.8) !important;
             }
         }
 
@@ -168,7 +172,6 @@
                         </el-radio>
                     </el-radio-group>
                 </el-row>
-
                 <el-upload
                         v-if="uploadData.is_file === '1'"
                         drag
@@ -384,6 +387,7 @@
                                 type: 'error'
                             });
                         }
+                        reject(err)
                     })
                 })
             },
@@ -393,7 +397,7 @@
                 formData.append('file_key', file_key);
                 formData.append('chunk_index', chunk_index);
                 formData.append('total_chunks', total_chunks);
-                this.http('post', `/file/upload/${file_key}/`, formData).then((res) => {
+                await this.http('post', `/file/upload/${file_key}/`, formData).then((res) => {
                     this.upload_groups[chunk_index - 1] = 1;
                 }).catch((res) => {
                     this.upload_groups[chunk_index - 1] = 2;
@@ -497,7 +501,7 @@
                             const start = chunk_index * shardSize
                             const end = Math.min(start + shardSize, size)
                             chunk_index += 1;
-                            this.uploadChunk(file.slice(start, end), res.data, chunk_index, total_chunks);
+                            await this.uploadChunk(file.slice(start, end), res.data, chunk_index, total_chunks);
                         }
                         const interval = setInterval(() => {
                             let success = 0;
