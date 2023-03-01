@@ -28,7 +28,11 @@
 ## 部署方式
 
 ### Docker一键部署
+#### AMD 开发版
+```bash
+docker run -d --restart=always -p 12345:12345 -v /opt/FileCodeBox/:/app/data --name filecodebox lanol/filecodebox:pre
 
+```
 #### AMD
 
 ```bash
