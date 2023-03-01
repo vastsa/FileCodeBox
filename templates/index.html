@@ -6,6 +6,7 @@
           content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
     <link rel="stylesheet" href="/static/asserts/index.css">
+    <link rel="stylesheet" href="/static/asserts/github-markdown-css/github-markdown.css">
     <link rel="shortcut icon" href="/static/asserts/favicon.ico" type="image/x-icon"/>
     <title>{{title}}</title>
     <meta name="description" content="{{description}}"/>
@@ -167,11 +168,16 @@
                         </el-radio>
                     </el-radio-group>
                 </el-row>
+
                 <el-upload
                         v-if="uploadData.is_file === '1'"
                         drag
+                        v-loading="uploading"
                         action="/share"
+                        :element-loading-text="loadingText"
+                        element-loading-spinner="el-icon-loading"
                         multiple
+                        :disabled="uploading"
                         :http-request="uploadFile"
                         style="margin: 1rem 0;"
                         :data="uploadData"
@@ -220,8 +226,7 @@
                 <div>取件码：${ file.code }</div>
                 <div>文件名：${ file.name }</div>
                 <div v-if="file.name==='文本分享'">
-                    <span style="white-space: pre-line"
-                          @click="copyText(file.text,1)">内&nbsp;&nbsp; 容：${ file.text }</span>
+                    <article v-html="file.text" class="markdown-body" @click="copyText(file.text,1)"></article>
                 </div>
                 <div v-else>
                     <span>链&nbsp;&nbsp; 接：</span>
@@ -303,6 +308,8 @@
                     text: '',
                     size: 0,
                 },
+                uploading: false,
+                loadingText: '正在上传中...',
             };
         },
         mounted: function () {
@@ -472,7 +479,10 @@
                 }
             },
             uploadFile: async function (e) {
+                const that = this;
                 if (this.checkFile(e.file)) {
+                    that.uploading = true;
+                    that.loadingText = '正在上传中...';
                     this.http('post', '/file/create/').then(async res => {
                         const file = e.file;
                         let chunk_index = 0;
@@ -490,6 +500,7 @@
                             this.uploadChunk(file.slice(start, end), res.data, chunk_index, total_chunks);
                         }
                         const interval = setInterval(() => {
+                            let success = 0;
                             let flag = true;
                             for (let i = 0; i < total_chunks; i++) {
                                 if (this.upload_groups[i] === 0) {
@@ -497,10 +508,14 @@
                                 } else if (this.upload_groups[i] === 2) {
                                     flag = false;
                                     start = chunk_index * shardSize;
-                                    const end = Math.min(start + shardSize, size)
+                                    const end = Math.min(start + shardSize, size);
                                     this.uploadChunk(file.slice(start, end), res.data, chunk_index, total_chunks);
+                                } else {
+                                    success += 1;
                                 }
                             }
+                            that.loadingText = `已上传${ (success/total_chunks*100).toFixed(2) }%`;
+                            console.log(this.loadingText)
                             if (flag) {
                                 clearInterval(interval);
                                 this.http('get', `/file/merge/${res.data}/?file_name=${name}&total_chunks=${total_chunks}`).then(text => {
@@ -521,12 +536,14 @@
                                         this.jiDrawer = true;
                                         this.uploadData.text = '';
                                         this.uploadData.file = null;
+                                        that.uploading = false;
+
                                         this.$message({
                                             message: '上传成功',
                                             type: 'success'
                                         });
                                     })
-                                })
+                                });
                             }
                         }, 100);
                     });

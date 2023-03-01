@@ -205,7 +205,7 @@ class ShareDataModel(BaseModel):
     exp_value: int
     type: str
     name: str
-    key: str = uuid.uuid4().hex
+    key: str = uuid.uuid4
 
 
 @app.post('/share/file/', dependencies=[Depends(admin_required)], description='分享文件')
@@ -231,7 +231,7 @@ async def share_text(text_model: ShareDataModel, s: AsyncSession = Depends(get_s
     if exp_error:
         raise HTTPException(status_code=400, detail='过期值异常')
     exp_status, exp_time, exp_count, code = await get_expire_info(text_model.exp_style, text_model.exp_value, s)
-    size, _text, _type, name, key = len(text_model.text), text_model.text, 'text', '文本分享', text_model.key
+    size, _text, _type, name, key = len(text_model.text), text_model.text, 'text', '文本分享', text_model.key().hex
     s.add(Codes(code=code, text=_text, size=size, type=_type, name=name, count=exp_count, exp_time=exp_time, key=key))
     await s.commit()
     upload_ip_limit.add_ip(ip)
