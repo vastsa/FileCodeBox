@@ -9,10 +9,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from starlette.requests import Request
 from starlette.responses import HTMLResponse, FileResponse, RedirectResponse
 from starlette.staticfiles import StaticFiles
-from core.utils import error_ip_limit, upload_ip_limit, get_code, storage, delete_expire_files, get_token, \
+from core.utils import error_ip_limit, upload_ip_limit, storage, delete_expire_files, get_token, \
     get_expire_info
 from core.depends import admin_required
-from fastapi import FastAPI, Depends, UploadFile, Form, File, HTTPException, BackgroundTasks, Header
+from fastapi import FastAPI, Depends, Form, File, HTTPException
 from core.database import init_models, Options, Codes, get_session
 from settings import settings
 
@@ -115,7 +115,7 @@ async def config(s: AsyncSession = Depends(get_session)):
     ]}
 
 
-@app.patch(f'/{settings.ADMIN_ADDRESS}', dependencies=[Depends(admin_required)], description='修改数据库数据')
+@app.patch(f'/{settings.ADMIN_ADDRESS}', dependencies=[Depends()], description='修改数据库数据')
 async def admin_patch(request: Request, s: AsyncSession = Depends(get_session)):
     data = await request.json()
     data.pop('INSTALL')
