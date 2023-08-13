@@ -13,7 +13,6 @@ const props = defineProps({
       return {
         expireValue: 1,
         expireStyle: 'day',
-        targetType: 'file',
       }
     }
   }
@@ -39,7 +38,6 @@ const handleHttpRequest = (options: any) => {
   formData.append('file', options.file);
   formData.append('expireValue', props.shareData.expireValue);
   formData.append('expireStyle', props.shareData.expireStyle);
-  formData.append('targetType', props.shareData.targetType);
   request(
       {
         url: "share/file/",
@@ -122,7 +120,6 @@ onMounted(()=>{
     <el-upload
         class="upload-demo"
         drag
-        action="http://127.0.0.1:8000/share"
         multiple
         :show-file-list="false"
         ref="uploadBox"

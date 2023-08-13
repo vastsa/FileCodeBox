@@ -13,7 +13,6 @@ const props = defineProps({
       return {
         expireValue: 1,
         expireStyle: 'day',
-        targetType: 'text',
       }
     }
   }
@@ -23,7 +22,6 @@ const handleSubmitShareText = ()=>{
   formData.append('text', shareText.value);
   formData.append('expireValue', props.shareData.expireValue);
   formData.append('expireStyle', props.shareData.expireStyle);
-  formData.append('targetType', props.shareData.targetType);
   request({
     'url': 'share/text/',
     'method': 'post',

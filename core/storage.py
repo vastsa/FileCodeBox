@@ -56,9 +56,11 @@ class S3FileStorage:
             await s3.delete_object(Bucket=self.bucket_name, Key=await file_code.get_file_path())
 
     async def get_file_url(self, file_code: FileCodes):
+        if file_code.prefix == '文本分享':
+            return file_code.text
         async with self.session.client("s3", endpoint_url=self.endpoint_url) as s3:
             result = await s3.generate_presigned_url('get_object', Params={'Bucket': self.bucket_name, 'Key': await file_code.get_file_path()}, ExpiresIn=3600)
             return result
 
 
-file_storage = SystemFileStorage()
+file_storage = S3FileStorage()

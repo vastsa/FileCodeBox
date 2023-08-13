@@ -2,6 +2,7 @@
 # @Author  : Lan
 # @File    : utils.py
 # @Software: PyCharm
+import datetime
 import random
 import string
 
@@ -23,3 +24,13 @@ async def get_random_string():
     :return:
     """
     return ''.join(random.choice(r_s) for _ in range(5))
+
+
+async def get_now():
+    """
+    获取当前时间
+    :return:
+    """
+    return datetime.datetime.now(
+        datetime.timezone(datetime.timedelta(hours=8))
+    )

@@ -30,7 +30,7 @@ async def get_file_path_name(file: UploadFile):
     file_uuid = f"{uuid.uuid4().hex}"
     uuid_file_name = f"{file_uuid}{suffix}"
     save_path = f"{path}/{uuid_file_name}"
-    return path, suffix, prefix, uuid_file_name, file_uuid, save_path
+    return path, suffix, prefix, uuid_file_name, save_path
 
 
 async def get_expire_info(expire_value: int, expire_style: str):
