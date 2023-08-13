@@ -81,6 +81,8 @@ docs/_build/
 .pybuilder/
 target/
 *.db
+*.db-shm
+*.db-wal
 # Jupyter Notebook
 .ipynb_checkpoints
 
