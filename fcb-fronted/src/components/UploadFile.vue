@@ -81,7 +81,7 @@ function pasteLister(event: any) {
       for (let i = 0; i < items.length; i++) {
         if (items[i].kind === 'string') {
           if (items[i].type.match(/^text\/plain/)) {
-            items[i].getAsString(function(str) {
+            items[i].getAsString(function(str:any) {
               console.log(str);
             });
           }

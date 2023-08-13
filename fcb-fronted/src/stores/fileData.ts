@@ -2,8 +2,8 @@ import { defineStore } from 'pinia';
 import {reactive} from "vue";
 
 export const useFileDataStore = defineStore('fileData', () => {
-  const receiveData = reactive(JSON.parse(localStorage.getItem('receiveData')||'') || []); // 接收的数据
-  const shareData = reactive(JSON.parse(localStorage.getItem('shareData')||'') || []); // 接收的数据
+  const receiveData = reactive(JSON.parse(localStorage.getItem('receiveData')||'[]') || []); // 接收的数据
+  const shareData = reactive(JSON.parse(localStorage.getItem('shareData')||'[]') || []); // 接收的数据
   function save() {
     localStorage.setItem('receiveData', JSON.stringify(receiveData));
     localStorage.setItem('shareData', JSON.stringify(shareData));
