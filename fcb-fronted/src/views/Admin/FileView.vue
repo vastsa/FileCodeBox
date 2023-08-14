@@ -1,6 +1,6 @@
 <template>
   <main>
-      <el-table stripe :data="tableData" style="width: 100%">
+      <el-table size="large" stripe :data="tableData" style="width: 100%">
         <el-table-column prop="code" label="取件码" />
         <el-table-column prop="prefix" label="文件前缀" />
         <el-table-column prop="suffix" label="后缀" />
@@ -11,6 +11,7 @@
         </el-table-column>
         <el-table-column prop="used_count" label="已用次数" />
         <el-table-column prop="expired_count" label="可用次数" />
+        <el-table-column prop="expired_at" label="到期时间" />
         <el-table-column prop="file_path" label="文件路径" />
         <el-table-column>
           <template #header>

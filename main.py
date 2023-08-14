@@ -47,7 +47,7 @@ app.include_router(admin_api)
 
 @app.get('/')
 async def index():
-    return HTMLResponse(content=open('./fcb-fronted/dist/index.html', 'r', encoding='utf-8').read(), status_code=200)
+    return HTMLResponse(content=open('./fcb-fronted/dist/index.html', 'r', encoding='utf-8').read().replace('{{title}}', 'FileCodeBox'), status_code=200)
 
 
 if __name__ == '__main__':
