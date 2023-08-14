@@ -8,6 +8,7 @@ from starlette.responses import HTMLResponse
 from starlette.staticfiles import StaticFiles
 from tortoise.contrib.fastapi import register_tortoise
 from apps.base.views import share_api
+from apps.admin.views import admin_api
 
 app = FastAPI()
 
@@ -38,12 +39,10 @@ register_tortoise(
         "use_tz": False,
         "timezone": "Asia/Shanghai",
     }
-
 )
 
-app.include_router(
-    share_api
-)
+app.include_router(share_api)
+app.include_router(admin_api)
 
 
 @app.get('/')

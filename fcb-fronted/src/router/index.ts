@@ -13,6 +13,11 @@ const router = createRouter({
       name: 'send',
       component: () => import('@/views/SendView.vue'),
     },
+    {
+      path: '/admin',
+      name: 'admin',
+      component: () => import('@/views/AdminView.vue'),
+    }
   ],
 });
 

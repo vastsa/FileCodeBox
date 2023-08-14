@@ -83,6 +83,9 @@ const listenInput = (num: number) => {
           </el-col>
         </el-row>
       </el-card>
+      <div style="text-align: center; margin-top: 1rem;color: #606266">
+        <a style="text-decoration: none;color: #606266" target="_blank" href="https://github.com/vastsa/FileCodeBox">FileCodeBox V2.0 Beta</a>
+      </div>
     </main>
 </template>
 <style lang='scss'>
