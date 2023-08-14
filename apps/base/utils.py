@@ -58,7 +58,6 @@ async def get_expire_info(expire_value: int, expire_style: str):
         expired_at = now + datetime.timedelta(days=1)
     if not code:
         code = await get_random_code()
-    print(expire_style, expire_value, expired_at, expired_count, used_count, code)
     return expired_at, expired_count, used_count, code
 
 

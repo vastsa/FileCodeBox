@@ -69,5 +69,5 @@ async def select_file(data: SelectFileModel, ip: str = Depends(error_ip_limit)):
         'code': file_code.code,
         'name': file_code.prefix + file_code.suffix,
         'size': file_code.size,
-        'text': await file_storage.get_file_url(file_code),
+        'text': file_code.text if file_code.text is not None else await file_storage.get_file_url(file_code),
     })

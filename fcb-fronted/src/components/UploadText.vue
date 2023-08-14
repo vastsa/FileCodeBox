@@ -57,7 +57,7 @@ const handleSubmitShareText = ()=>{
       :input-style="{'border-radius':'20px','border':'1px dashed var(--el-border-color)','box-shadow':'none'}"
   >
   </el-input>
-  <el-button @click="handleSubmitShareText" style="position: absolute;right: 0;top: 0;border-radius: 0 20px 0 20px;margin: 1px;background: rgba(255,255,255,0.2)" size="large">发送</el-button>
+  <el-button @click="handleSubmitShareText" style="position: absolute;right: 0;top: 0;border-radius: 0 20px 0 20px;margin: 1px;background: rgba(255,255,255,0.2)" size="large">分享</el-button>
 </div>
 </template>
 
