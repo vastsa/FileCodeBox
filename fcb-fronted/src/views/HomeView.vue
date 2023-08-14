@@ -33,24 +33,21 @@ watch(code, (newVal) => {
         'code': newVal
       }
     }).then((res: any) => {
+      fileBoxStore.showFileBox = true;
+      let flag = true;
+      fileStore.receiveData.forEach((file: any) => {
+        if (file.code === res.detail.code) {
+          flag = false;
+          return;
+        }
+      });
+      if (flag) {
+        fileStore.addReceiveData(res.detail);
+      }
+    }).finally(() => {
       input_status.readonly = false;
       input_status.loading = false;
       code.value = '';
-      if (res.data.code === 200) {
-        fileBoxStore.showFileBox = true;
-        let flag = true;
-        fileStore.receiveData.forEach((file: any) => {
-          if (file.code === res.data.data.code) {
-            flag = false;
-            return;
-          }
-        });
-        if (flag) {
-          fileStore.addReceiveData(res.data.data);
-        }
-      } else {
-        alert(res.data.msg||'未知错误')
-      }
     });
   }
 });

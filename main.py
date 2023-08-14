@@ -4,6 +4,8 @@
 # @Software: PyCharm
 from fastapi import FastAPI
 from starlette.middleware.cors import CORSMiddleware
+from starlette.responses import HTMLResponse
+from starlette.staticfiles import StaticFiles
 from tortoise.contrib.fastapi import register_tortoise
 from apps.base.views import share_api
 
@@ -16,11 +18,13 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+app.mount('/assets', StaticFiles(directory='./fcb-fronted/dist/assets'), name="assets")
+
 register_tortoise(
     app,
     generate_schemas=True,
     add_exception_handlers=True,
-
     config={
         'connections': {
             'default': 'sqlite://filecodebox.db'
@@ -40,3 +44,8 @@ register_tortoise(
 app.include_router(
     share_api
 )
+
+
+@app.get('/')
+async def index():
+    return HTMLResponse(content=open('./fcb-fronted/dist/index.html', 'r', encoding='utf-8').read(), status_code=200)

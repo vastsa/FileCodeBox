@@ -11,35 +11,39 @@ const props = defineProps({
     type: Object,
     default: () => {
       return {
-        expireValue: 1,
-        expireStyle: 'day',
+        expire_value: 1,
+        expire_style: 'day',
       }
     }
   }
 })
 const handleSubmitShareText = ()=>{
-  const formData = new FormData();
-  formData.append('text', shareText.value);
-  formData.append('expireValue', props.shareData.expireValue);
-  formData.append('expireStyle', props.shareData.expireStyle);
-  request({
-    'url': 'share/text/',
-    'method': 'post',
-    'data': formData,
-  }).then((res: any) => {
-    const data = res.data.data;
-    fileBoxStore.showFileBox = true;
-    fileStore.addShareData({
-      'name': '文本分享',
-      'text': data.text,
-      'code': data.code,
-      'status': 'success',
-      'percentage': 100,
-      'size': shareText.value.length,
-      'type': 'text',
-      'uid': Date.now(),
-    })
-  })
+  if (shareText.value === '') {
+    alert('请输入您要分享的文本');
+  } else {
+    const formData = new FormData();
+    formData.append('text', shareText.value);
+    formData.append('expire_value', props.shareData.expireValue);
+    formData.append('expire_style', props.shareData.expireStyle);
+    request({
+      'url': 'share/text/',
+      'method': 'post',
+      'data': formData,
+    }).then((res: any) => {
+      const data = res.detail;
+      fileBoxStore.showFileBox = true;
+      fileStore.addShareData({
+        'name': '文本分享',
+        'text': data.text,
+        'code': data.code,
+        'status': 'success',
+        'percentage': 100,
+        'size': shareText.value.length,
+        'type': 'text',
+        'uid': Date.now(),
+      })
+    });
+  }
 }
 </script>
 

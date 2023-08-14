@@ -6,6 +6,8 @@ import datetime
 import random
 import string
 
+from apps.base.depends import IPRateLimit
+
 
 async def get_random_num():
     """

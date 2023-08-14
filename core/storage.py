@@ -63,4 +63,4 @@ class S3FileStorage:
             return result
 
 
-file_storage = S3FileStorage()
+file_storage = SystemFileStorage()

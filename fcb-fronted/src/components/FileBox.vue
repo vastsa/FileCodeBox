@@ -50,7 +50,8 @@ const copyText = (text: any, style = 0) => {
               <qrcode-vue :value="value.text" :size="100"></qrcode-vue>
               <div style="display: flex;flex-direction: column;justify-content: space-around">
                 <el-tag size="large" style="cursor: pointer" @click="copyText(value.code)">{{ value.code }}</el-tag>
-                <el-tag v-if="value.name!=='文本分享'" size="large" type="success" style="cursor: pointer" @click="openUrl(value.text);">点击下载
+                <el-tag v-if="value.name!=='文本分享'" size="large" type="success" style="cursor: pointer" @click="openUrl(value.text);">
+                  点击下载
                 </el-tag>
                 <el-tag v-else size="large" type="success" style="cursor: pointer" @click="copyText(value.text);">点击复制</el-tag>
               </div>

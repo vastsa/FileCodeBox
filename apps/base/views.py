@@ -2,11 +2,12 @@
 # @Author  : Lan
 # @File    : views.py
 # @Software: PyCharm
-from fastapi import APIRouter, Form, UploadFile, File
-from pydantic import BaseModel
+from fastapi import APIRouter, Form, UploadFile, File, Depends
 
 from apps.base.models import FileCodes
-from apps.base.utils import get_expire_info, get_file_path_name
+from apps.base.pydantics import SelectFileModel
+from apps.base.utils import get_expire_info, get_file_path_name, error_ip_limit
+from core.response import APIResponse
 from core.storage import file_storage
 
 share_api = APIRouter(
@@ -27,13 +28,9 @@ async def share_text(text: str = Form(...), expire_value: int = Form(default=1, 
         size=len(text),
         prefix='文本分享'
     )
-    return {
-        'code': 200,
-        'msg': 'success',
-        'data': {
-            'code': code,
-        }
-    }
+    return APIResponse(detail={
+        'code': code,
+    })
 
 
 @share_api.post('/file/')
@@ -52,40 +49,25 @@ async def share_file(expire_value: int = Form(default=1, gt=0), expire_style: st
         expired_count=expired_count,
         used_count=used_count,
     )
-    return {
-        'code': 200,
-        'msg': 'success',
-        'data': {
-            'code': code,
-            'name': file.filename,
-        }
-    }
-
-
-class SelectFileModel(BaseModel):
-    code: str
+    return APIResponse(detail={
+        'code': code,
+        'name': file.filename,
+    })
 
 
 @share_api.post('/select/')
-async def select_file(data: SelectFileModel):
+async def select_file(data: SelectFileModel, ip: str = Depends(error_ip_limit)):
     file_code = await FileCodes.filter(code=data.code).first()
     if not file_code:
-        return {
-            'code': 404,
-            'msg': '文件不存在',
-        }
+        error_ip_limit.add_ip(ip)
+        return APIResponse(code=404, detail='文件不存在')
     if await file_code.is_expired():
-        return {
-            'code': 403,
-            'msg': '文件已过期',
-        }
-    return {
-        'code': 200,
-        'msg': 'success',
-        'data': {
-            'code': file_code.code,
-            'name': file_code.prefix + file_code.suffix,
-            'size': file_code.size,
-            'text': await file_storage.get_file_url(file_code),
-        }
-    }
+        return APIResponse(code=403, detail='文件已过期')
+    file_code.used_count += 1
+    await file_code.save()
+    return APIResponse(detail={
+        'code': file_code.code,
+        'name': file_code.prefix + file_code.suffix,
+        'size': file_code.size,
+        'text': await file_storage.get_file_url(file_code),
+    })

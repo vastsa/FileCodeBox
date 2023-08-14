@@ -7,6 +7,7 @@ import uuid
 import os
 from fastapi import UploadFile
 
+from apps.base.depends import IPRateLimit
 from apps.base.models import FileCodes
 from core.utils import get_random_num, get_random_string
 
@@ -41,7 +42,6 @@ async def get_expire_info(expire_value: int, expire_style: str):
     :return: expired_at 过期时间, expired_count 可用次数, used_count 已用次数, code 随机码
     """
     expired_count, used_count, now, code = -1, 0, datetime.datetime.now(), None
-
     if expire_style == 'day':
         expired_at = now + datetime.timedelta(days=expire_value)
     elif expire_style == 'hour':
@@ -58,6 +58,7 @@ async def get_expire_info(expire_value: int, expire_style: str):
         expired_at = now + datetime.timedelta(days=1)
     if not code:
         code = await get_random_code()
+    print(expire_style, expire_value, expired_at, expired_count, used_count, code)
     return expired_at, expired_count, used_count, code
 
 
@@ -70,3 +71,9 @@ async def get_random_code(style='num'):
         code = await get_random_num() if style == 'num' else await get_random_string()
         if not await FileCodes.filter(code=code).exists():
             return code
+
+
+# 错误IP限制器
+error_ip_limit = IPRateLimit(1, 1)
+# 上传文件限制器
+upload_ip_limit = IPRateLimit(10, 1)

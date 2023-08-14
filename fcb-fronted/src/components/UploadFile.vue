@@ -11,8 +11,8 @@ const props = defineProps({
     type: Object,
     default: () => {
       return {
-        expireValue: 1,
-        expireStyle: 'day',
+        expire_value: 1,
+        expire_style: 'day',
       }
     }
   }
@@ -36,8 +36,8 @@ const handleHttpRequest = (options: any) => {
   fileBoxStore.showFileBox = true;
   const formData = new FormData();
   formData.append('file', options.file);
-  formData.append('expireValue', props.shareData.expireValue);
-  formData.append('expireStyle', props.shareData.expireStyle);
+  formData.append('expire_value', props.shareData.expireValue);
+  formData.append('expire_style', props.shareData.expireStyle);
   request(
       {
         url: "share/file/",
@@ -54,7 +54,7 @@ const handleHttpRequest = (options: any) => {
         }
       }
   ).then((res: any) => {
-    const data = res.data.data;
+    const data = res.detail;
     fileStore.shareData.forEach((file: any) => {
       if (file.uid === options.file.uid) {
         file.status = 'success';
