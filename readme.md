@@ -29,10 +29,10 @@
 
 ### Docker一键部署
 
-#### AMD 开发版（不稳定，待测试，新增分片异步上传，永久存储，不建议使用，很多没发现的坑）
+#### 2.0版本，开发中
 
 ```bash
-docker run -d --restart=always -p 12345:12345 -v /opt/FileCodeBox/:/app/data --name filecodebox lanol/filecodebox:pre
+docker run -d --restart=always -p 12345:12345 -v /opt/FileCodeBox/:/app/data --name filecodebox lanol/filecodebox:beta
 
 ```
 
