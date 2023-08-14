@@ -81,8 +81,8 @@ docs/_build/
 .pybuilder/
 target/
 *.db
-filecodebox.db-shm
-filecodebox.db-wal
+./filecodebox.db-shm
+./filecodebox.db-wal
 # Jupyter Notebook
 .ipynb_checkpoints
 
