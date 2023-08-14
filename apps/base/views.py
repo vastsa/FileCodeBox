@@ -3,6 +3,7 @@
 # @File    : views.py
 # @Software: PyCharm
 from fastapi import APIRouter, Form, UploadFile, File, Depends
+from starlette.responses import FileResponse
 
 from apps.base.models import FileCodes
 from apps.base.pydantics import SelectFileModel
@@ -71,3 +72,20 @@ async def select_file(data: SelectFileModel, ip: str = Depends(error_ip_limit)):
         'size': file_code.size,
         'text': file_code.text if file_code.text is not None else await file_storage.get_file_url(file_code),
     })
+
+
+@share_api.get('/download')
+async def download_file(key: str, code: str, ip: str = Depends(error_ip_limit)):
+    is_valid = await file_storage.get_select_token(code) == key
+    if not is_valid:
+        error_ip_limit.add_ip(ip)
+    file_code = await FileCodes.filter(code=code).first()
+    if not file_code:
+        return APIResponse(code=404, detail='文件不存在')
+    if file_code.text:
+        return APIResponse(detail=file_code.text)
+    else:
+        file_path = file_storage.root_path / await file_code.get_file_path()
+        if not file_path.exists():
+            return APIResponse(code=404, detail='文件已过期删除')
+        return FileResponse(file_path, filename=file_code.prefix + file_code.suffix)

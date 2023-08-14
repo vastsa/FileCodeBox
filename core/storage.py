@@ -3,6 +3,9 @@
 # @File    : storage.py
 # @Software: PyCharm
 import asyncio
+import hashlib
+import time
+
 import aioboto3
 from fastapi import UploadFile
 from pathlib import Path
@@ -14,6 +17,7 @@ class SystemFileStorage:
     def __init__(self):
         self.chunk_size = 256 * 1024
         self.root_path = Path('./data')
+        self.token = '123456'
 
     def _save(self, file, save_path):
         with open(save_path, 'wb') as f:
@@ -33,8 +37,11 @@ class SystemFileStorage:
         if save_path.exists():
             save_path.unlink()
 
+    async def get_select_token(self, code):
+        return hashlib.sha256(f"{code}{int(time.time() / 1000)}000{self.token}".encode()).hexdigest()
+
     async def get_file_url(self, file_code: FileCodes):
-        return f"/api/select?code={file_code.code}"
+        return f'/share/download?key={await self.get_select_token(file_code.code)}&code={file_code.code}'
 
 
 class S3FileStorage:
