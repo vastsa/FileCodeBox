@@ -4,6 +4,7 @@ import { request } from "@/utils/request";
 const shareText = ref('')
 import { useFileDataStore } from "@/stores/fileData";
 import { useFileBoxStore } from "@/stores/fileBox";
+import { ElMessage } from "element-plus";
 const fileBoxStore = useFileBoxStore();
 const fileStore = useFileDataStore();
 const props = defineProps({
@@ -19,7 +20,7 @@ const props = defineProps({
 })
 const handleSubmitShareText = ()=>{
   if (shareText.value === '') {
-    alert('请输入您要分享的文本');
+    ElMessage.warning('请输入您要分享的文本');
   } else {
     const formData = new FormData();
     formData.append('text', shareText.value);

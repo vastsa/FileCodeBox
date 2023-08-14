@@ -7,6 +7,7 @@ const fileBoxStore = useFileBoxStore();
 import QrcodeVue from "qrcode.vue";
 import { useRoute } from "vue-router";
 import { ref } from "vue";
+import { ElMessage } from "element-plus";
 const openUrl = (url: string) => {
   if (url.startsWith('/')) {
     url = window.location.origin + url;
@@ -16,6 +17,7 @@ const openUrl = (url: string) => {
 const route = useRoute();
 
 const copyText = (text: any, style = 0) => {
+  ElMessage.success('复制成功')
   if (style === 1) {
     text = window.location.origin + '/#/?code=' + text;
   }
@@ -28,6 +30,13 @@ const copyText = (text: any, style = 0) => {
   }
   document.body.removeChild(temp);
 };
+const nowText = ref('');
+const showTextDetail = (text: any) => {
+  showTextDetailVisible.value = true;
+  nowText.value = text;
+};
+const showTextDetailVisible = ref(false);
+
 </script>
 
 <template>
@@ -38,6 +47,18 @@ const copyText = (text: any, style = 0) => {
     </template>
     <template #default>
       <div v-if="route.name=='home'" style="display: flex;flex-wrap: wrap;justify-content: center">
+        <el-dialog
+            append-to-body
+            align-center
+            title="文本详情"
+            v-model="showTextDetailVisible"
+        >
+          <div v-html="nowText"></div>
+          <template #footer>
+            <el-button type="success" @click="copyText(nowText);showTextDetailVisible = false">复 制</el-button>
+            <el-button type="primary" @click="showTextDetailVisible = false">关 闭</el-button>
+          </template>
+        </el-dialog>
         <el-card v-for="(value,index)  in fileStore.receiveData" :key="index" style="margin: 0.5rem">
           <template #header>
             <div style="display: flex;justify-content: space-between">
@@ -47,13 +68,14 @@ const copyText = (text: any, style = 0) => {
           </template>
           <div style="width: 200px;">
             <div style="display: flex;justify-content: space-between">
-              <qrcode-vue :value="value.text" :size="100"></qrcode-vue>
+              <qrcode-vue v-if="value.name!=='文本分享'" :value="value.text" :size="100"></qrcode-vue>
+              <div style="width: 100px;height: 100px;flex-wrap: wrap;overflow-y:scroll ">{{value.text}}</div>
               <div style="display: flex;flex-direction: column;justify-content: space-around">
                 <el-tag size="large" style="cursor: pointer" @click="copyText(value.code)">{{ value.code }}</el-tag>
                 <el-tag v-if="value.name!=='文本分享'" size="large" type="success" style="cursor: pointer" @click="openUrl(value.text);">
                   点击下载
                 </el-tag>
-                <el-tag v-else size="large" type="success" style="cursor: pointer" @click="copyText(value.text);">点击复制</el-tag>
+                <el-tag v-else size="large" type="success" style="cursor: pointer" @click="showTextDetail(value.text);">查看详情</el-tag>
               </div>
             </div>
           </div>

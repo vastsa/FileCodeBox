@@ -86,7 +86,6 @@ function pasteLister(event: any) {
         } else {
           const file: any = items[i].getAsFile();
           if (file) {
-            console.log(file);
             const uid = Date.now();
             file.uid = uid;
             fileStore.addShareData({

@@ -1,8 +1,9 @@
 // @ts-ignore
 import axios from "axios";
+import { ElMessage } from "element-plus";
 
 const instance = axios.create({
-  baseURL: "/",
+  baseURL: import.meta.env.DEV ? "http://localhost:12345" : "/",
   timeout: 6000000,
   headers:{
     'Authorization':localStorage.getItem('auth')
@@ -14,11 +15,11 @@ instance.interceptors.response.use(
     if (response.data.code === 200) {
       return response.data;
     } else {
-      alert(response.data.detail);
+      ElMessage.error(response.data.detail);
       return Promise.reject(response.data);
     }
   }, (error:any) => {
-    alert(error.response.data.detail);
+    ElMessage.error(error.response.data.detail);
     return Promise.reject(error);
   });
 
