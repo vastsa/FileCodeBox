@@ -27,7 +27,7 @@ watch(code, (newVal) => {
     input_status.readonly = true;
     input_status.loading = true;
     request({
-      'url': '/share/select',
+      'url': '/share/select/',
       'method': 'POST',
       'data': {
         'code': newVal
