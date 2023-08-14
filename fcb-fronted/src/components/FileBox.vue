@@ -69,7 +69,7 @@ const showTextDetailVisible = ref(false);
           <div style="width: 200px;">
             <div style="display: flex;justify-content: space-between">
               <qrcode-vue v-if="value.name!=='文本分享'" :value="value.text" :size="100"></qrcode-vue>
-              <div style="width: 100px;height: 100px;flex-wrap: wrap;overflow-y:scroll ">{{value.text}}</div>
+              <div v-else style="width: 100px;height: 100px;flex-wrap: wrap;overflow-y:scroll ">{{value.text}}</div>
               <div style="display: flex;flex-direction: column;justify-content: space-around">
                 <el-tag size="large" style="cursor: pointer" @click="copyText(value.code)">{{ value.code }}</el-tag>
                 <el-tag v-if="value.name!=='文本分享'" size="large" type="success" style="cursor: pointer" @click="openUrl(value.text);">
