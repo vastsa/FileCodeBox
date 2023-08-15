@@ -9,6 +9,7 @@ from fastapi import UploadFile
 
 from apps.base.depends import IPRateLimit
 from apps.base.models import FileCodes
+from core.settings import settings
 from core.utils import get_random_num, get_random_string
 
 
@@ -73,6 +74,6 @@ async def get_random_code(style='num'):
 
 
 # 错误IP限制器
-error_ip_limit = IPRateLimit(1, 1)
+error_ip_limit = IPRateLimit(count=settings.errorCount, minutes=settings.errorMinute)
 # 上传文件限制器
-upload_ip_limit = IPRateLimit(10, 1)
+upload_ip_limit = IPRateLimit(count=settings.uploadCount, minutes=settings.errorMinute)

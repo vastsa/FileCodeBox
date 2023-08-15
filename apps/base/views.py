@@ -8,7 +8,7 @@ from starlette.responses import FileResponse
 from apps.admin.depends import admin_required
 from apps.base.models import FileCodes
 from apps.base.pydantics import SelectFileModel
-from apps.base.utils import get_expire_info, get_file_path_name, error_ip_limit
+from apps.base.utils import get_expire_info, get_file_path_name, error_ip_limit, upload_ip_limit
 from core.response import APIResponse
 from core.settings import settings
 from core.storage import file_storage
@@ -20,7 +20,7 @@ share_api = APIRouter(
 
 
 @share_api.post('/text/', dependencies=[Depends(admin_required)])
-async def share_text(text: str = Form(...), expire_value: int = Form(default=1, gt=0), expire_style: str = Form(default='day')):
+async def share_text(text: str = Form(...), expire_value: int = Form(default=1, gt=0), expire_style: str = Form(default='day'), ip: str = Depends(upload_ip_limit)):
     expired_at, expired_count, used_count, code = await get_expire_info(expire_value, expire_style)
     await FileCodes.create(
         code=code,
@@ -31,13 +31,14 @@ async def share_text(text: str = Form(...), expire_value: int = Form(default=1, 
         size=len(text),
         prefix='文本分享'
     )
+    upload_ip_limit.add_ip(ip)
     return APIResponse(detail={
         'code': code,
     })
 
 
 @share_api.post('/file/', dependencies=[Depends(admin_required)])
-async def share_file(expire_value: int = Form(default=1, gt=0), expire_style: str = Form(default='day'), file: UploadFile = File(...)):
+async def share_file(expire_value: int = Form(default=1, gt=0), expire_style: str = Form(default='day'), file: UploadFile = File(...), ip: str = Depends(upload_ip_limit)):
     if file.size > settings.uploadSize:
         raise HTTPException(status_code=403, detail=f'文件大小超过限制，最大为{settings.uploadSize}字节')
     expired_at, expired_count, used_count, code = await get_expire_info(expire_value, expire_style)
@@ -54,6 +55,7 @@ async def share_file(expire_value: int = Form(default=1, gt=0), expire_style: st
         expired_count=expired_count,
         used_count=used_count,
     )
+    upload_ip_limit.add_ip(ip)
     return APIResponse(detail={
         'code': code,
         'name': file.filename,

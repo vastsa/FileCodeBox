@@ -44,7 +44,6 @@ class Settings:
                 if value.isdigit():
                     value = int(value)
                 default_value[key] = value
-
         # 更新self
         for key, value in default_value.items():
             self.__setattr__(key, value)

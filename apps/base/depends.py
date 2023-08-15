@@ -12,6 +12,7 @@ from core.response import APIResponse
 
 class IPRateLimit:
     def __init__(self, count, minutes):
+        print(count, minutes)
         self.ips = {}
         self.count = count
         self.minutes = minutes
