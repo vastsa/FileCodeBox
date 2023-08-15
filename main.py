@@ -2,16 +2,20 @@
 # @Author  : Lan
 # @File    : main.py
 # @Software: PyCharm
+import os
+
 from fastapi import FastAPI
 from starlette.middleware.cors import CORSMiddleware
 from starlette.responses import HTMLResponse
 from starlette.staticfiles import StaticFiles
 from tortoise.contrib.fastapi import register_tortoise
+
 from apps.base.views import share_api
 from apps.admin.views import admin_api
-from core.settings import data_root
+from core.settings import data_root, settings
 
 app = FastAPI()
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -19,6 +23,7 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
 app.mount('/assets', StaticFiles(directory='./fcb-fronted/dist/assets'), name="assets")
 
 register_tortoise(
@@ -46,10 +51,15 @@ app.include_router(admin_api)
 
 @app.get('/')
 async def index():
-    return HTMLResponse(content=open('./fcb-fronted/dist/index.html', 'r', encoding='utf-8').read().replace('{{title}}', 'FileCodeBox'), status_code=200)
+    return HTMLResponse(
+        content=open('./fcb-fronted/dist/index.html', 'r', encoding='utf-8').read()
+        .replace('{{title}}', settings.name)
+        .replace('{{description}}', settings.description)
+        .replace('{{keywords}}', settings.keywords)
+        , media_type='text/html', headers={'Cache-Control': 'no-cache'})
 
 
 if __name__ == '__main__':
     import uvicorn
 
-    uvicorn.run(app='main:app', host="0.0.0.0", port=12345, reload=False, workers=3)
+    uvicorn.run(app='main:app', host="0.0.0.0", port=12345, reload=False, workers=1)

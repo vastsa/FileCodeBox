@@ -7,6 +7,7 @@ from fastapi import APIRouter
 from apps.admin.pydantics import IDData
 from apps.base.models import FileCodes
 from core.response import APIResponse
+from core.settings import default_value, settings
 from core.storage import file_storage
 
 admin_api = APIRouter(
@@ -32,3 +33,15 @@ async def file_list(page: int = 1, size: int = 10):
         'data': data,
         'total': await FileCodes.all().count(),
     })
+
+
+@admin_api.get('/config/get')
+async def get_config():
+    return APIResponse(detail=settings.__dict__)
+
+
+@admin_api.patch('/config/update')
+async def update_config(data: dict):
+    for k, v in data.items():
+        settings.__setattr__(k, v)
+    return APIResponse()

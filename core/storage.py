@@ -8,7 +8,7 @@ import time
 
 import aioboto3
 from fastapi import UploadFile
-from core.settings import data_root
+from core.settings import data_root, settings
 from apps.base.models import FileCodes
 
 
@@ -45,10 +45,10 @@ class SystemFileStorage:
 
 class S3FileStorage:
     def __init__(self):
-        self.access_key_id = ''
-        self.secret_access_key = ''
-        self.bucket_name = ''
-        self.endpoint_url = ''
+        self.access_key_id = settings.s3_access_key_id
+        self.secret_access_key = settings.s3_secret_access_key
+        self.bucket_name = settings.s3_bucket_name
+        self.endpoint_url = settings.s3_endpoint_url
         self.session = aioboto3.Session(
             aws_access_key_id=self.access_key_id, aws_secret_access_key=self.secret_access_key
         )
@@ -69,4 +69,8 @@ class S3FileStorage:
             return result
 
 
-file_storage = SystemFileStorage()
+storages = {
+    'local': SystemFileStorage,
+    's3': S3FileStorage
+}
+file_storage = storages[settings.file_storage]()

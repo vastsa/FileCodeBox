@@ -3,6 +3,7 @@
     <el-header>
       <el-menu mode="horizontal" router :default-active="route.path">
         <el-menu-item v-for="menu in menus" :index="menu.path" :key="menu.path">{{menu.name}}</el-menu-item>
+        <el-menu-item style="float: right" @click="toggleDark(!isDark)">颜色模式</el-menu-item>
       </el-menu>
     </el-header>
     <el-main>
@@ -11,9 +12,10 @@
   </el-container>
 </template>
 <script setup lang="ts">
-import { useDark } from '@vueuse/core';
+import { useDark,useToggle } from '@vueuse/core';
 import { ref } from "vue";
 const isDark = useDark()
+const toggleDark = useToggle(isDark)
 import { useRoute } from 'vue-router';
 const route = useRoute();
 const menus = ref([
@@ -30,7 +32,6 @@ const menus = ref([
     path: '/admin/about',
   }
 ]);
-console.log(isDark.value);
 </script>
 <style lang="scss" scoped>
 </style>
