@@ -30,7 +30,11 @@
 ### Docker一键部署
 
 #### 2.0版本，开发中
+默认信息
 
+后端地址：`/#/admin`
+
+后台密码：`FileCodeBox2023`
 ```bash
 docker run -d --restart=always -p 12345:12345 -v /opt/FileCodeBox/:/app/data --name filecodebox lanol/filecodebox:beta
 
