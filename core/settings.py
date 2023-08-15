@@ -9,7 +9,7 @@ if not data_root.exists():
     data_root.mkdir(parents=True, exist_ok=True)
 
 default_value = {
-    'file_storage': 'SystemFileStorage',
+    'file_storage': 'local',
     'name': '文件快递柜-FileCodeBox',
     'description': '开箱即用的文件快传系统',
     'keywords': 'FileCodeBox，文件快递柜，口令传送箱，匿名口令分享文本，文件',
