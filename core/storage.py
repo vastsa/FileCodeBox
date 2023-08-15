@@ -8,15 +8,14 @@ import time
 
 import aioboto3
 from fastapi import UploadFile
-from pathlib import Path
-
+from core.settings import data_root
 from apps.base.models import FileCodes
 
 
 class SystemFileStorage:
     def __init__(self):
         self.chunk_size = 256 * 1024
-        self.root_path = Path('./data')
+        self.root_path = data_root
         self.token = '123456'
 
     def _save(self, file, save_path):

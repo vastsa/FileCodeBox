@@ -9,9 +9,9 @@ from starlette.staticfiles import StaticFiles
 from tortoise.contrib.fastapi import register_tortoise
 from apps.base.views import share_api
 from apps.admin.views import admin_api
+from core.settings import data_root
 
 app = FastAPI()
-
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -19,7 +19,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
 app.mount('/assets', StaticFiles(directory='./fcb-fronted/dist/assets'), name="assets")
 
 register_tortoise(
@@ -28,7 +27,7 @@ register_tortoise(
     add_exception_handlers=True,
     config={
         'connections': {
-            'default': 'sqlite://filecodebox.db'
+            'default': f'sqlite://{data_root}/filecodebox.db'
         },
         'apps': {
             'models': {
