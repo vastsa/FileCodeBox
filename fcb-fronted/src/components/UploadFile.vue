@@ -4,6 +4,7 @@ import { ref, onMounted, onUnmounted } from 'vue'
 import { request } from "@/utils/request";
 import { useFileDataStore } from "@/stores/fileData";
 import { useFileBoxStore } from "@/stores/fileBox";
+import { ElMessage } from "element-plus";
 const fileBoxStore = useFileBoxStore();
 const fileStore = useFileDataStore();
 const props = defineProps({
@@ -63,11 +64,11 @@ const handleHttpRequest = (options: any) => {
         fileStore.save();
       }
     });
-  }).catch((err: any) => {
+  }).catch(() => {
     fileStore.shareData.forEach((file: any) => {
       if (file.uid === options.file.uid) {
         file.status = 'fail';
-        file.text = err.message;
+        file.code = '上传失败';
         fileStore.save();
       }
     });

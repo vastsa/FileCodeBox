@@ -106,7 +106,6 @@ const refreshData = ()=>{
 }
 refreshData();
 const submitSave = () => {
-
   request({
     url: '/admin/config/update',
     method: 'patch',

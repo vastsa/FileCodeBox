@@ -90,7 +90,7 @@ const showTextDetailVisible = ref(false);
             </div>
           </template>
           <div style="width: 200px;">
-            <el-progress v-if="value.status!='success'" striped :percentage="value.percentage" :text-inside="true"
+            <el-progress v-if="value.status!='success' && value.status!='fail'" striped :percentage="value.percentage" :text-inside="true"
                          :stroke-width="20"></el-progress>
             <div style="display: flex;justify-content: space-between">
               <qrcode-vue :value="value.text" :size="100"></qrcode-vue>
