@@ -17,6 +17,7 @@ default_value = {
     's3_secret_access_key': '',
     's3_bucket_name': '',
     's3_endpoint_url': '',
+    'admin_token': 'FileCodeBox2023',
     'openUpload': 1,
     'uploadSize': 1024 * 1024 * 10,
     'uploadMinute': 1,

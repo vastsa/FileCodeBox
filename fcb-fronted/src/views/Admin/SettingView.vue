@@ -9,6 +9,9 @@
     <el-form-item size="large" label="关键词" style="letter-spacing: 0.3rem">
       <el-input v-model="config.keywords" />
     </el-form-item>
+    <el-form-item size="large" label="后台密码">
+      <el-input type="password" v-model="config.admin_token" />
+    </el-form-item>
     <el-form-item size="large" label="文件大小">
       <el-input type="number" v-model="config.uploadSize" />
       <template #append>Bit</template>
@@ -80,6 +83,7 @@ const config = ref({
   name: '',
   description: '',
   file_storage: '',
+  admin_token: '',
   keywords: '',
   openUpload: 1,
   uploadSize: 1,

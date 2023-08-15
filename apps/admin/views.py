@@ -2,8 +2,9 @@
 # @Author  : Lan
 # @File    : views.py
 # @Software: PyCharm
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 
+from apps.admin.depends import admin_required
 from apps.admin.pydantics import IDData
 from apps.base.models import FileCodes
 from core.response import APIResponse
@@ -16,7 +17,12 @@ admin_api = APIRouter(
 )
 
 
-@admin_api.delete('/file/delete')
+@admin_api.post('/login', dependencies=[Depends(admin_required)])
+async def login():
+    return APIResponse()
+
+
+@admin_api.delete('/file/delete', dependencies=[Depends(admin_required)])
 async def file_delete(data: IDData):
     file_code = await FileCodes.get(id=data.id)
     await file_storage.delete_file(file_code)
@@ -24,7 +30,7 @@ async def file_delete(data: IDData):
     return APIResponse()
 
 
-@admin_api.get('/file/list')
+@admin_api.get('/file/list', dependencies=[Depends(admin_required)])
 async def file_list(page: int = 1, size: int = 10):
     data = await FileCodes.all().limit(size).offset((page - 1) * size)
     return APIResponse(detail={
@@ -35,12 +41,12 @@ async def file_list(page: int = 1, size: int = 10):
     })
 
 
-@admin_api.get('/config/get')
+@admin_api.get('/config/get', dependencies=[Depends(admin_required)])
 async def get_config():
     return APIResponse(detail=settings.__dict__)
 
 
-@admin_api.patch('/config/update')
+@admin_api.patch('/config/update', dependencies=[Depends(admin_required)])
 async def update_config(data: dict):
     for k, v in data.items():
         settings.__setattr__(k, v)

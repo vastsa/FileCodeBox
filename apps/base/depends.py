@@ -10,10 +10,6 @@ from fastapi import Header, HTTPException, Request
 from core.response import APIResponse
 
 
-async def admin_required(pwd: Union[str, None] = Header(default=None), request: Request = None):
-    return False
-
-
 class IPRateLimit:
     def __init__(self, count, minutes):
         self.ips = {}
