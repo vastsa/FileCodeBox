@@ -28,10 +28,10 @@ class FileCodes(Model):
     created_at: Optional[datetime] = fields.DatetimeField(auto_now_add=True, description='创建时间')
 
     async def is_expired(self):
-        if self.expired_at and (self.expired_count == -1 or self.used_count < self.expired_count):
+        if self.expired_at and (self.expired_count == -1 or self.expired_count > 0):
             return self.expired_at < await get_now()
         else:
-            return self.expired_count != -1 and self.used_count >= self.expired_count
+            return self.expired_count != -1 and self.expired_count == 0
 
     async def get_file_path(self):
         return f"{self.file_path}/{self.uuid_file_name}"

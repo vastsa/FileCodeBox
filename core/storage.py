@@ -69,6 +69,20 @@ class S3FileStorage:
             return result
 
 
+class FileStorageTemplate:
+    def __init__(self):
+        ...
+
+    async def save_file(self, file: UploadFile, save_path: str):
+        ...
+
+    async def delete_file(self, file_code: FileCodes):
+        ...
+
+    async def get_file_url(self, file_code: FileCodes):
+        ...
+
+
 storages = {
     'local': SystemFileStorage,
     's3': S3FileStorage

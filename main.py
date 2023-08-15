@@ -2,6 +2,7 @@
 # @Author  : Lan
 # @File    : main.py
 # @Software: PyCharm
+import asyncio
 import os
 
 from fastapi import FastAPI
@@ -13,6 +14,7 @@ from tortoise.contrib.fastapi import register_tortoise
 from apps.base.views import share_api
 from apps.admin.views import admin_api
 from core.settings import data_root, settings
+from core.tasks import delete_expire_files
 
 app = FastAPI()
 
@@ -47,6 +49,12 @@ register_tortoise(
 
 app.include_router(share_api)
 app.include_router(admin_api)
+
+
+@app.on_event("startup")
+async def startup_event():
+    # 启动后台任务，不定时删除过期文件
+    asyncio.create_task(delete_expire_files())
 
 
 @app.get('/')

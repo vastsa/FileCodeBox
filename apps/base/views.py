@@ -71,6 +71,7 @@ async def select_file(data: SelectFileModel, ip: str = Depends(error_ip_limit)):
     if await file_code.is_expired():
         return APIResponse(code=403, detail='文件已过期')
     file_code.used_count += 1
+    file_code.expired_count -= 1
     await file_code.save()
     return APIResponse(detail={
         'code': file_code.code,
