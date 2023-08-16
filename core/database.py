@@ -36,42 +36,14 @@ class Codes(Base):
 async def init_models(s):
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
-        if await conn.scalar(select(Options).filter(Options.key == 'INSTALL')) is None:
-            # 如果没有存在install，则清空表，并插入默认数据
-            await conn.execute(delete(table=Options))
-            await conn.execute(insert(table=Options, values=[
-                {'key': 'INSTALL', 'value': settings.VERSION},
-                {'key': 'DEBUG', 'value': settings.DEBUG},
-                {'key': 'DATABASE_FILE', 'value': settings.DATABASE_FILE},
-                {'key': 'PORT', 'value': settings.PORT},
-                {'key': 'DATA_ROOT', 'value': settings.DATA_ROOT},
-                {'key': 'LOCAL_ROOT', 'value': settings.LOCAL_ROOT},
-                {'key': 'STATIC_URL', 'value': settings.STATIC_URL},
-                {'key': 'BANNERS', 'value': settings.BANNERS},
-                {'key': 'ENABLE_UPLOAD', 'value': settings.ENABLE_UPLOAD},
-                {'key': 'MAX_DAYS', 'value': settings.MAX_DAYS},
-                {'key': 'ERROR_COUNT', 'value': settings.ERROR_COUNT},
-                {'key': 'ERROR_MINUTE', 'value': settings.ERROR_COUNT},
-                {'key': 'UPLOAD_COUNT', 'value': settings.UPLOAD_COUNT},
-                {'key': 'UPLOAD_MINUTE', 'value': settings.UPLOAD_MINUTE},
-                {'key': 'DELETE_EXPIRE_FILES_INTERVAL', 'value': settings.DELETE_EXPIRE_FILES_INTERVAL},
-                {'key': 'ADMIN_ADDRESS', 'value': settings.ADMIN_ADDRESS},
-                {'key': 'ADMIN_PASSWORD', 'value': settings.ADMIN_PASSWORD},
-                {'key': 'FILE_SIZE_LIMIT', 'value': settings.FILE_SIZE_LIMIT},
-                {'key': 'TITLE', 'value': settings.TITLE},
-                {'key': 'DESCRIPTION', 'value': settings.DESCRIPTION},
-                {'key': 'KEYWORDS', 'value': settings.KEYWORDS},
-                {'key': 'STORAGE_ENGINE', 'value': settings.STORAGE_ENGINE},
-                {'key': 'STORAGE_CONFIG', 'value': {}},
-            ]))
-            print(
-                f'初始化数据库成功！\n'
-                f'如您未配置.env文件，将为您随机生成信息\n'
-                f'您的后台地址为：/{settings.ADMIN_ADDRESS}\n'
-                f'您的管理员密码为：{settings.ADMIN_PASSWORD}\n'
-                f'请尽快修改后台信息！\n'
-                f'FileCodeBox https://github.com/vastsa/FileCodeBox'
-            )
+        print(
+            f'初始化数据库成功！\n'
+            f'如您未配置.env文件，将为您随机生成信息\n'
+            f'您的后台地址为：/{settings.ADMIN_ADDRESS}\n'
+            f'您的管理员密码为：{settings.ADMIN_PASSWORD}\n'
+            f'请尽快修改后台信息！\n'
+            f'FileCodeBox https://github.com/vastsa/FileCodeBox'
+        )
         await settings.updates(await conn.execute(select(Options).filter()))
 
 
