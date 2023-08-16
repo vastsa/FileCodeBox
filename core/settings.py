@@ -41,7 +41,7 @@ class Settings:
             for line in f.readlines():
                 key, value = line.strip().split('=')
                 # 将字符串转换为原本的类型
-                if value.isdigit():
+                if isinstance(default_value[key], int):
                     value = int(value)
                 default_value[key] = value
         # 更新self
