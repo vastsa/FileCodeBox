@@ -4,6 +4,7 @@
       <el-menu mode="horizontal" router :default-active="route.path">
         <el-menu-item v-for="menu in menus" :index="menu.path" :key="menu.path">{{menu.name}}</el-menu-item>
         <el-menu-item style="float: right" @click="toggleDark(!isDark)">颜色模式</el-menu-item>
+        <el-menu-item style="float: right" @click="adminData.updateAdminPwd('');isLogin=false">注销登录</el-menu-item>
       </el-menu>
     </el-header>
     <el-main>
@@ -52,7 +53,6 @@ const menus = ref([
   }
 ]);
 const refreshLoginStatus = () => {
-  console.log(adminData.adminPassword);
   adminData.updateAdminPwd(adminData.adminPassword);
   request({
     url: '/admin/login',
