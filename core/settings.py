@@ -17,6 +17,11 @@ default_value = {
     's3_secret_access_key': '',
     's3_bucket_name': '',
     's3_endpoint_url': '',
+    'onedrive_domain': '',
+    'onedrive_client_id': '',
+    'onedrive_username': '',
+    'onedrive_password': '',
+    'onedrive_root_path': 'filebox_storage',
     'admin_token': 'FileCodeBox2023',
     'openUpload': 1,
     'uploadSize': 1024 * 1024 * 10,
@@ -24,6 +29,7 @@ default_value = {
     'uploadCount': 10,
     'errorMinute': 1,
     'errorCount': 1,
+    'port': 12345,
 }
 
 
