@@ -85,6 +85,7 @@ class OneDriveFileStorage:
         self.client_id = settings.onedrive_client_id
         self.username = settings.onedrive_username
         self.password = settings.onedrive_password
+        self._ClientRequestException = ClientRequestException
 
         try:
             client = GraphClient(self.acquire_token_pwd)
@@ -116,19 +117,28 @@ class OneDriveFileStorage:
             path = str(path).replace('\\', '/').replace('//', '/').split('/')
         else:
             raise TypeError('path must be str or Path')
-        return '/'.join(path[:-1]), path[-1]
+        path[-1] = path[-1].split('.')[0]
+        return '/'.join(path)
 
     def _save(self, file, save_path):
-        content = file.read()
-        path, name = self._get_path_str(save_path)
+        content = file.file.read()
+        name = file.filename
+        path = self._get_path_str(save_path)
         self.root_path.get_by_path(path).upload(name, content).execute_query()
 
     async def save_file(self, file: UploadFile, save_path: str):
-        await asyncio.to_thread(self._save, file.file, save_path)
+        await asyncio.to_thread(self._save, file, save_path)
 
     def _delete(self, save_path):
-        path, name = self._get_path_str(save_path)
-        self.root_path.get_by_path(path + '/' + name).delete_object().execute_query()
+        path = self._get_path_str(save_path)
+        try:
+            self.root_path.get_by_path(path).delete_object().execute_query()
+        except self._ClientRequestException as e:
+            if e.code == 'itemNotFound':
+                pass
+            else:
+                raise e
+
 
     async def delete_file(self, file_code: FileCodes):
         await asyncio.to_thread(self._delete, await file_code.get_file_path())
@@ -139,8 +149,8 @@ class OneDriveFileStorage:
         p3 = re.search(rf'{p2}\/(.+)', link).group(1)
         return f'https://{p1}.sharepoint.com/personal/{p2}/_layouts/52/download.aspx?share={p3}'
 
-    def _get_file_url(self, save_path):
-        path, name = self._get_path_str(save_path)
+    def _get_file_url(self, save_path, name):
+        path = self._get_path_str(save_path)
         remote_file = self.root_path.get_by_path(path + '/' + name)
         expiration_datetime = datetime.datetime.now(tz=datetime.timezone.utc) + datetime.timedelta(hours=1)
         expiration_datetime = expiration_datetime.strftime("%Y-%m-%dT%H:%M:%SZ")
@@ -150,7 +160,7 @@ class OneDriveFileStorage:
     async def get_file_url(self, file_code: FileCodes):
         if file_code.prefix == '文本分享':
             return file_code.text
-        result = await asyncio.to_thread(self._get_file_url, await file_code.get_file_path())
+        result = await asyncio.to_thread(self._get_file_url, await file_code.get_file_path(), f'{file_code.prefix}{file_code.suffix}')
         return result
 
 
