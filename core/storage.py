@@ -163,6 +163,32 @@ class OneDriveFileStorage:
         result = await asyncio.to_thread(self._get_file_url, await file_code.get_file_path(), f'{file_code.prefix}{file_code.suffix}')
         return result
 
+class OpenDALFileStorage:
+    def __init__(self):
+        try:
+            import opendal
+        except ImportError:
+            raise ImportError('请先安装 `opendal`, 例如: "pip install opendal"')
+        self.service = settings.opendal_scheme   
+        service_settings = {}
+        for key, value in settings.items():
+            if key.startswith('opendal_' + self.service):
+                setting_name = key.split('_', 2)[2]
+                service_settings[setting_name] = value
+        self.operator = opendal.AsyncOperator(settings.opendal_scheme, **service_settings)
+
+    async def save_file(self, file: UploadFile, save_path: str):
+        await self.operator.write(save_path, file.file)
+
+    async def delete_file(self, file_code: FileCodes):
+        await self.operator.delete(await file_code.get_file_path())
+
+    async def get_file_url(self, file_code: FileCodes):
+        # todo: It needs upstream to expose presign api from rust to python
+        if file_code.prefix == '文本分享':
+            return file_code.text
+        result = await self.operator.presign_read(await file_code.get_file_path())
+        return result
 
 class FileStorageTemplate:
     def __init__(self):
@@ -182,5 +208,6 @@ storages = {
     'local': SystemFileStorage,
     's3': S3FileStorage,
     'onedrive': OneDriveFileStorage,
+    'opendal': OpenDALFileStorage,
 }
 file_storage = storages[settings.file_storage]()
