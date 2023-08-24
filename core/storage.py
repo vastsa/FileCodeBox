@@ -3,23 +3,57 @@
 # @File    : storage.py
 # @Software: PyCharm
 import asyncio
-import hashlib
-import time
 from pathlib import Path
 import datetime
 import re
-
+import sys
 import aioboto3
-from fastapi import UploadFile
+from fastapi import HTTPException, Response, UploadFile
+from core.response import APIResponse
 from core.settings import data_root, settings
 from apps.base.models import FileCodes
+from core.utils import get_file_url
+from fastapi.responses import FileResponse
 
 
-class SystemFileStorage:
+class FileStorageInterface:
+    def __init__(self):
+        raise NotImplementedError
+
+    async def save_file(self, file: UploadFile, save_path: str):
+        """
+        保存文件
+        """
+        raise NotImplementedError
+
+    async def delete_file(self, file_code: FileCodes):
+        """
+        删除文件
+        """
+        raise NotImplementedError
+
+    async def get_file_url(self, file_code: FileCodes):
+        """
+        获取文件分享的url
+
+        如果服务不支持直接访问文件，可以通过服务器中转下载。
+        此时，此方法可以调用 utils.py 中的 `get_file_url` 方法，获取服务器中转下载的url
+        """
+        raise NotImplementedError
+
+    async def get_file_response(self, file_code: FileCodes):
+        """
+        获取文件响应
+
+        如果服务不支持直接访问文件，则需要实现该方法，返回文件响应
+        其余情况，可以不实现该方法
+        """
+        raise NotImplementedError
+
+class SystemFileStorage(FileStorageInterface):
     def __init__(self):
         self.chunk_size = 256 * 1024
         self.root_path = data_root
-        self.token = '123456'
 
     def _save(self, file, save_path):
         with open(save_path, 'wb') as f:
@@ -39,14 +73,17 @@ class SystemFileStorage:
         if save_path.exists():
             save_path.unlink()
 
-    async def get_select_token(self, code):
-        return hashlib.sha256(f"{code}{int(time.time() / 1000)}000{self.token}".encode()).hexdigest()
-
     async def get_file_url(self, file_code: FileCodes):
-        return f'/share/download?key={await self.get_select_token(file_code.code)}&code={file_code.code}'
+        return await get_file_url(file_code.code)
+    
+    async def get_file_response(self, file_code: FileCodes):
+        file_path = file_storage.root_path / await file_code.get_file_path()
+        if not file_path.exists():
+            return APIResponse(code=404, detail='文件已过期删除')
+        return FileResponse(file_path, filename=file_code.prefix + file_code.suffix)
 
 
-class S3FileStorage:
+class S3FileStorage(FileStorageInterface):
     def __init__(self):
         self.access_key_id = settings.s3_access_key_id
         self.secret_access_key = settings.s3_secret_access_key
@@ -72,7 +109,7 @@ class S3FileStorage:
             return result
 
 
-class OneDriveFileStorage:
+class OneDriveFileStorage(FileStorageInterface):
     def __init__(self):
         try:
             import msal
@@ -163,13 +200,13 @@ class OneDriveFileStorage:
         result = await asyncio.to_thread(self._get_file_url, await file_code.get_file_path(), f'{file_code.prefix}{file_code.suffix}')
         return result
 
-class OpenDALFileStorage:
+class OpenDALFileStorage(FileStorageInterface):
     def __init__(self):
         try:
             import opendal
         except ImportError:
             raise ImportError('请先安装 `opendal`, 例如: "pip install opendal"')
-        self.service = settings.opendal_scheme   
+        self.service = settings.opendal_scheme
         service_settings = {}
         for key, value in settings.items():
             if key.startswith('opendal_' + self.service):
@@ -178,30 +215,25 @@ class OpenDALFileStorage:
         self.operator = opendal.AsyncOperator(settings.opendal_scheme, **service_settings)
 
     async def save_file(self, file: UploadFile, save_path: str):
-        await self.operator.write(save_path, file.file)
+        await self.operator.write(save_path, file.file.read())
 
     async def delete_file(self, file_code: FileCodes):
         await self.operator.delete(await file_code.get_file_path())
 
     async def get_file_url(self, file_code: FileCodes):
-        # todo: It needs upstream to expose presign api from rust to python
-        if file_code.prefix == '文本分享':
-            return file_code.text
-        result = await self.operator.presign_read(await file_code.get_file_path())
-        return result
-
-class FileStorageTemplate:
-    def __init__(self):
-        ...
-
-    async def save_file(self, file: UploadFile, save_path: str):
-        ...
-
-    async def delete_file(self, file_code: FileCodes):
-        ...
-
-    async def get_file_url(self, file_code: FileCodes):
-        ...
+        return await get_file_url(file_code.code)
+    
+    async def get_file_response(self, file_code: FileCodes):
+        try:
+            filename=file_code.prefix + file_code.suffix
+            content = await self.operator.read(await file_code.get_file_path())
+            headers = {
+                "Content-Disposition": f'attachment; filename="{filename}"'
+            }
+            return Response(content, headers=headers, media_type="application/octet-stream")
+        except Exception as e:
+            print(e, file=sys.stderr)
+            raise HTTPException(status_code=404, detail="文件已过期删除")
 
 
 storages = {
@@ -210,4 +242,4 @@ storages = {
     'onedrive': OneDriveFileStorage,
     'opendal': OpenDALFileStorage,
 }
-file_storage = storages[settings.file_storage]()
+file_storage: FileStorageInterface = storages[settings.file_storage]()

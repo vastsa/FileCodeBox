@@ -7,7 +7,7 @@ from pathlib import Path
 data_root = Path('./data')
 if not data_root.exists():
     data_root.mkdir(parents=True, exist_ok=True)
-env_path = data_root / '.env2'
+env_path = data_root / '.env'
 default_value = {
     'file_storage': 'local',
     'name': '文件快递柜-FileCodeBox',
@@ -45,9 +45,9 @@ class Settings:
         # 更新default_value
         with open(env_path, 'r', encoding='utf-8') as f:
             for line in f.readlines():
-                key, value = line.strip().split('=')
+                key, value = line.strip().split('=', maxsplit=1)
                 # 将字符串转换为原本的类型
-                if isinstance(default_value[key], int):
+                if not key.startswith('opendal_') and isinstance(default_value[key], int):
                     value = int(value)
                 default_value[key] = value
         # 更新self
@@ -64,6 +64,9 @@ class Settings:
         with open(env_path, 'w', encoding='utf-8') as f:
             for key, value in self.__dict__.items():
                 f.write(f'{key}={value}\n')
+
+    def items(self):
+        return self.__dict__.items()
 
 
 settings = Settings()
