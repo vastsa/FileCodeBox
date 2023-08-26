@@ -39,9 +39,14 @@
 
 AMD & ARM
 
+一键安装
 ```bash
 docker run -d --restart=always -p 12345:12345 -v /opt/FileCodeBox/:/app/data --name filecodebox lanol/filecodebox:beta
 
+```
+一键更新
+```bash
+docker pull lanol/filecodebox:beta && docker stop filecodebox && docker rm filecodebox && docker run -d --restart=always -p 12345:12345 -v /opt/FileCodeBox/:/app/data --name filecodebox lanol/filecodebox:beta
 ```
 
 #### 1.6版本AMD
@@ -61,8 +66,9 @@ docker run -d --restart=always -p 12345:12345 -v /opt/FileCodeBox/:/app/data --n
 https://www.yuque.com/lxyo/work/lc1oe0xqk8t9b976
 
 ### 更新方式
-
 ```bash
+// 更新
+docker pull lanol/filecodebox:beta
 // 停止容器并删除
 docker stop filecodebox && docker rm filecodebox
 // 重新运行容器
