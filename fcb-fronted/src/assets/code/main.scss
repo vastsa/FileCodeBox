@@ -1,0 +1,100 @@
+@import 'katex/dist/katex.min.css';
+@import '@/assets/code/highlight.scss';
+@import '@/assets/code/github-markdown.scss';
+@import '@/assets/code/markdown-add.scss';
+.markdown-body {
+	box-sizing: border-box;
+	background:none ;
+	*{
+		font-size: 0.9rem;
+	}
+}
+
+@media (max-width: 767px) {
+	.markdown-body {
+		padding: 15px;
+	}
+}
+
+.chat-container {
+	display: flex;
+	flex-direction: column;
+	margin: auto;
+	max-width: 1080px;
+	padding: 0 5px;
+	height: 100%;
+}
+
+.chat-messages {
+	flex-grow: 1;
+	overflow-y: auto;
+	border-radius: 10px 10px 0 0;
+	padding: 8px;
+}
+
+.chat-message {
+	display: flex;
+	flex-direction: column;
+	margin-bottom: 30px;
+}
+
+.chat-message-bubble {
+	padding: 8px;
+	align-self: flex-start;
+	color: #2f4f4f;
+	border-radius: 8px 8px 8px 0;
+	background: linear-gradient(to right, #c9d6ff, #e2e2e2); /* W3C, IE 10+/ Edge, Firefox 16+, Chrome 26+, Opera 12+, Safari 7+ */
+	box-shadow: 0 16px 20px 0 rgba(174, 167, 223, .06);
+	max-width: 80%;
+}
+
+.chat-toolbar-icon{
+	margin-left: 5px;
+	cursor: pointer;
+}
+
+.chat-message-meta {
+	display: flex;
+	position: relative;
+	margin-top: 4px;
+}
+
+.n-input-wrapper {
+	padding-right: 0;
+}
+
+.chat-message-nickname-and-time {
+	color: #999;
+	font-size: 12px;
+}
+
+.is-me {
+	justify-content: flex-end;
+
+}
+
+.n-input .n-input__suffix, .n-input .n-input__prefix {
+	display: block;
+}
+
+.n-input .n-input-wrapper {
+	padding-right: 0;
+}
+
+.n-input .n-input__suffix .n-button {
+	border-radius: 8px !important;
+	width: 80px;
+	height: 30px;
+	position: absolute; right: 10px; bottom: 10px;
+	box-shadow: inset 0 1px 3px 0 rgba(0, 0, 0, 0.3);
+	background-image: linear-gradient(-56deg, #0773ff 5%, #797eff);
+	--n-border: none !important;
+}
+
+.chat-message.is-me .chat-message-bubble {
+	background: linear-gradient(to right, #56ccf2, #2f80ed); /* W3C, IE 10+/ Edge, Firefox 16+, Chrome 26+, Opera 12+, Safari 7+ */
+	border-radius: 8px 8px 0 !important;
+	box-shadow: 0 16px 20px 0 rgba(174, 167, 223, .06);
+	align-self: flex-end;
+}
+

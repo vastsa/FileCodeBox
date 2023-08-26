@@ -9,6 +9,9 @@
     <el-form-item size="large" label="关键词" style="letter-spacing: 0.3rem">
       <el-input v-model="config.keywords" />
     </el-form-item>
+    <el-form-item size="large" label="背景图片">
+      <el-input v-model="config.background" />
+    </el-form-item>
     <el-form-item size="large" label="后台密码">
       <el-input type="password" v-model="config.admin_token" />
     </el-form-item>
@@ -89,6 +92,7 @@ const config = ref({
   uploadSize: 1,
   uploadMinute: 1,
   s3_access_key_id: '',
+  background: '',
   s3_secret_access_key: '',
   s3_bucket_name: '',
   s3_endpoint_url: '',

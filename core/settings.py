@@ -26,6 +26,8 @@ default_value = {
     'openUpload': 1,
     'uploadSize': 1024 * 1024 * 10,
     'uploadMinute': 1,
+    'opacity': 0.9,
+    'background': '',
     'uploadCount': 10,
     'errorMinute': 1,
     'errorCount': 1,

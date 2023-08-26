@@ -12,8 +12,15 @@
     "format": "prettier --write src/"
   },
   "dependencies": {
+    "@traptitech/markdown-it-katex": "^3.6.0",
+    "@types/markdown-it": "^13.0.0",
+    "@types/markdown-it-link-attributes": "^3.0.1",
     "axios": "^1.4.0",
     "element-plus": "^2.3.9",
+    "github-markdown-css": "^5.2.0",
+    "highlight.js": "^11.8.0",
+    "markdown-it": "^13.0.1",
+    "markdown-it-link-attributes": "^4.0.1",
     "pinia": "^2.1.4",
     "qrcode.vue": "^3.4.1",
     "sass": "^1.64.2",

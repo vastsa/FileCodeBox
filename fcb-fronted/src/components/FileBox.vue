@@ -1,7 +1,11 @@
 <script setup lang="ts">
 import { useFileDataStore } from "@/stores/fileData";
 import { useFileBoxStore } from "@/stores/fileBox";
-
+import hljs from 'highlight.js';
+import mila from 'markdown-it-link-attributes';
+import markdownIt from 'markdown-it';
+import markdownItKatex from '@traptitech/markdown-it-katex';
+import '@/assets/code/main.scss'
 const fileStore = useFileDataStore();
 const fileBoxStore = useFileBoxStore();
 import QrcodeVue from "qrcode.vue";
@@ -33,9 +37,24 @@ const copyText = (text: any, style = 0) => {
 const nowText = ref('');
 const showTextDetail = (text: any) => {
   showTextDetailVisible.value = true;
-  nowText.value = text;
+  nowText.value = renderMarkdown(text);
 };
 const showTextDetailVisible = ref(false);
+
+const md = new markdownIt({
+  html: false,
+  linkify: true,
+  highlight(code: any, language: any) {
+    const validLang = Boolean(language && hljs.getLanguage(language));
+    return `<pre class="code-block-wrapper"><code class="hljs code-block-body ${validLang}">${hljs.highlight(code, { language: language ?? '' }).value}</code></pre>`;
+  }
+});
+
+md.use(mila, { attrs: { target: '_blank', rel: 'noopener' } });
+md.use(markdownItKatex, { blockClass: 'katexmath-block rounded-md p-[10px]', errorColor: ' #cc0000' });
+function renderMarkdown(message: string) {
+  return md.render(message);
+}
 
 </script>
 

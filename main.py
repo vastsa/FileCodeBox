@@ -64,6 +64,8 @@ async def index():
         .replace('{{title}}', settings.name)
         .replace('{{description}}', settings.description)
         .replace('{{keywords}}', settings.keywords)
+        .replace('{{opacity}}', settings.opacity)
+        .replace('{{background}}', settings.background)
         , media_type='text/html', headers={'Cache-Control': 'no-cache'})
 
 
