@@ -3,8 +3,10 @@
 # @File    : utils.py
 # @Software: PyCharm
 import datetime
+import hashlib
 import random
 import string
+import time
 
 from apps.base.depends import IPRateLimit
 
@@ -36,3 +38,20 @@ async def get_now():
     return datetime.datetime.now(
         datetime.timezone(datetime.timedelta(hours=8))
     )
+
+async def get_select_token(code: int):
+    """
+    获取下载token
+    :param code:
+    :return:
+    """
+    token = "123456"
+    return hashlib.sha256(f"{code}{int(time.time() / 1000)}000{token}".encode()).hexdigest()
+
+async def get_file_url(code: int):
+    """
+    对于需要通过服务器中转下载的服务，获取文件下载地址
+    :param code:
+    :return:
+    """
+    return f'/share/download?key={await get_select_token(code)}&code={code}'

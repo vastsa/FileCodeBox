@@ -3,8 +3,6 @@
 # @File    : views.py
 # @Software: PyCharm
 from fastapi import APIRouter, Form, UploadFile, File, Depends, HTTPException
-from starlette.responses import FileResponse
-
 from apps.admin.depends import admin_required
 from apps.base.models import FileCodes
 from apps.base.pydantics import SelectFileModel
@@ -12,6 +10,7 @@ from apps.base.utils import get_expire_info, get_file_path_name, error_ip_limit,
 from core.response import APIResponse
 from core.settings import settings
 from core.storage import file_storage
+from core.utils import get_select_token
 
 share_api = APIRouter(
     prefix='/share',
@@ -83,7 +82,7 @@ async def select_file(data: SelectFileModel, ip: str = Depends(error_ip_limit)):
 
 @share_api.get('/download')
 async def download_file(key: str, code: str, ip: str = Depends(error_ip_limit)):
-    is_valid = await file_storage.get_select_token(code) == key
+    is_valid = await get_select_token(code) == key
     if not is_valid:
         error_ip_limit.add_ip(ip)
     file_code = await FileCodes.filter(code=code).first()
@@ -92,7 +91,4 @@ async def download_file(key: str, code: str, ip: str = Depends(error_ip_limit)):
     if file_code.text:
         return APIResponse(detail=file_code.text)
     else:
-        file_path = file_storage.root_path / await file_code.get_file_path()
-        if not file_path.exists():
-            return APIResponse(code=404, detail='文件已过期删除')
-        return FileResponse(file_path, filename=file_code.prefix + file_code.suffix)
+        return await file_storage.get_file_response(file_code)
