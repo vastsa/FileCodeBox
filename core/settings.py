@@ -7,7 +7,7 @@ from pathlib import Path
 data_root = Path('./data')
 if not data_root.exists():
     data_root.mkdir(parents=True, exist_ok=True)
-env_path = data_root / '.env'
+env_path = data_root / '.env2'
 default_value = {
     'file_storage': 'local',
     'name': '文件快递柜-FileCodeBox',
