@@ -30,6 +30,7 @@
 ### Docker一键部署
 
 #### 2.0版本，开发中
+
 默认信息
 
 后端地址：`/#/admin`
@@ -37,6 +38,7 @@
 后台密码：`FileCodeBox2023`
 
 AMD & ARM
+
 ```bash
 docker run -d --restart=always -p 12345:12345 -v /opt/FileCodeBox/:/app/data --name filecodebox lanol/filecodebox:beta
 
@@ -81,13 +83,6 @@ docker logs filecodebox
 ### 其他方式
 
 仅供参考，历史版本->[部署文档](https://www.yuque.com/lxyo/work/zd0kvzy7fofx6w7v)
-
-## 项目规划
-
-2022年12月14日
-这个项目的灵感来源于丁丁快传，然后写了这么一个基于本机存储的快传系统，本系统主要是以轻量，单用户，离线环境（`私有化`
-）为主，因此也不需要加太多东西，所以其实这个项目到这基本功能已经完成了，剩下的就是维护和完善现有功能。
-也不会再加入新的大功能了，如果你有更好的想法和建议欢迎提issue。
 
 ## 预览
 
@@ -214,68 +209,6 @@ KeySecret=阿里云账号AccessKeySecret
 OSS_ENDPOINT=阿里云OSS Bucket的地域节点
 # 阿里云OSS Bucket的BucketName
 BUCKET_NAME=阿里云OSS Bucket的BucketName
-```
-
-## 接口文档
-
-前端比较简陋，可以使用接口进行二次开发
-
-### 取件
-
-#### PATH
-
-`/`
-
-#### METHOD
-
-`POST`
-
-#### PARAMS
-
-code: 取件码
-
-#### Response
-
-```json
-{
-  "detail": "msg",
-  "data": {
-    "type": "类型",
-    "text": "文本",
-    "name": "名称",
-    "code": "取件码"
-  }
-}
-```
-
-### 寄件
-
-#### PATH
-
-`/share`
-
-#### METHOD
-
-`POST`
-
-#### PARAMS
-
-style: 1为次数，2为时间
-value: 次数或时间
-text: 取件码
-file: 文件
-
-#### Response
-
-```json
-{
-  "detail": "msg",
-  "data": {
-    "code": "类型",
-    "key": "唯一ID",
-    "name": "名称"
-  }
-}
 ```
 
 ## 状态

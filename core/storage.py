@@ -50,6 +50,7 @@ class FileStorageInterface:
         """
         raise NotImplementedError
 
+
 class SystemFileStorage(FileStorageInterface):
     def __init__(self):
         self.chunk_size = 256 * 1024
@@ -75,7 +76,7 @@ class SystemFileStorage(FileStorageInterface):
 
     async def get_file_url(self, file_code: FileCodes):
         return await get_file_url(file_code.code)
-    
+
     async def get_file_response(self, file_code: FileCodes):
         file_path = file_storage.root_path / await file_code.get_file_path()
         if not file_path.exists():
@@ -89,9 +90,7 @@ class S3FileStorage(FileStorageInterface):
         self.secret_access_key = settings.s3_secret_access_key
         self.bucket_name = settings.s3_bucket_name
         self.endpoint_url = settings.s3_endpoint_url
-        self.session = aioboto3.Session(
-            aws_access_key_id=self.access_key_id, aws_secret_access_key=self.secret_access_key
-        )
+        self.session = aioboto3.Session(aws_access_key_id=self.access_key_id, aws_secret_access_key=self.secret_access_key)
 
     async def save_file(self, file: UploadFile, save_path: str):
         async with self.session.client("s3", endpoint_url=self.endpoint_url) as s3:
@@ -176,7 +175,6 @@ class OneDriveFileStorage(FileStorageInterface):
             else:
                 raise e
 
-
     async def delete_file(self, file_code: FileCodes):
         await asyncio.to_thread(self._delete, await file_code.get_file_path())
 
@@ -200,6 +198,7 @@ class OneDriveFileStorage(FileStorageInterface):
         result = await asyncio.to_thread(self._get_file_url, await file_code.get_file_path(), f'{file_code.prefix}{file_code.suffix}')
         return result
 
+
 class OpenDALFileStorage(FileStorageInterface):
     def __init__(self):
         try:
@@ -222,10 +221,10 @@ class OpenDALFileStorage(FileStorageInterface):
 
     async def get_file_url(self, file_code: FileCodes):
         return await get_file_url(file_code.code)
-    
+
     async def get_file_response(self, file_code: FileCodes):
         try:
-            filename=file_code.prefix + file_code.suffix
+            filename = file_code.prefix + file_code.suffix
             content = await self.operator.read(await file_code.get_file_path())
             headers = {
                 "Content-Disposition": f'attachment; filename="{filename}"'
