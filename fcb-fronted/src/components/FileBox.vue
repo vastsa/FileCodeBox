@@ -37,7 +37,7 @@ const copyText = (text: any, style = 0) => {
 const nowText = ref('');
 const showTextDetail = (text: any) => {
   showTextDetailVisible.value = true;
-  nowText.value = renderMarkdown(text);
+  nowText.value = text;
 };
 const showTextDetailVisible = ref(false);
 
@@ -70,9 +70,11 @@ function renderMarkdown(message: string) {
             append-to-body
             align-center
             title="文本详情"
+            width="70%"
+            style="height: 70%;overflow-y: scroll"
             v-model="showTextDetailVisible"
         >
-          <div v-html="nowText"></div>
+          <div style="max-width: 100%;overflow-y: scroll" v-html="renderMarkdown(nowText)"></div>
           <template #footer>
             <el-button type="success" @click="copyText(nowText);showTextDetailVisible = false">复 制</el-button>
             <el-button type="primary" @click="showTextDetailVisible = false">关 闭</el-button>
