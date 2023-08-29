@@ -2,6 +2,8 @@
 # @Author  : Lan
 # @File    : views.py
 # @Software: PyCharm
+import math
+
 from fastapi import APIRouter, Depends
 
 from apps.admin.depends import admin_required
@@ -31,8 +33,8 @@ async def file_delete(data: IDData):
 
 
 @admin_api.get('/file/list', dependencies=[Depends(admin_required)])
-async def file_list(page: int = 1, size: int = 10):
-    data = await FileCodes.all().limit(size).offset((page - 1) * size)
+async def file_list(page: float = 1, size: int = 10):
+    data = await FileCodes.all().limit(size).offset((math.ceil(page) - 1) * size)
     return APIResponse(detail={
         'page': page,
         'size': size,
