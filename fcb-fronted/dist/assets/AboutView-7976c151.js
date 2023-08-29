@@ -1,1 +1,0 @@
-import{aq as t,o,D as s,E as e,I as a}from"./index-fcb73ef2.js";const c={},n={style:{"text-align":"center"}},r=e("span",null,[a("本项目开源于Github： "),e("em",null,[e("a",{style:{color:"#333"},href:"https://github.com/vastsa/FileCodeBox"},"FileCodeBox")])],-1),l=[r];function _(i,d){return o(),s("main",n,l)}const u=t(c,[["render",_]]);export{u as default};

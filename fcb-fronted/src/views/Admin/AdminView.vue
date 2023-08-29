@@ -66,7 +66,9 @@ const refreshLoginStatus = () => {
     }
   });
 };
-refreshLoginStatus();
+if (adminData.adminPassword !== '') {
+  refreshLoginStatus();
+}
 </script>
 <style lang="scss" scoped>
 </style>
