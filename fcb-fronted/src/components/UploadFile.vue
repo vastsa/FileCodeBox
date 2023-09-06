@@ -4,7 +4,9 @@ import { ref, onMounted, onUnmounted } from 'vue'
 import { request } from "@/utils/request";
 import { useFileDataStore } from "@/stores/fileData";
 import { useFileBoxStore } from "@/stores/fileBox";
-import { ElMessage } from "element-plus";
+import { useI18n } from 'vue-i18n'
+
+const { t } = useI18n()
 const fileBoxStore = useFileBoxStore();
 const fileStore = useFileDataStore();
 const props = defineProps({
@@ -131,9 +133,9 @@ onMounted(()=>{
         <upload-filled/>
       </el-icon>
       <div class="el-upload__text">
-        将文字、文件拖、粘贴到此处，或 <em>点击上传</em>
+        {{t('send.prompt1')}}<em>{{t('send.clickUpload')}}</em>
       </div>
-      <div class="el-upload__text" style="font-size: 10px;">天数&lt;7或限制次数（24h后删除）</div>
+      <div class="el-upload__text" style="font-size: 10px;">{{t('send.prompt2')}}</div>
       <template #tip>
         <div class="el-upload__tip">
         </div>

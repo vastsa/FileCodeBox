@@ -3,8 +3,8 @@
     <el-header>
       <el-menu mode="horizontal" router :default-active="route.path">
         <el-menu-item v-for="menu in menus" :index="menu.path" :key="menu.path">{{menu.name}}</el-menu-item>
-        <el-menu-item style="float: right" @click="toggleDark(!isDark)">颜色模式</el-menu-item>
-        <el-menu-item style="float: right" @click="adminData.updateAdminPwd('');isLogin=false">注销登录</el-menu-item>
+        <el-menu-item style="float: right" @click="toggleDark(!isDark)">{{ t('admin.menu.color') }}</el-menu-item>
+        <el-menu-item style="float: right" @click="adminData.updateAdminPwd('');isLogin=false">{{ t('admin.menu.signout') }}</el-menu-item>
       </el-menu>
     </el-header>
     <el-main>
@@ -12,14 +12,14 @@
     </el-main>
   </el-container>
   <el-form size="large" v-else>
-    <el-form-item label="管理密码">
+    <el-form-item :label="t('admin.managePassword')">
       <el-input
           v-model="adminData.adminPassword"
-          placeholder="请输入密码！"
+          :placeholder="t('admin.passwordNotEmpty')"
           type="password"
       >
         <template #append>
-          <el-button @click="refreshLoginStatus">登录</el-button>
+          <el-button @click="refreshLoginStatus">{{ t('admin.login') }}</el-button>
         </template>
       </el-input>
     </el-form-item>
@@ -36,19 +36,22 @@ import { useAdminData } from "@/stores/adminData";
 import { request } from "@/utils/request";
 import { ElMessage } from "element-plus";
 
+import { useI18n } from 'vue-i18n'
+
+const { t } = useI18n()
 const adminData = useAdminData();
 const route = useRoute();
 const menus = ref([
   {
-    name: '文件管理',
+    name: t('admin.menu.fileManage'),
     path: '/admin',
   },
   {
-    name: '系统设置',
+    name: t('admin.menu.systemSetting'),
     path: '/admin/setting',
   },
   {
-    name: '关于我们',
+    name: t('admin.menu.about'),
     path: '/admin/about',
   }
 ]);
@@ -60,9 +63,9 @@ const refreshLoginStatus = () => {
   }).then((res: any) => {
     if (res.code === 200) {
       isLogin.value = true;
-      ElMessage.success('登录成功！');
+      ElMessage.success(t('admin.loginSuccess'));
     } else {
-      ElMessage.error(res.detail);
+      ElMessage.error(t('admin.loginError'));
     }
   });
 };

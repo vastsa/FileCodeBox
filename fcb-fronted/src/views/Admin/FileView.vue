@@ -1,24 +1,33 @@
 <template>
   <main>
       <el-table size="large" stripe :data="tableData" style="width: 100%">
-        <el-table-column prop="code" label="取件码" />
-        <el-table-column prop="prefix" label="文件前缀" />
-        <el-table-column prop="suffix" label="后缀" />
-        <el-table-column prop="text" label="文本">
+        <el-table-column prop="code" :label="t('admin.fileView.code')" />
+        <el-table-column prop="prefix" :label="t('admin.fileView.prefix')" />
+        <el-table-column prop="suffix" :label="t('admin.fileView.suffix')" />
+        <el-table-column prop="text" :label="t('admin.fileView.text')">
           <template #default="scope">
             <span style="width: 6rem;overflow: hidden;text-overflow: ellipsis;white-space: nowrap;">{{ scope.row.text }}</span>
           </template>
         </el-table-column>
-        <el-table-column prop="used_count" label="已用次数" />
-        <el-table-column prop="expired_count" label="可用次数" />
-        <el-table-column prop="expired_at" label="到期时间" />
-        <el-table-column prop="file_path" label="文件路径" />
+        <el-table-column prop="used_count" :label="t('admin.fileView.used_count')" />
+        <el-table-column prop="expired_count" :label="t('admin.fileView.expired_count')" />
+        <el-table-column prop="size" :label="t('admin.fileView.size')">
+          <template #default="scope">
+            <span>{{ Math.round(scope.row.size/1024/1024*100)/100 }}MB</span>
+          </template>
+        </el-table-column>
+        <el-table-column prop="expired_at" :label="t('admin.fileView.expired_at')">
+          <template #default="scope">
+            <span>{{ scope.row.expired_at ? scope.row.expired_at : '永久有效' }}</span>
+          </template>
+        </el-table-column>
+        <el-table-column prop="file_path" :label="t('admin.fileView.file_path')" />
         <el-table-column>
           <template #header>
-            操作
+            {{ t('admin.fileView.action')}}
           </template>
           <template #default="scope">
-            <el-button type="danger" size="small" @click="deleteFile(scope.row.id)">删除</el-button>
+            <el-button type="danger" size="small" @click="deleteFile(scope.row.id)">{{ t('admin.fileView.delete') }}</el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -29,8 +38,11 @@
 import { request } from "@/utils/request";
 import { ref } from "vue";
 import { ElMessage } from "element-plus";
-
 const tableData = ref([]);
+import { useI18n } from 'vue-i18n'
+
+const { t } = useI18n()
+
 const params = ref({
   page: 1,
   size: 10,

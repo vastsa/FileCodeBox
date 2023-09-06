@@ -39,7 +39,8 @@ async def get_now():
         datetime.timezone(datetime.timedelta(hours=8))
     )
 
-async def get_select_token(code: int):
+
+async def get_select_token(code: str):
     """
     获取下载token
     :param code:
@@ -48,7 +49,8 @@ async def get_select_token(code: int):
     token = "123456"
     return hashlib.sha256(f"{code}{int(time.time() / 1000)}000{token}".encode()).hexdigest()
 
-async def get_file_url(code: int):
+
+async def get_file_url(code: str):
     """
     对于需要通过服务器中转下载的服务，获取文件下载地址
     :param code:

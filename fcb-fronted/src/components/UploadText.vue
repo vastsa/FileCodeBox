@@ -5,6 +5,10 @@ const shareText = ref('')
 import { useFileDataStore } from "@/stores/fileData";
 import { useFileBoxStore } from "@/stores/fileBox";
 import { ElMessage } from "element-plus";
+
+import { useI18n } from 'vue-i18n'
+
+const { t } = useI18n()
 const fileBoxStore = useFileBoxStore();
 const fileStore = useFileDataStore();
 const props = defineProps({
@@ -20,7 +24,7 @@ const props = defineProps({
 })
 const handleSubmitShareText = ()=>{
   if (shareText.value === '') {
-    ElMessage.warning('请输入您要分享的文本');
+    ElMessage.warning(t('send.prompt3'));
   } else {
     const formData = new FormData();
     formData.append('text', shareText.value);
@@ -34,7 +38,7 @@ const handleSubmitShareText = ()=>{
       const data = res.detail;
       fileBoxStore.showFileBox = true;
       fileStore.addShareData({
-        'name': '文本分享',
+        'name': t('send.textShare'),
         'text': data.text,
         'code': data.code,
         'status': 'success',
@@ -51,14 +55,14 @@ const handleSubmitShareText = ()=>{
 <template>
 <div style="position: relative">
   <el-input
-      placeholder="请输入您要寄出的文本"
+      :placeholder="t('send.prompt3')"
       v-model="shareText"
       type="textarea"
       :rows="9"
       :input-style="{'border-radius':'20px','border':'1px dashed var(--el-border-color)','box-shadow':'none'}"
   >
   </el-input>
-  <el-button @click="handleSubmitShareText" style="position: absolute;right: 0;top: 0;border-radius: 0 20px 0 20px;margin: 1px;background: rgba(255,255,255,0.2)" size="large">分享</el-button>
+  <el-button @click="handleSubmitShareText" style="position: absolute;right: 0;top: 0;border-radius: 0 20px 0 20px;margin: 1px;background: rgba(255,255,255,0.2)" size="large">{{t('send.share')}}</el-button>
 </div>
 </template>
 

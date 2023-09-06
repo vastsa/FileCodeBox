@@ -208,6 +208,44 @@
   resolved "https://registry.npmmirror.com/@humanwhocodes/object-schema/-/object-schema-1.2.1.tgz#b520529ec21d8e5945a1851dfd1c32e94e39ff45"
   integrity sha512-ZnQMnLV4e7hDlUvw8H+U8ASL02SS2Gn6+9Ac3wGGLIe7+je2AeAOxPY+izIPJDfFDb7eDjev0Us8MO1iFRN8hA==
 
+"@intlify/core-base@9.3.0":
+  version "9.3.0"
+  resolved "https://registry.npmmirror.com/@intlify/core-base/-/core-base-9.3.0.tgz#fa42e32f89f06d421772fcedeec7dfba845ba98f"
+  integrity sha512-SRzn8TMnPZ6MY8OFrgouRq4DGaf01SHcJEF6FglYFYvRkgPzziEcQe+v2PD+O5lUp/rJafP4dabm1CmsVAA7rA==
+  dependencies:
+    "@intlify/devtools-if" "9.3.0"
+    "@intlify/message-compiler" "9.3.0"
+    "@intlify/shared" "9.3.0"
+    "@intlify/vue-devtools" "9.3.0"
+
+"@intlify/devtools-if@9.3.0":
+  version "9.3.0"
+  resolved "https://registry.npmmirror.com/@intlify/devtools-if/-/devtools-if-9.3.0.tgz#ae5a4d3577e05577e65bb6abbb0506d8af9309f6"
+  integrity sha512-5aKZnqj0Ff4dfwBX2Oo+MheVs00CBnC0RzWK26aT2M4AF0cxdFLOJAs51/eHT01jmzrxSvfBMjdArUWHwgetfg==
+  dependencies:
+    "@intlify/shared" "9.3.0"
+
+"@intlify/message-compiler@9.3.0":
+  version "9.3.0"
+  resolved "https://registry.npmmirror.com/@intlify/message-compiler/-/message-compiler-9.3.0.tgz#203366fe7448255731e951507c4d79093bf898b1"
+  integrity sha512-D8tSJEhTCSFcCzkThjE4Sbk1tIdvzkYa1FaVIzUtZ8hKPATvokNrOiDw1i/h671m8A80l9Ywq594i/LPTB6EJA==
+  dependencies:
+    "@intlify/shared" "9.3.0"
+    source-map-js "^1.0.2"
+
+"@intlify/shared@9.3.0":
+  version "9.3.0"
+  resolved "https://registry.npmmirror.com/@intlify/shared/-/shared-9.3.0.tgz#8875120f1e6826be0e99b623e2618167402bfe41"
+  integrity sha512-MMGRz6zWxtz7rHtxIIdnyb8SYOIaaseN1IvUhAEs9tOW4u77RD4DFp4qgPXesp2Gxo/5QitH9kwSs0jnxGUNEw==
+
+"@intlify/vue-devtools@9.3.0":
+  version "9.3.0"
+  resolved "https://registry.npmmirror.com/@intlify/vue-devtools/-/vue-devtools-9.3.0.tgz#f3137319fadaa92686de11be5ef28209dc828455"
+  integrity sha512-kEaxIz1VEgsz2q5RhoS+fBGTkXr/4+pxmK9mN14+speVGb82HPRntKBmz0GO18I1JisD4Z0vAva+KCTHGeAqbQ==
+  dependencies:
+    "@intlify/core-base" "9.3.0"
+    "@intlify/shared" "9.3.0"
+
 "@jridgewell/sourcemap-codec@^1.4.15":
   version "1.4.15"
   resolved "https://registry.npmmirror.com/@jridgewell/sourcemap-codec/-/sourcemap-codec-1.4.15.tgz#d7c6e6755c78567a951e04ab52ef0fd26de59f32"
@@ -2804,6 +2842,16 @@ vue-eslint-parser@^9.1.1, vue-eslint-parser@^9.3.1:
     esquery "^1.4.0"
     lodash "^4.17.21"
     semver "^7.3.6"
+
+vue-i18n@^9.3.0:
+  version "9.3.0"
+  resolved "https://registry.npmmirror.com/vue-i18n/-/vue-i18n-9.3.0.tgz#d85551098ab377e4237a101c77bfc05fd4887ff5"
+  integrity sha512-+2L+ae/e4+fixhjym3lgzGCGQG8wVGlGrDHzjfdgUudheHvbVHu5i6tn6FF+buH75UFA7T5ZO2ZO7zrh6CzuaA==
+  dependencies:
+    "@intlify/core-base" "9.3.0"
+    "@intlify/shared" "9.3.0"
+    "@intlify/vue-devtools" "9.3.0"
+    "@vue/devtools-api" "^6.5.0"
 
 vue-router@^4.2.4:
   version "4.2.4"

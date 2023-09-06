@@ -1,38 +1,38 @@
 <template>
   <el-form>
-    <el-form-item size="large" label="网站名称">
+    <el-form-item size="large" :label="t('admin.settings.name')">
       <el-input v-model="config.name" />
     </el-form-item>
-    <el-form-item size="large" label="网站描述">
+    <el-form-item size="large" :label="t('admin.settings.description')">
       <el-input v-model="config.description" />
     </el-form-item>
-    <el-form-item size="large" label="关键词" style="letter-spacing: 0.3rem">
+    <el-form-item size="large" :label="t('admin.settings.keywords')" style="letter-spacing: 0.3rem">
       <el-input v-model="config.keywords" />
     </el-form-item>
-    <el-form-item size="large" label="背景图片">
+    <el-form-item size="large" :label="t('admin.settings.background')">
       <el-input v-model="config.background" />
     </el-form-item>
-    <el-form-item size="large" label="后台密码">
+    <el-form-item size="large" :label="t('admin.settings.admin_token')">
       <el-input type="password" v-model="config.admin_token" />
     </el-form-item>
-    <el-form-item size="large" label="文件大小">
+    <el-form-item size="large" :label="t('admin.settings.uploadSize')">
       <el-input type="number" v-model="config.uploadSize" />
       <template #append>Bit</template>
-      <small>最大文件大小，单位:（bit),1mb=1 * 1024 * 1024</small>
+      <small>{{ t('admin.settings.uploadSizeNote') }}</small>
     </el-form-item>
-    <el-form-item size="large" label="开启上传">
+    <el-form-item size="large" :label="t('admin.settings.openUpload.title')">
       <el-select v-model="config.openUpload">
-        <el-option label="开启游客上传" :value="1" />
-        <el-option label="关闭游客上传" :value="0" />
+        <el-option :label="t('admin.settings.openUpload.open')" :value="1" />
+        <el-option :label="t('admin.settings.openUpload.close')" :value="0" />
       </el-select>
-      <small style="margin-left: 0.4rem">关闭之后需要登录后台方可上传</small>
+      <small style="margin-left: 0.4rem">{{ t('admin.settings.openUpload.note') }}</small>
     </el-form-item>
-    <el-form-item size="large" label="存储引擎">
+    <el-form-item size="large" :label="t('admin.settings.file_storage.title')">
       <el-select v-model="config.file_storage">
-        <el-option label="本地存储" value="local" />
-        <el-option label="S3存储" value="s3" />
+        <el-option :label="t('admin.settings.file_storage.local')" value="local" />
+        <el-option :label="t('admin.settings.file_storage.s3')" value="s3" />
       </el-select>
-      <small style="margin-left: 0.4rem">更新后需要重启FileCodeBox</small>
+      <small style="margin-left: 0.4rem">{{ t('admin.settings.file_storage.note') }}</small>
     </el-form-item>
     <div v-if="config.file_storage==='s3'">
       <el-form-item size="large" label="S3 AccessKeyId">
@@ -48,32 +48,32 @@
         <el-input v-model="config.s3_endpoint_url" />
       </el-form-item>
     </div>
-    <el-form-item size="large" label="上传限制">
+    <el-form-item size="large" :label="t('admin.settings.name')">
         <span style="display: flex;height: 38px">
-          <span style="margin-right: 0.4rem">每</span>
+          <span style="margin-right: 0.4rem">{{ t('admin.settings.mei') }}</span>
           <el-input type="number" v-model="config.uploadMinute" />
-          <span style="width: 200px;margin-left: 0.4rem">分钟</span>
+          <span style="width: 200px;margin-left: 0.4rem">{{ t('admin.settings.minute') }}</span>
         </span>
         <span style="display: flex;height: 38px">
-          <span style="width:3rem;margin-right: 0.4rem">上传</span>
+          <span style="width:3rem;margin-right: 0.4rem">{{ t('admin.settings.upload') }}</span>
           <el-input type="number" v-model="config.uploadCount" />
-        <span style="width: 200px;margin-left: 0.4rem">个文件</span>
+        <span style="width: 200px;margin-left: 0.4rem">{{ t('admin.settings.files') }}</span>
         </span>
     </el-form-item>
-    <el-form-item size="large" label="错误限制">
+    <el-form-item size="large" :label="t('admin.settings.name')">
         <span style="display: flex;height: 38px">
-          <span style="margin-right: 0.4rem">每</span>
+          <span style="margin-right: 0.4rem">{{ t('admin.settings.mei') }}</span>
           <el-input type="number" v-model="config.errorMinute" />
-          <span style="width: 200px;margin-left: 0.4rem">分钟</span>
+          <span style="width: 200px;margin-left: 0.4rem">{{ t('admin.settings.minute') }}</span>
         </span>
         <span style="display: flex;height: 38px">
-          <span style="width:3rem;margin-right: 0.4rem">允许</span>
+          <span style="width:3rem;margin-right: 0.4rem">{{ t('admin.settings.allow') }}</span>
           <el-input type="number" v-model="config.errorCount" />
-        <span style="width: 200px;margin-left: 0.4rem">次错误</span>
+        <span style="width: 200px;margin-left: 0.4rem">{{ t('admin.settings.errors') }}</span>
         </span>
     </el-form-item>
     <el-form-item>
-      <el-button @click="submitSave" type="primary" style="margin: auto">保存</el-button>
+      <el-button @click="submitSave" type="primary" style="margin: auto">{{ t('admin.settings.save') }}</el-button>
     </el-form-item>
   </el-form>
 </template>
@@ -81,6 +81,10 @@
 import {ref} from "vue";
 import { request } from "@/utils/request";
 import { ElMessage } from "element-plus";
+
+import { useI18n } from 'vue-i18n'
+
+const { t } = useI18n()
 
 const config = ref({
   name: '',
@@ -116,7 +120,7 @@ const submitSave = () => {
     data: config.value
   }).then((res: any) => {
     if (res.code == 200) {
-      ElMessage.success('保存成功');
+      ElMessage.success(t('admin.settings.saveSuccess'));
     } else {
       ElMessage.error(res.message);
     }

@@ -10,7 +10,7 @@ from apps.admin.depends import admin_required
 from apps.admin.pydantics import IDData
 from apps.base.models import FileCodes
 from core.response import APIResponse
-from core.settings import default_value, settings
+from core.settings import settings
 from core.storage import file_storage
 
 admin_api = APIRouter(
@@ -34,11 +34,10 @@ async def file_delete(data: IDData):
 
 @admin_api.get('/file/list', dependencies=[Depends(admin_required)])
 async def file_list(page: float = 1, size: int = 10):
-    data = await FileCodes.all().limit(size).offset((math.ceil(page) - 1) * size)
     return APIResponse(detail={
         'page': page,
         'size': size,
-        'data': data,
+        'data': await FileCodes.all().limit(size).offset((math.ceil(page) - 1) * size),
         'total': await FileCodes.all().count(),
     })
 
