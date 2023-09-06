@@ -28,6 +28,7 @@ export default {
   },
   fileBox: {
     copySuccess: '复制成功',
+    inputNotEmpty: '请输入五位取件码',
     fileBox: '文件箱',
     textDetail: '文本详情',
     copy: '复 制',

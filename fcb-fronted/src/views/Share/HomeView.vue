@@ -16,6 +16,10 @@ const input_status = reactive({
   'readonly': false,
   'loading': false,
 })
+
+import { useI18n } from 'vue-i18n'
+
+const { t } = useI18n()
 onMounted(() => {
   const query_code = route.query.code as string;
   if (query_code) {
@@ -66,7 +70,7 @@ const url = atob('aHR0cHM6Ly9naXRodWIuY29tL3Zhc3RzYS9GaWxlQ29kZUJveA==');
         <CardTools/>
         <el-row style="text-align: center">
           <el-col :span="24">
-            <el-input :readonly="input_status.readonly" v-loading="input_status.loading" v-model="code" class="code-input" round autofocus clearable maxlength="5" placeholder="请输入五位取件码"/>
+            <el-input :readonly="input_status.readonly" v-loading="input_status.loading" v-model="code" class="code-input" round autofocus clearable maxlength="5" :placeholder="t('fileBpx.inputNotEmpty')"/>
           </el-col>
           <el-col :span=8 v-for="i in 9" :key="i">
             <el-button class="key-button" round @click="listenInput(i)">{{ i }}</el-button>
