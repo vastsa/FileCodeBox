@@ -63,9 +63,9 @@ const refreshLoginStatus = () => {
   }).then((res: any) => {
     if (res.code === 200) {
       isLogin.value = true;
-      ElMessage.success(t('admin.loginSuccess'));
+      ElMessage.success(t('admin.login.loginSuccess'));
     } else {
-      ElMessage.error(t('admin.loginError'));
+      ElMessage.error(t('admin.login.loginError'));
     }
   });
 };
