@@ -5,6 +5,7 @@ import { useRoute, useRouter } from "vue-router";
 import CardTools from "@/components/CardTools.vue";
 import { useFileBoxStore } from "@/stores/fileBox";
 import { useFileDataStore } from "@/stores/fileData";
+import { ElMessageBox } from 'element-plus'
 
 import { request } from "@/utils/request";
 const fileBoxStore = useFileBoxStore();
@@ -18,7 +19,13 @@ const input_status = reactive({
 })
 
 import { useI18n } from 'vue-i18n'
-
+const noDialog = ()=>{
+  ElMessageBox.alert('根据《中华人民共和国网络安全法》、《中华人民共和国刑法》、《中华人民共和国治安管理处罚法》等相关规定。 传播或存储违法、违规内容，会受到相关处罚，严重者将承担刑事责任。请勿上传非法文件，本站坚决配合相关部门，确保网络内容的安全，和谐，打造绿色网络环境。', '免责声明', {
+    confirmButtonText: '确定',
+    callback: () => {
+    }
+  });
+}
 const { t } = useI18n()
 onMounted(() => {
   const query_code = route.query.code as string;
@@ -92,6 +99,7 @@ const url = atob('aHR0cHM6Ly9naXRodWIuY29tL3Zhc3RzYS9GaWxlQ29kZUJveA==');
         <a style="text-decoration: none;color: #606266" target="_blank" :href="url">
           {{ name}}
         </a>
+        <a @click="noDialog" style="text-decoration: none;color: #606266;margin-left: 1rem" href="javascript:void(0)">免责声明</a>
       </div>
     </main>
 </template>
