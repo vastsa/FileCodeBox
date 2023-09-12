@@ -61,14 +61,33 @@ async def share_file(expire_value: int = Form(default=1, gt=0), expire_style: st
     })
 
 
+async def get_code_file_by_code(code):
+    file_code = await FileCodes.filter(code=code).first()
+    if not file_code:
+        return False, '文件不存在'
+    if await file_code.is_expired():
+        return False, '文件已过期',
+    return True, file_code
+
+
+@share_api.get('/select/')
+async def get_code_file(code: str, ip: str = Depends(error_ip_limit)):
+    has, file_code = await get_code_file_by_code(code)
+    if not has:
+        error_ip_limit.add_ip(ip)
+        return APIResponse(code=404, detail=file_code)
+    file_code.used_count += 1
+    file_code.expired_count -= 1
+    await file_code.save()
+    return await file_storage.get_file_response(file_code)
+
+
 @share_api.post('/select/')
 async def select_file(data: SelectFileModel, ip: str = Depends(error_ip_limit)):
-    file_code = await FileCodes.filter(code=data.code).first()
-    if not file_code:
+    has, file_code = await get_code_file_by_code(data.code)
+    if not has:
         error_ip_limit.add_ip(ip)
-        return APIResponse(code=404, detail='文件不存在')
-    if await file_code.is_expired():
-        return APIResponse(code=403, detail='文件已过期')
+        return APIResponse(code=404, detail=file_code)
     file_code.used_count += 1
     file_code.expired_count -= 1
     await file_code.save()
@@ -85,7 +104,7 @@ async def download_file(key: str, code: str, ip: str = Depends(error_ip_limit)):
     is_valid = await get_select_token(code) == key
     if not is_valid:
         error_ip_limit.add_ip(ip)
-    file_code = await FileCodes.filter(code=code).first()
+    has, file_code = await get_code_file_by_code(code)
     if not file_code:
         return APIResponse(code=404, detail='文件不存在')
     if file_code.text:
