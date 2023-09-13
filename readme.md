@@ -25,6 +25,7 @@
 - [x] 一键部署：docker一键部署
 - [x] 自由拓展：S3协议、本地文件流，可根据需求在storage文件中新增存储引擎
 - [x] 简单明了：适合新手练手项目
+- [x] 终端下载：wget https://share.lanol.cn/share/select?code=83432
 
 ## 部署方式
 
