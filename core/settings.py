@@ -62,6 +62,8 @@ class Settings:
         return cls.__instance
 
     def __setattr__(self, key, value):
+        if not key.startswith('opendal_') and type(value) == str and value.isnumeric():
+            value = int(value)
         self.__dict__[key] = value
         with open(env_path, 'w', encoding='utf-8') as f:
             for key, value in self.__dict__.items():
