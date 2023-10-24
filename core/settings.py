@@ -17,6 +17,7 @@ default_value = {
     's3_secret_access_key': '',
     's3_bucket_name': '',
     's3_endpoint_url': '',
+    'aws_session_token': '',
     'onedrive_domain': '',
     'onedrive_client_id': '',
     'onedrive_username': '',

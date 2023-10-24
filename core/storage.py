@@ -90,10 +90,11 @@ class S3FileStorage(FileStorageInterface):
         self.secret_access_key = settings.s3_secret_access_key
         self.bucket_name = settings.s3_bucket_name
         self.endpoint_url = settings.s3_endpoint_url
+        self.aws_session_token = settings.aws_session_token
         self.session = aioboto3.Session(aws_access_key_id=self.access_key_id, aws_secret_access_key=self.secret_access_key)
 
     async def save_file(self, file: UploadFile, save_path: str):
-        async with self.session.client("s3", endpoint_url=self.endpoint_url) as s3:
+        async with self.session.client("s3", endpoint_url=self.endpoint_url, aws_session_token=self.aws_session_token) as s3:
             await s3.put_object(Bucket=self.bucket_name, Key=save_path, Body=await file.read(), ContentType=file.content_type)
 
     async def delete_file(self, file_code: FileCodes):

@@ -17,7 +17,7 @@
     </el-form-item>
     <el-form-item size="large" :label="t('admin.settings.uploadSize')">
       <el-input type="number" v-model="config.uploadSize" />
-      <template #append>Bit</template>
+      <template #append>Bytes</template>
       <small>{{ t('admin.settings.uploadSizeNote') }}</small>
     </el-form-item>
     <el-form-item size="large" :label="t('admin.settings.openUpload.title')">
@@ -46,6 +46,9 @@
       </el-form-item>
       <el-form-item size="large" label="S3 EndpointUrl">
         <el-input v-model="config.s3_endpoint_url" />
+      </el-form-item>
+      <el-form-item size="large" label="Aws Session Token">
+        <el-input v-model="config.aws_session_token" />
       </el-form-item>
     </div>
     <el-form-item size="large" :label="t('admin.settings.name')">
@@ -98,6 +101,7 @@ const config = ref({
   s3_access_key_id: '',
   background: '',
   s3_secret_access_key: '',
+  aws_session_token: '',
   s3_bucket_name: '',
   s3_endpoint_url: '',
   uploadCount: 1,
