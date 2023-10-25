@@ -1,27 +1,29 @@
 export default {
   send: {
+    'mzsm':'免责声明',
+    'alert': '根据《中华人民共和国网络安全法》、《中华人民共和国刑法》、《中华人民共和国治安管理处罚法》等相关规定。 传播或存储违法、违规内容，会受到相关处罚，严重者将承担刑事责任。请勿上传非法文件，本站坚决配合相关部门，确保网络内容的安全，和谐，打造绿色网络环境。',
     'prompt1': '将文字、文件拖、粘贴到此处，或 ',
     'prompt2': '天数<7或限制次数（24h后删除）',
-    'prompt3':'请输入您要寄出的文本',
-    'share':'分享',
-    'textShare':'文本分享',
+    'prompt3': '请输入您要寄出的文本',
+    'share': '分享',
+    'textShare': '文本分享',
     'clickUpload': '点击上传',
     'pleaseInputExpireValue': '请输入有效期',
     'expireStyle': '过期方式',
-    'expireData':{
+    'expireData': {
       'day': '天数',
       'hour': '小时',
       'forever': '永久',
       'minute': '分钟',
       'count': '次数'
     },
-    'expireValue':{
+    'expireValue': {
       'day': '天',
       'hour': '时',
       'minute': '分',
       'count': '次'
     },
-    'fileType':{
+    'fileType': {
       'file': '文件',
       'text': '文本'
     }
@@ -38,10 +40,10 @@ export default {
     detail: '查 看 详 情',
     copyLink: '复制链接',
   },
-  admin:{
-    about:{
-      'source1':'本项目开源于Github：',
-      'source2':'FileCodeBox'
+  admin: {
+    about: {
+      'source1': '本项目开源于Github：',
+      'source2': 'FileCodeBox'
     },
     settings: {
       name: '网站名称',
@@ -85,7 +87,7 @@ export default {
       action: '操作',
       delete: '删除',
     },
-    'menu': {
+    menu: {
       'fileManage': '文件管理',
       'systemSetting': '系统设置',
       'about': '关于我们',
@@ -100,4 +102,4 @@ export default {
       'loginError': '登录失败',
     }
   }
-}
+};

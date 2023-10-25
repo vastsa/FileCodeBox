@@ -12,14 +12,14 @@
     </el-main>
   </el-container>
   <el-form size="large" v-else>
-    <el-form-item :label="t('admin.managePassword')">
+    <el-form-item :label="t('admin.login.managePassword')">
       <el-input
           v-model="adminData.adminPassword"
-          :placeholder="t('admin.passwordNotEmpty')"
+          :placeholder="t('admin.login.passwordNotEmpty')"
           type="password"
       >
         <template #append>
-          <el-button @click="refreshLoginStatus">{{ t('admin.login') }}</el-button>
+          <el-button @click="refreshLoginStatus">{{ t('admin.login.login') }}</el-button>
         </template>
       </el-input>
     </el-form-item>
