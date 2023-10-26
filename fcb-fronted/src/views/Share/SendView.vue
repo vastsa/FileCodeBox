@@ -16,9 +16,9 @@ const shareData = ref({
 
 <template>
   <main>
-    <el-card class="card" style="padding: 1rem;position: relative"  :body-style="{ padding: '0px 0px 20px 0px' }">
-      <card-tools/>
-      <div style="display: flex;margin-top: 1rem">
+    <el-card class="card" style="position: relative" :body-style="{ padding: '0' }">
+      <card-tools style="padding: 1rem"/>
+      <div style="display: flex;margin: 1rem">
         <div>
           <el-input
               v-model="shareData.expireValue"
@@ -52,10 +52,15 @@ const shareData = ref({
           </el-radio>
         </el-radio-group>
       </div>
-      <div style="margin-top: 1rem">
+      <div style="margin: 1rem">
         <upload-file :shareData="shareData" v-if="shareData.targetType=='file'"/>
         <upload-text :shareData="shareData" v-else-if="shareData.targetType=='text'"/>
       </div>
+      <el-carousel height="319px">
+        <el-carousel-item v-for="item in 4" :key="item">
+          <div style="height: 100%;width: 100%;background: #0a0a0a"></div>
+        </el-carousel-item>
+      </el-carousel>
     </el-card>
   </main>
 </template>
