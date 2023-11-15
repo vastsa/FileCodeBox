@@ -3,6 +3,7 @@
 <h2>FileCodeBox-Lite</h2>
 <p><em>匿名口令分享文本，文件，像拿快递一样取文件</em></p>
 <p>交流Q群：739673698</p>
+<p>使用AI解决问题：<a href='https://ailink.pw'>AiLink</a></p>
 </div>
 
 ![banner](https://fastly.jsdelivr.net/gh/vastsa/FileCodeBox@V1.6/static/banners/img_1.png)
