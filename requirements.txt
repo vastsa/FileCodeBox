@@ -37,3 +37,4 @@ urllib3==1.26.16
 uvicorn==0.23.2
 wrapt==1.15.0
 yarl==1.9.2
+Office365-REST-Python-Client==2.5.2
