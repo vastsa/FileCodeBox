@@ -5,12 +5,12 @@
 import datetime
 import uuid
 import os
-from fastapi import UploadFile
+from fastapi import UploadFile, HTTPException
 
 from apps.base.depends import IPRateLimit
 from apps.base.models import FileCodes
 from core.settings import settings
-from core.utils import get_random_num, get_random_string
+from core.utils import get_random_num, get_random_string, max_save_times_desc
 
 
 async def get_file_path_name(file: UploadFile):
@@ -43,11 +43,24 @@ async def get_expire_info(expire_value: int, expire_style: str):
     :return: expired_at 过期时间, expired_count 可用次数, used_count 已用次数, code 随机码
     """
     expired_count, used_count, now, code = -1, 0, datetime.datetime.now(), None
+    if settings.max_save_seconds > 0:
+        max_timedelta = datetime.timedelta(seconds=settings.max_save_seconds)
+        detail = await max_save_times_desc(settings.max_save_seconds)
+        detail = f'保存时间超过限制，{detail[0]}'
+    else:
+        max_timedelta = datetime.timedelta(days=7)
+        detail = '保存时间超过限制，最长保存时间：7天'
     if expire_style == 'day':
+        if datetime.timedelta(days=expire_value) > max_timedelta:
+            raise HTTPException(status_code=403, detail=detail)
         expired_at = now + datetime.timedelta(days=expire_value)
     elif expire_style == 'hour':
+        if datetime.timedelta(hours=expire_value) > max_timedelta:
+            raise HTTPException(status_code=403, detail=detail)
         expired_at = now + datetime.timedelta(hours=expire_value)
     elif expire_style == 'minute':
+        if datetime.timedelta(minutes=expire_value) > max_timedelta:
+            raise HTTPException(status_code=403, detail=detail)
         expired_at = now + datetime.timedelta(minutes=expire_value)
     elif expire_style == 'count':
         expired_at = now + datetime.timedelta(days=1)

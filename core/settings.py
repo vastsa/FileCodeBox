@@ -13,6 +13,7 @@ default_value = {
     'name': '文件快递柜-FileCodeBox',
     'description': '开箱即用的文件快传系统',
     'keywords': 'FileCodeBox，文件快递柜，口令传送箱，匿名口令分享文本，文件',
+    'max_save_seconds': 0,
     's3_access_key_id': '',
     's3_secret_access_key': '',
     's3_bucket_name': '',

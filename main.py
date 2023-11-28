@@ -4,10 +4,11 @@
 # @Software: PyCharm
 import asyncio
 import os
+import re
 
 from fastapi import FastAPI
 from starlette.middleware.cors import CORSMiddleware
-from starlette.responses import HTMLResponse
+from starlette.responses import HTMLResponse, FileResponse
 from starlette.staticfiles import StaticFiles
 from tortoise.contrib.fastapi import register_tortoise
 
@@ -15,6 +16,7 @@ from apps.base.views import share_api
 from apps.admin.views import admin_api
 from core.settings import data_root, settings
 from core.tasks import delete_expire_files
+from core.utils import max_save_times_desc
 
 app = FastAPI()
 
@@ -26,7 +28,24 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.mount('/assets', StaticFiles(directory='./fcb-fronted/dist/assets'), name="assets")
+@app.get('/assets/{file_path:path}')
+async def assets(file_path: str):
+    if settings.max_save_seconds > 0:
+        if re.match(r'SendView-[\d|a-f|A-F]+\.js', file_path):
+            with open(f'./fcb-fronted/dist/assets/{file_path}', 'r', encoding='utf-8') as f:
+                # 删除永久保存选项
+                content = f.read()
+                content = content.replace('_(c,{label:e(r)("send.expireData.forever"),value:"forever"},null,8,["label"]),', '')
+                return HTMLResponse(content=content, media_type='text/javascript')
+        if re.match(r'index-[\d|a-f|A-F]+\.js', file_path):
+            with open(f'./fcb-fronted/dist/assets/{file_path}', 'r', encoding='utf-8') as f:
+                # 更改本文描述
+                desc_zh, desc_en = await max_save_times_desc(settings.max_save_seconds)
+                content = f.read()
+                content = content.replace('天数<7', desc_zh)
+                content = content.replace('Days <7', desc_en)
+                return HTMLResponse(content=content, media_type='text/javascript')
+    return FileResponse(f'./fcb-fronted/dist/assets/{file_path}')
 
 register_tortoise(
     app,
