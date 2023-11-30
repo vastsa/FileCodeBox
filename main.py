@@ -28,6 +28,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
 @app.get('/assets/{file_path:path}')
 async def assets(file_path: str):
     if settings.max_save_seconds > 0:
@@ -46,6 +47,7 @@ async def assets(file_path: str):
                 content = content.replace('Days <7', desc_en)
                 return HTMLResponse(content=content, media_type='text/javascript')
     return FileResponse(f'./fcb-fronted/dist/assets/{file_path}')
+
 
 register_tortoise(
     app,
