@@ -80,11 +80,11 @@ async def startup_event():
 async def index():
     return HTMLResponse(
         content=open('./fcb-fronted/dist/index.html', 'r', encoding='utf-8').read()
-        .replace('{{title}}', settings.name)
-        .replace('{{description}}', settings.description)
-        .replace('{{keywords}}', settings.keywords)
-        .replace('{{opacity}}', settings.opacity)
-        .replace('{{background}}', settings.background)
+        .replace('{{title}}', str(settings.name))
+        .replace('{{description}}', str(settings.description))
+        .replace('{{keywords}}', str(settings.keywords))
+        .replace('{{opacity}}', str(settings.opacity))
+        .replace('{{background}}', str(settings.background))
         , media_type='text/html', headers={'Cache-Control': 'no-cache'})
 
 
