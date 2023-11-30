@@ -232,21 +232,6 @@ BUCKET_NAME=阿里云OSS Bucket的BucketName
 
 [![Star History Chart](https://api.star-history.com/svg?repos=vastsa/FileCodeBox&type=Date)](https://star-history.com/#vastsa/FileCodeBox&Date)
 
-## 赞赏
-
-<table style="width: 100%">
-<tr style="width: 100%">
-<td style="width: 50%;text-align: center;">
-支付宝
-<img src="https://fastly.jsdelivr.net/gh/vastsa/FileCodeBox@V1.6/images/img_9.png" alt="支付宝">
-</td>
-<td style="width: 50%;text-align: center">
-微信
-<img src="https://fastly.jsdelivr.net/gh/vastsa/FileCodeBox@V1.6/images/img_8.png" alt="微信">
-</td>
-</tr>
-</table>    
-
 ## 常见问题
 
 1. 413 Request Entity Too Large
