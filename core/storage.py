@@ -91,10 +91,16 @@ class S3FileStorage(FileStorageInterface):
         self.access_key_id = settings.s3_access_key_id
         self.secret_access_key = settings.s3_secret_access_key
         self.bucket_name = settings.s3_bucket_name
-        self.endpoint_url = settings.s3_endpoint_url
+        self.s3_hostname = settings.s3_hostname
+        self.endpoint_url = settings.s3_endpoint_url or f'https://{self.s3_hostname}'
         self.aws_session_token = settings.aws_session_token
         self.proxy = settings.s3_proxy
         self.session = aioboto3.Session(aws_access_key_id=self.access_key_id, aws_secret_access_key=self.secret_access_key)
+        if not settings.s3_endpoint_url:
+            self.endpoint_url = f'https://{self.s3_hostname}'
+        else:
+            # 如果提供了 s3_endpoint_url，则优先使用它
+            self.endpoint_url = settings.s3_endpoint_url
 
     async def save_file(self, file: UploadFile, save_path: str):
         async with self.session.client("s3", endpoint_url=self.endpoint_url, aws_session_token=self.aws_session_token) as s3:

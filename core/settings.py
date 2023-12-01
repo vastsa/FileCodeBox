@@ -12,12 +12,13 @@ default_value = {
     'file_storage': 'local',
     'name': '文件快递柜-FileCodeBox',
     'description': '开箱即用的文件快传系统',
-    'keywords': 'FileCodeBox，文件快递柜，口令传送箱，匿名口令分享文本，文件',
+    'keywords': 'FileCodeBox, 文件快递柜, 口令传送箱, 匿名口令分享文本, 文件',
     'max_save_seconds': 0,
     's3_access_key_id': '',
     's3_secret_access_key': '',
     's3_bucket_name': '',
     's3_endpoint_url': '',
+    's3_hostname': 's3.amazonaws.com',
     's3_proxy': 0,
     'aws_session_token': '',
     'onedrive_domain': '',
@@ -56,6 +57,7 @@ class Settings:
                 if not key.startswith('opendal_') and isinstance(default_value[key], int):
                     value = int(value)
                 default_value[key] = value
+
         # 更新self
         for key, value in default_value.items():
             self.__setattr__(key, value)
@@ -75,6 +77,5 @@ class Settings:
 
     def items(self):
         return self.__dict__.items()
-
 
 settings = Settings()
