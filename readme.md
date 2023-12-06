@@ -103,72 +103,31 @@ docker logs filecodebox
 
 [https://share.lanol.cn](https://share.lanol.cn)
 
-### 暗黑模式
+### 截图
 
 <table style="width:100%">
-
 <tr style="width: 100%">
 <td style="width: 50%">
-<img src="https://fastly.jsdelivr.net/gh/vastsa/FileCodeBox@V1.6/images/img_10.png" alt="寄文件">
-
+<img src="./.github/images/img.png" alt="寄文件">
 </td>
 <td style="width: 50%">
-<img src="https://fastly.jsdelivr.net/gh/vastsa/FileCodeBox@V1.6/images/img_11.png" alt="寄文件">
-
+<img src="./.github/images/img_1.png" alt="寄文件">
 </td>
 </tr>
-</table>
-
-### 寄件
-
-<table style="width: 100%">
 <tr style="width: 100%">
 <td style="width: 50%">
-<img src="https://fastly.jsdelivr.net/gh/vastsa/FileCodeBox@V1.6/images/img_1.png" alt="寄文件">
+<img src="./.github/images/img_2.png" alt="寄文件">
 </td>
 <td style="width: 50%">
-<img src="https://fastly.jsdelivr.net/gh/vastsa/FileCodeBox@V1.6/images/img_2.png" alt="寄文本">
+<img src="./.github/images/img_3.png" alt="寄文件">
 </td>
 </tr>
-<tr style="width: 100%;">
-<td colspan="2" style="width: 100%;">
-<img src="https://fastly.jsdelivr.net/gh/vastsa/FileCodeBox@V1.6/images/img_3.png" alt="寄文本">
-</td>
-</tr>
-</table>
-
-### 取件
-
-<table style="width: 100%">
 <tr style="width: 100%">
 <td style="width: 50%">
-<img src="https://fastly.jsdelivr.net/gh/vastsa/FileCodeBox@V1.6/images/img_6.png" alt="取件">
+<img src="./.github/images/img_4.png" alt="寄文件">
 </td>
 <td style="width: 50%">
-<img src="https://fastly.jsdelivr.net/gh/vastsa/FileCodeBox@V1.6/images/img_5.png" alt="取件码错误">
-</td>
-</tr>
-<tr style="width: 100%;">
-<td colspan="2" style="width: 100%;">
-<img src="https://fastly.jsdelivr.net/gh/vastsa/FileCodeBox@V1.6/images/img_4.png" alt="取文件">
-</td>
-</tr>
-</table>
-
-### 管理
-
-<table style="width: 100%">
-<tr style="width: 100%">
-<td style="width: 50%">
-<img src="https://fastly.jsdelivr.net/gh/vastsa/FileCodeBox@V1.6/images/img_7.png" alt="admin">
-</td>
-<td style="width: 50%">
-<img src="https://fastly.jsdelivr.net/gh/vastsa/FileCodeBox@V1.6/images/img_12.png" alt="admin">
-</td>
-</tr>
-<tr style="width: 100%;">
-<td colspan="2" style="width: 100%;">
-<img src="https://fastly.jsdelivr.net/gh/vastsa/FileCodeBox@V1.6/images/img_13.png" alt="admin">
+<img src="./.github/images/img_5.png" alt="寄文件">
 </td>
 </tr>
 </table>

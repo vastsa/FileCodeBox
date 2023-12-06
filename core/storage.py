@@ -10,6 +10,7 @@ import io
 import re
 import sys
 import aioboto3
+import botocore
 from fastapi import HTTPException, Response, UploadFile
 from core.response import APIResponse
 from core.settings import data_root, settings
@@ -94,7 +95,10 @@ class S3FileStorage(FileStorageInterface):
         self.endpoint_url = settings.s3_endpoint_url
         self.aws_session_token = settings.aws_session_token
         self.proxy = settings.s3_proxy
-        self.session = aioboto3.Session(aws_access_key_id=self.access_key_id, aws_secret_access_key=self.secret_access_key)
+        self.session = aioboto3.Session(
+            aws_access_key_id=self.access_key_id,
+            aws_secret_access_key=self.secret_access_key,
+        )
 
     async def save_file(self, file: UploadFile, save_path: str):
         async with self.session.client("s3", endpoint_url=self.endpoint_url, aws_session_token=self.aws_session_token) as s3:
@@ -116,8 +120,7 @@ class S3FileStorage(FileStorageInterface):
             tmp.seek(0)
             content = tmp.read()
             tmp.close()
-            return Response(content, media_type="application/octet-stream", headers=
-                            {"Content-Disposition": f'attachment; filename="{filename.encode("utf-8").decode("latin-1")}"'})
+            return Response(content, media_type="application/octet-stream", headers={"Content-Disposition": f'attachment; filename="{filename.encode("utf-8").decode("latin-1")}"'})
         except Exception:
             raise HTTPException(status_code=503, detail='服务代理下载异常，请稍后再试')
 
@@ -228,8 +231,7 @@ class OneDriveFileStorage(FileStorageInterface):
             tmp.seek(0)
             content = tmp.read()
             tmp.close()
-            return Response(content, media_type="application/octet-stream", headers=
-                            {"Content-Disposition": f'attachment; filename="{filename.encode("utf-8").decode("latin-1")}"'})
+            return Response(content, media_type="application/octet-stream", headers={"Content-Disposition": f'attachment; filename="{filename.encode("utf-8").decode("latin-1")}"'})
         except Exception:
             raise HTTPException(status_code=503, detail='服务代理下载异常，请稍后再试')
 
