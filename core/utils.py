@@ -58,26 +58,30 @@ async def get_file_url(code: str):
     """
     return f'/share/download?key={await get_select_token(code)}&code={code}'
 
+
 async def max_save_times_desc(max_save_seconds: int):
     """
     获取最大保存时间的描述
     :param max_save_seconds:
     :return:
     """
+
     def gen_desc_zh(value: int, desc: str):
         if value > 0:
             return f'{value}{desc}'
         else:
             return ''
+
     def gen_desc_en(value: int, desc: str):
         if value > 0:
-            ret =  f'{value} {desc}'
+            ret = f'{value} {desc}'
             if value > 1:
                 ret += 's'
             ret += ' '
             return ret
         else:
             return ''
+
     max_timedelta = datetime.timedelta(seconds=max_save_seconds)
     desc_zh, desc_en = '最长保存时间：', 'Max save time: '
     desc_zh += gen_desc_zh(max_timedelta.days, '天')
