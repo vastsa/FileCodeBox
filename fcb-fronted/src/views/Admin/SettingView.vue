@@ -47,8 +47,8 @@
       <el-form-item size="large" label="S3 EndpointUrl">
         <el-input v-model="config.s3_endpoint_url" />
       </el-form-item>
-	  <el-form-item size="large" label="s3_hostname">
-        <el-input v-model="s3_hostname" />
+	  <el-form-item size="large" label="S3 hostname">
+        <el-input v-model="config.s3_hostname" />
       </el-form-item>
       <el-form-item size="large" label="Aws Session Token">
         <el-input v-model="config.aws_session_token" />
