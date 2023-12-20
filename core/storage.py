@@ -10,6 +10,7 @@ import io
 import re
 import sys
 import aioboto3
+import botocore
 from fastapi import HTTPException, Response, UploadFile
 from core.response import APIResponse
 from core.settings import data_root, settings
@@ -122,8 +123,7 @@ class S3FileStorage(FileStorageInterface):
             tmp.seek(0)
             content = tmp.read()
             tmp.close()
-            return Response(content, media_type="application/octet-stream", headers=
-                            {"Content-Disposition": f'attachment; filename="{filename.encode("utf-8").decode("latin-1")}"'})
+            return Response(content, media_type="application/octet-stream", headers={"Content-Disposition": f'attachment; filename="{filename.encode("utf-8").decode("latin-1")}"'})
         except Exception:
             raise HTTPException(status_code=503, detail='服务代理下载异常，请稍后再试')
 
@@ -234,8 +234,7 @@ class OneDriveFileStorage(FileStorageInterface):
             tmp.seek(0)
             content = tmp.read()
             tmp.close()
-            return Response(content, media_type="application/octet-stream", headers=
-                            {"Content-Disposition": f'attachment; filename="{filename.encode("utf-8").decode("latin-1")}"'})
+            return Response(content, media_type="application/octet-stream", headers={"Content-Disposition": f'attachment; filename="{filename.encode("utf-8").decode("latin-1")}"'})
         except Exception:
             raise HTTPException(status_code=503, detail='服务代理下载异常，请稍后再试')
 
