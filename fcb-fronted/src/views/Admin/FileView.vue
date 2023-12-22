@@ -31,7 +31,7 @@
           </template>
         </el-table-column>
       </el-table>
-      <el-pagination @size-change="updatePageSize" @current-change="updateCurrentPage" background layout="prev, pager, next" :page-size="params.size" :page-count="params.total/params.size" :total="params.total" />
+      <el-pagination @size-change="updatePageSize" @current-change="updateCurrentPage" background layout="prev, pager, next" :page-size="params.size" :page-count="Math.round(params.total/params.size)" :total="params.total" />
   </main>
 </template>
 <script lang="ts" setup>
