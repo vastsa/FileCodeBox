@@ -47,6 +47,9 @@
       <el-form-item size="large" label="S3 EndpointUrl">
         <el-input v-model="config.s3_endpoint_url" />
       </el-form-item>
+	  <el-form-item size="large" label="S3 hostname">
+        <el-input v-model="config.s3_hostname" />
+      </el-form-item>
       <el-form-item size="large" label="Aws Session Token">
         <el-input v-model="config.aws_session_token" />
       </el-form-item>
@@ -104,6 +107,7 @@ const config = ref({
   aws_session_token: '',
   s3_bucket_name: '',
   s3_endpoint_url: '',
+  s3_hostname: '',
   uploadCount: 1,
   errorMinute: 1,
   errorCount: 1,
