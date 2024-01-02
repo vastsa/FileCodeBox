@@ -56,11 +56,6 @@ const shareData = ref({
         <upload-file :shareData="shareData" v-if="shareData.targetType=='file'"/>
         <upload-text :shareData="shareData" v-else-if="shareData.targetType=='text'"/>
       </div>
-      <el-carousel height="319px">
-        <el-carousel-item v-for="item in 4" :key="item">
-          <div style="height: 100%;width: 100%;background: #0a0a0a"></div>
-        </el-carousel-item>
-      </el-carousel>
     </el-card>
   </main>
 </template>
