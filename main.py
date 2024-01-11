@@ -3,13 +3,11 @@
 # @File    : main.py
 # @Software: PyCharm
 import asyncio
-import os
 import re
 
 from fastapi import FastAPI
 from starlette.middleware.cors import CORSMiddleware
 from starlette.responses import HTMLResponse, FileResponse
-from starlette.staticfiles import StaticFiles
 from tortoise.contrib.fastapi import register_tortoise
 
 from apps.base.views import share_api

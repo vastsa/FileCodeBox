@@ -33,7 +33,7 @@ class FileCodes(Model):
             return self.expired_at < await get_now()
         # 按次数
         else:
-            return self.expired_count != -1 and self.expired_count == 0
+            return self.expired_count <= 0
 
     async def get_file_path(self):
         return f"{self.file_path}/{self.uuid_file_name}"

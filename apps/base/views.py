@@ -77,14 +77,14 @@ async def share_file(expire_value: int = Form(default=1, gt=0), expire_style: st
 
 
 # 根据code获取文件
-async def get_code_file_by_code(code):
+async def get_code_file_by_code(code, check=True):
     # 查询文件
     file_code = await FileCodes.filter(code=code).first()
     # 检查文件是否存在
     if not file_code:
         return False, '文件不存在'
     # 检查文件是否过期
-    if await file_code.is_expired():
+    if await file_code.is_expired() and check:
         return False, '文件已过期',
     return True, file_code
 
@@ -143,9 +143,9 @@ async def download_file(key: str, code: str, ip: str = Depends(error_ip_limit)):
         # 添加IP到限制列表
         error_ip_limit.add_ip(ip)
     # 获取文件
-    has, file_code = await get_code_file_by_code(code)
+    has, file_code = await get_code_file_by_code(code, False)
     # 检查文件是否存在
-    if not file_code:
+    if not has:
         # 返回API响应
         return APIResponse(code=404, detail='文件不存在')
     # 如果文件是文本，返回文本内容，否则返回文件响应
