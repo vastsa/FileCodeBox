@@ -29,6 +29,8 @@ class FileCodes(Model):
 
     async def is_expired(self):
         # 按时间
+        if self.expired_at is None:
+            return False
         if self.expired_at and self.expired_count < 0:
             return self.expired_at < await get_now()
         # 按次数
