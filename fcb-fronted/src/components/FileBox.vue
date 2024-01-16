@@ -43,6 +43,7 @@ const showTextDetail = (text: any) => {
   showTextDetailVisible.value = true;
   nowText.value = text;
 };
+
 const showTextDetailVisible = ref(false);
 
 const md = new markdownIt({
@@ -60,7 +61,6 @@ function renderMarkdown(message: string) {
   return md.render(message);
 }
 function getQrCodeUrl(code:string) {
-  console.log(window.location.origin + '/#/?code=' + code)
   return window.location.origin + '/#/?code=' + code;
 }
 </script>
