@@ -54,7 +54,7 @@
         <el-input v-model="config.aws_session_token" />
       </el-form-item>
     </div>
-    <el-form-item size="large" :label="t('admin.settings.name')">
+    <el-form-item size="large" :label="t('admin.settings.uploadlimit')">
         <span style="display: flex;height: 38px">
           <span style="margin-right: 0.4rem">{{ t('admin.settings.mei') }}</span>
           <el-input type="number" v-model="config.uploadMinute" />
@@ -66,7 +66,7 @@
         <span style="width: 200px;margin-left: 0.4rem">{{ t('admin.settings.files') }}</span>
         </span>
     </el-form-item>
-    <el-form-item size="large" :label="t('admin.settings.name')">
+    <el-form-item size="large" :label="t('admin.settings.errorlimit')">
         <span style="display: flex;height: 38px">
           <span style="margin-right: 0.4rem">{{ t('admin.settings.mei') }}</span>
           <el-input type="number" v-model="config.errorMinute" />

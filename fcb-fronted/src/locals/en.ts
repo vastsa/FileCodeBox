@@ -49,6 +49,8 @@ export default {
       name: 'Website Name',
       description: 'Website Description',
       keywords: 'Keywords',
+      uploadlimit:'Upload Limit',
+      errorlimit:'Error Limit',
       background: 'Background Image',
       admin_token: 'Admin Password',
       uploadSize: 'File Size',

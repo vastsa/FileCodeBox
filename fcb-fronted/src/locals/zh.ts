@@ -48,6 +48,8 @@ export default {
     settings: {
       name: '网站名称',
       description: '网站描述',
+      uploadlimit: '上传限制',
+      errorlimit: '错误限制',
       keywords: '关键词',
       background: '背景图片',
       admin_token: '管理密码',
