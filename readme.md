@@ -34,6 +34,7 @@
 
 应用商店->实用工具->FileCodeBox
 ![img_6.png](./.github/images/img_6.png)
+更新的话就是卸载重新安装即可
 ### Docker一键部署
 
 #### 2.0版本，开发中
