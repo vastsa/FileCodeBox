@@ -27,12 +27,13 @@ async def startup(s: AsyncSession = Depends(get_session)):
     asyncio.create_task(delete_expire_files())
 
 
+BASE_DIR = Path(__file__).resolve().parent.parent
 # 数据存储文件夹
-DATA_ROOT = Path(settings.DATA_ROOT)
+DATA_ROOT = BASE_DIR / settings.DATA_ROOT
 if not DATA_ROOT.exists():
     DATA_ROOT.mkdir(parents=True)
 # 本地文件文件夹
-LOCAL_ROOT = Path(settings.LOCAL_ROOT)
+LOCAL_ROOT = BASE_DIR / settings.LOCAL_ROOT
 if not LOCAL_ROOT.exists():
     LOCAL_ROOT.mkdir(parents=True)
 
