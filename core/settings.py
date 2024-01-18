@@ -4,7 +4,8 @@
 # @Software: PyCharm
 from pathlib import Path
 
-data_root = Path('./data')
+BASE_DIR = Path(__file__).resolve().parent.parent
+data_root = BASE_DIR / 'data'
 if not data_root.exists():
     data_root.mkdir(parents=True, exist_ok=True)
 env_path = data_root / '.env2'
@@ -77,5 +78,6 @@ class Settings:
 
     def items(self):
         return self.__dict__.items()
+
 
 settings = Settings()
