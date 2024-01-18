@@ -79,7 +79,7 @@ async def startup_event():
 @app.get('/')
 async def index():
     return HTMLResponse(
-        content=open('./fcb-fronted/dist/index.html', 'r', encoding='utf-8').read()
+        content=open(BASE_DIR / './fcb-fronted/dist/index.html', 'r', encoding='utf-8').read()
         .replace('{{title}}', str(settings.name))
         .replace('{{description}}', str(settings.description))
         .replace('{{keywords}}', str(settings.keywords))
