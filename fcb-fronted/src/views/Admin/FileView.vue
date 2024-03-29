@@ -10,7 +10,11 @@
           </template>
         </el-table-column>
         <el-table-column prop="used_count" :label="t('admin.fileView.used_count')" />
-        <el-table-column prop="expired_count" :label="t('admin.fileView.expired_count')" />
+        <el-table-column prop="expired_count" :label="t('admin.fileView.expired_count')">
+          <template #default="scope">
+            <span>{{ scope.row.expired_count > -1 ? scope.row.expired_count : '不限次数' }}</span>
+          </template>
+        </el-table-column>
         <el-table-column prop="size" :label="t('admin.fileView.size')">
           <template #default="scope">
             <span>{{ Math.round(scope.row.size/1024/1024*100)/100 }}MB</span>

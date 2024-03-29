@@ -49,6 +49,10 @@ async def get_config():
 
 @admin_api.patch('/config/update', dependencies=[Depends(admin_required)])
 async def update_config(data: dict):
+    admin_token = data.get('admin_token')
+    if admin_token is None or admin_token == '':
+        return APIResponse(code=400, detail='管理员密码不能为空')
+
     for k, v in data.items():
         settings.__setattr__(k, v)
     return APIResponse()
