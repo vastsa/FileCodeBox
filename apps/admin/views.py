@@ -56,3 +56,27 @@ async def update_config(data: dict):
     for k, v in data.items():
         settings.__setattr__(k, v)
     return APIResponse()
+
+
+# 根据id获取文件
+async def get_file_by_id(id):
+    # 查询文件
+    file_code = await FileCodes.filter(id=id).first()
+    # 检查文件是否存在
+    if not file_code:
+        return False, '文件不存在'
+    return True, file_code
+
+
+@admin_api.get('/file/download', dependencies=[Depends(admin_required)])
+async def file_download(id: int):
+    has, file_code = await get_file_by_id(id)
+    # 检查文件是否存在
+    if not has:
+        # 返回API响应
+        return APIResponse(code=404, detail='文件不存在')
+    # 如果文件是文本，返回文本内容，否则返回文件响应
+    if file_code.text:
+        return APIResponse(detail=file_code.text)
+    else:
+        return await file_storage.get_file_response(file_code)

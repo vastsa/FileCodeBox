@@ -14,6 +14,9 @@ instance.interceptors.request.use(
   });
 instance.interceptors.response.use(
   (response:any) => {
+    if (response.status === 200 && response.config.url === '/admin/file/download') {
+      return response;
+    }
     if (response.data.code === 200) {
       return response.data;
     } else {
