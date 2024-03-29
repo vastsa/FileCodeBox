@@ -88,6 +88,11 @@ export default {
       file_path: 'File Path',
       action: 'Action',
       delete: 'Delete',
+      delete_success: 'Delete successful',
+      forever: 'Forever',
+      unlimited_count: 'Unlimited',
+      download: 'Download',
+      download_fail: 'File save failed, please try again later~',
     },
     menu: {
       fileManage: 'File Management',

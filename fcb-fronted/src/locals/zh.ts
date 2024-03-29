@@ -88,6 +88,11 @@ export default {
       file_path: '文件路径',
       action: '操作',
       delete: '删除',
+      delete_success: '删除成功',
+      forever: '永久有效',
+      unlimited_count: '不限次数',
+      download: '下载',
+      download_fail: '文件保存失败，请稍后再试~',
     },
     menu: {
       fileManage: '文件管理',
