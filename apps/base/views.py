@@ -102,7 +102,8 @@ async def get_code_file(code: str, ip: str = Depends(error_ip_limit)):
         return APIResponse(code=404, detail=file_code)
     # 更新文件的使用次数和过期次数
     file_code.used_count += 1
-    file_code.expired_count -= 1
+    if file_code.expired_count > 0:
+        file_code.expired_count -= 1
     # 保存文件
     await file_code.save()
     # 返回文件响应
@@ -122,7 +123,8 @@ async def select_file(data: SelectFileModel, ip: str = Depends(error_ip_limit)):
         return APIResponse(code=404, detail=file_code)
     # 更新文件的使用次数和过期次数
     file_code.used_count += 1
-    file_code.expired_count -= 1
+    if file_code.expired_count > 0:
+        file_code.expired_count -= 1
     # 保存文件
     await file_code.save()
     # 返回API响应
