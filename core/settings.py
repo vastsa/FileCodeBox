@@ -19,6 +19,8 @@ default_value = {
     's3_secret_access_key': '',
     's3_bucket_name': '',
     's3_endpoint_url': '',
+    's3_region_name': 'auto',
+    's3_signature_version': 's3v2',
     's3_hostname': '',
     's3_proxy': 0,
     'aws_session_token': '',

@@ -50,6 +50,12 @@
 	  <el-form-item size="large" label="S3 hostname">
         <el-input v-model="config.s3_hostname" />
       </el-form-item>
+	  <el-form-item size="large" label="S3 region name">
+        <el-input v-model="config.s3_region_name" />
+      </el-form-item>
+	  <el-form-item size="large" label="S3 Signature Version">
+        <el-input v-model="config.s3_signature_version" />
+      </el-form-item>
       <el-form-item size="large" label="Aws Session Token">
         <el-input v-model="config.aws_session_token" />
       </el-form-item>
@@ -105,6 +111,8 @@ const config = ref({
   background: '',
   s3_secret_access_key: '',
   aws_session_token: '',
+  s3_signature_version: '',
+  s3_region_name: '',
   s3_bucket_name: '',
   s3_endpoint_url: '',
   s3_hostname: '',
