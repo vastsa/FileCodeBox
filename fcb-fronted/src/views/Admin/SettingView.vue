@@ -153,4 +153,8 @@ const submitSave = () => {
   font-size: 1rem;
   letter-spacing: 0.4rem;
 }
+small{
+  color: #909399;
+  margin-left: 0.4rem;
+}
 </style>
