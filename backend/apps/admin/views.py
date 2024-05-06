@@ -58,7 +58,7 @@ async def update_config(data: dict):
     return APIResponse()
 
 
-# 根据id获取文件
+# 根据code获取文件
 async def get_file_by_id(id):
     # 查询文件
     file_code = await FileCodes.filter(id=id).first()
