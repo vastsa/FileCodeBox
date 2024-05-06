@@ -4,7 +4,6 @@ WORKDIR /app/fcb-fronted/
 ENV NPM_CONFIG_LOGLEVEL=verbose
 RUN npm i
 RUN npm run build-only
-# 似乎需要把文件移动才能正常
 RUN mv dist/logo_small.png dist/assets/
 
 
@@ -17,6 +16,7 @@ LABEL version="6"
 # 先安装依赖可以产生缓存
 WORKDIR /app
 COPY requirements.txt /app
+RUN apt-get update && apt-get install -y --no-install-recommends gcc libc-dev
 RUN /usr/local/bin/python -m pip install --upgrade pip && pip install -r requirements.txt
 COPY ./backend/ /app
 COPY --from=webui /app/fcb-fronted/dist/ /app/dist
