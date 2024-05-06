@@ -64,9 +64,6 @@ function renderMarkdown(message: string) {
 function getQrCodeUrl(code:string) {
   return code.startsWith('http') ? code : window.location.origin +  code;
 }
-function getShareQrCodeUrl(code:string) {
-  return window.location.origin + '/#/?code=' + code;
-}
 </script>
 
 <template>
@@ -125,7 +122,7 @@ function getShareQrCodeUrl(code:string) {
             <el-progress v-if="value.status!='success' && value.status!='fail'" striped :percentage="value.percentage" :text-inside="true"
                          :stroke-width="20"></el-progress>
             <div v-else style="display: flex;justify-content: space-between">
-              <qrcode-vue :value="getShareQrCodeUrl(value.code)" :size="100"></qrcode-vue>
+              <qrcode-vue :value="getQrCodeUrl(value.code)" :size="100"></qrcode-vue>
               <div style="display: flex;flex-direction: column;justify-content: space-around">
                 <el-tag size="large" style="cursor: pointer" @click="copyText(value.code)">{{ value.code }}</el-tag>
                 <el-tag size="large" type="success" style="cursor: pointer" @click="copyText(value.code,1);">{{ t('fileBox.copyLink') }}
