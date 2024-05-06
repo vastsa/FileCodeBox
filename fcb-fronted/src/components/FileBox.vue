@@ -61,8 +61,8 @@ function renderMarkdown(message: string) {
   return md.render(message);
 }
 
-function getQrCodeUrl(code:string) {
-  return code.startsWith('http') ? code : window.location.origin +  code;
+function getQrCodeUrl(code: string) {
+  return code.toString().startsWith('http') ? code : window.location.origin + code;
 }
 </script>
 

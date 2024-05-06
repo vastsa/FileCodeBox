@@ -31,20 +31,20 @@ app.add_middleware(
 async def assets(file_path: str):
     if settings.max_save_seconds > 0:
         if re.match(r'SendView-[\d|a-f|A-F]+\.js', file_path):
-            with open(BASE_DIR / f'./dist/assets/{file_path}', 'r', encoding='utf-8') as f:
+            with open(BASE_DIR / f'fcb-fronted/dist/assets/{file_path}', 'r', encoding='utf-8') as f:
                 # 删除永久保存选项
                 content = f.read()
                 content = content.replace('_(c,{label:e(r)("send.expireData.forever"),value:"forever"},null,8,["label"]),', '')
                 return HTMLResponse(content=content, media_type='text/javascript')
         if re.match(r'index-[\d|a-f|A-F]+\.js', file_path):
-            with open(BASE_DIR / f'./dist/assets/{file_path}', 'r', encoding='utf-8') as f:
+            with open(BASE_DIR / f'fcb-fronted/dist/assets/{file_path}', 'r', encoding='utf-8') as f:
                 # 更改本文描述
                 desc_zh, desc_en = await max_save_times_desc(settings.max_save_seconds)
                 content = f.read()
                 content = content.replace('天数<7', desc_zh)
                 content = content.replace('Days <7', desc_en)
                 return HTMLResponse(content=content, media_type='text/javascript')
-    return FileResponse(f'./dist/assets/{file_path}')
+    return FileResponse(f'fcb-fronted/dist/assets/{file_path}')
 
 
 register_tortoise(
@@ -79,7 +79,7 @@ async def startup_event():
 @app.get('/')
 async def index():
     return HTMLResponse(
-        content=open(BASE_DIR / './dist/index.html', 'r', encoding='utf-8').read()
+        content=open(BASE_DIR / 'fcb-fronted/dist/index.html', 'r', encoding='utf-8').read()
         .replace('{{title}}', str(settings.name))
         .replace('{{description}}', str(settings.description))
         .replace('{{keywords}}', str(settings.keywords))
