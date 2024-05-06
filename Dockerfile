@@ -16,7 +16,8 @@ LABEL version="6"
 # 先安装依赖可以产生缓存
 WORKDIR /app
 COPY requirements.txt /app
-RUN apt-get update && apt-get install -y --no-install-recommends gcc libc-dev
+# 安装gcc
+RUN apk add --no-cache gcc musl-dev
 RUN /usr/local/bin/python -m pip install --upgrade pip && pip install -r requirements.txt
 COPY ./backend/ /app
 COPY --from=webui /app/fcb-fronted/dist/ /app/dist
