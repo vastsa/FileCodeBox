@@ -35,6 +35,10 @@
 应用商店->实用工具->FileCodeBox
 ![img_6.png](./.github/images/img_6.png)
 更新的话就是卸载重新安装即可
+
+### 宝塔应用商店一键部署
+貌似是1.6版本的
+![img](https://img.065065.xyz/file/966c5239926f46e03bd91.png)
 ### Docker一键部署
 
 #### 2.0版本，开发中
