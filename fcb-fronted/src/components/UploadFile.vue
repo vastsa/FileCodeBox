@@ -24,6 +24,7 @@ const props = defineProps({
 const fileList: any = ref([])
 const uploadBox: any = ref(null)
 const handleOnChangeFileList = (file: any) => {
+  console.log(file)
   fileStore.addShareData({
     'name': file.name,
     'text': '',

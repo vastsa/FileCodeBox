@@ -32,7 +32,7 @@
           </template>
           <template #default="scope">
             <el-button type="danger" size="small" @click="deleteFile(scope.row.id)">{{ t('admin.fileView.delete') }}</el-button>
-            <el-button type="success" size="small" @click="downloadFile(scope.row.id)" v-if="scope.row.file_path">{{ t('admin.fileView.download') }}</el-button>
+            <el-button type="success" size="small" @click="downloadFile(scope.row.id)" v-if="scope.row.file_path">{{ t('admin.fileView.download') }}11</el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -70,6 +70,22 @@ const deleteFile = (id: number) => {
     refreshData();
   });
 };
+
+const copyCliText = (text: any, style = 0,name:String) => {
+  ElMessage.success(t('fileBox.copySuccess'));
+  if (style === 1) {
+    text = 'wget -O '+name +' '+window.location.origin + '/share/select?code=' + text;
+  }
+  const temp: any = document.createElement('textarea');
+  temp.value = text;
+  document.body.appendChild(temp);
+  temp.select();
+  if (document.execCommand('copy')) {
+    document.execCommand('copy');
+  }
+  document.body.removeChild(temp);
+};
+
 const downloadFile = (id: number) => {
 
   request({
