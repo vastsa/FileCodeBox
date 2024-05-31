@@ -39,6 +39,7 @@ export default {
     download: '点 击 下 载',
     detail: '查 看 详 情',
     copyLink: '复制链接',
+    copyCliLink: '复制Cli链接',
   },
   admin: {
     about: {
