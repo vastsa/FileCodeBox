@@ -23,11 +23,24 @@ const openUrl = (url: string) => {
   window.open(url);
 };
 const route = useRoute();
-
 const copyText = (text: any, style = 0) => {
   ElMessage.success(t('fileBox.copySuccess'));
   if (style === 1) {
     text = window.location.origin + '/#/?code=' + text;
+  }
+  const temp: any = document.createElement('textarea');
+  temp.value = text;
+  document.body.appendChild(temp);
+  temp.select();
+  if (document.execCommand('copy')) {
+    document.execCommand('copy');
+  }
+  document.body.removeChild(temp);
+};
+const copyCliText = (text: any, style = 0,name:String) => {
+  ElMessage.success(t('fileBox.copySuccess'));
+  if (style === 1) {
+    text = 'wget -O '+name +' '+window.location.origin + '/share/select?code=' + text;
   }
   const temp: any = document.createElement('textarea');
   temp.value = text;
@@ -104,6 +117,9 @@ function getQrCodeUrl(code: string) {
                 <el-tag v-if="value.name!=='文本分享'" size="large" type="success" style="cursor: pointer" @click="openUrl(value.text);">
                   {{ t('fileBox.download') }}
                 </el-tag>
+                <el-tag v-if="value.name!=='文本分享'" size="large" type="success" style="cursor: pointer" @click="copyCliText(value.code,1, value.name);">
+                  {{ t('fileBox.copyCliLink') }}
+                </el-tag>
                 <el-tag v-else size="large" type="success" style="cursor: pointer" @click="showTextDetail(value.text);">{{ t('fileBox.detail') }}</el-tag>
               </div>
             </div>
@@ -125,8 +141,8 @@ function getQrCodeUrl(code: string) {
               <qrcode-vue :value="getQrCodeUrl(value.code)" :size="100"></qrcode-vue>
               <div style="display: flex;flex-direction: column;justify-content: space-around">
                 <el-tag size="large" style="cursor: pointer" @click="copyText(value.code)">{{ value.code }}</el-tag>
-                <el-tag size="large" type="success" style="cursor: pointer" @click="copyText(value.code,1);">{{ t('fileBox.copyLink') }}
-                </el-tag>
+                <el-tag size="large" type="success" style="cursor: pointer" @click="copyText(value.code,1);">{{ t('fileBox.copyLink') }}</el-tag>
+                <el-tag size="large" type="success" style="cursor: pointer" @click="copyCliText(value.code,1, value.name);">{{ t('fileBox.copyCliLink') }}</el-tag>
               </div>
             </div>
           </div>
