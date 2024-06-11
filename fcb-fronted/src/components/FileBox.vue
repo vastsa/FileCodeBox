@@ -70,7 +70,8 @@ function getQrCodeUrl(code: string) {
   <el-drawer :append-to-body="true" v-model="fileBoxStore.showFileBox" direction="btt" style="max-width: 1080px;margin: auto;"
              size="400">
     <template #header>
-      <h4>{{t('fileBox.fileBox')}}</h4>
+      <h4 v-if="route.name=='home'">{{t('fileBox.receiveFileBox')}}</h4>
+      <h4 v-else>{{t('fileBox.sendFileBox')}}</h4>
     </template>
     <template #default>
       <div v-if="route.name=='home'" style="display: flex;flex-wrap: wrap;justify-content: center">
