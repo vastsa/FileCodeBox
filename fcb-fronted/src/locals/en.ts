@@ -31,7 +31,8 @@ export default {
   fileBox: {
     copySuccess: 'Copied successfully',
     inputNotEmpty: 'Please enter the five-digit pickup code',
-    fileBox: 'File Box',
+    sendFileBox: 'Send File Box',
+    receiveFileBox: 'Receive File Box',
     textDetail: 'Text Detail',
     copy: 'Copy',
     close: 'Close',
