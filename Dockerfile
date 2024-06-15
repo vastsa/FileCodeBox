@@ -3,7 +3,6 @@ LABEL author="Lan"
 LABEL email="vast@tom.com"
 
 COPY . /app
-RUN rm -rf /app/.github
 RUN ln -sf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime
 RUN echo 'Asia/Shanghai' >/etc/timezone
 WORKDIR /app
