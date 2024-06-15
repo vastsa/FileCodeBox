@@ -2,20 +2,21 @@
 # @Author  : Lan
 # @File    : settings.py
 # @Software: PyCharm
+import json
 from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 data_root = BASE_DIR / 'data'
+
 if not data_root.exists():
     data_root.mkdir(parents=True, exist_ok=True)
-env_path = data_root / '.env2'
-default_value = {
+
+DEFAULT_CONFIG = {
     'file_storage': 'local',
     'name': '文件快递柜-FileCodeBox',
     'description': '开箱即用的文件快传系统',
     'page_explain': '根据《中华人民共和国网络安全法》、《中华人民共和国刑法》、《中华人民共和国治安管理处罚法》等相关规定。 传播或存储违法、违规内容，会受到相关处罚，严重者将承担刑事责任。请勿上传非法文件，本站坚决配合相关部门，确保网络内容的安全，和谐，打造绿色网络环境。',
     'keywords': 'FileCodeBox, 文件快递柜, 口令传送箱, 匿名口令分享文本, 文件',
-    'max_save_seconds': 0,
     's3_access_key_id': '',
     's3_secret_access_key': '',
     's3_bucket_name': '',
@@ -34,6 +35,7 @@ default_value = {
     'admin_token': 'FileCodeBox2023',
     'openUpload': 1,
     'uploadSize': 1024 * 1024 * 10,
+    'expireStyle': ['day', 'hour', 'minute', 'forever', 'count'],
     'uploadMinute': 1,
     'opacity': 0.9,
     'background': '',
@@ -45,42 +47,25 @@ default_value = {
 
 
 class Settings:
-    __instance = None
+    def __init__(self, defaults=None):
+        self.default_config = defaults or {}
+        self.user_config = {}
 
-    def __init__(self):
-        # 读取.env
-        if not (env_path).exists():
-            with open(env_path, 'w', encoding='utf-8') as f:
-                for key, value in default_value.items():
-                    f.write(f'{key}={value}\n')
-        # 更新default_value
-        with open(env_path, 'r', encoding='utf-8') as f:
-            for line in f.readlines():
-                key, value = line.strip().split('=', maxsplit=1)
-                # 将字符串转换为原本的类型
-                if key and not key.startswith('opendal_') and isinstance(default_value.get(key, ''), int):
-                    value = int(value)
-                default_value[key] = value
-
-        # 更新self
-        for key, value in default_value.items():
-            self.__setattr__(key, value)
-
-    def __new__(cls, *args, **kwargs):
-        if not cls.__instance:
-            cls.__instance = super(Settings, cls).__new__(cls, *args, **kwargs)
-        return cls.__instance
+    def __getattr__(self, attr):
+        if attr in self.user_config:
+            return self.user_config[attr]
+        if attr in self.default_config:
+            return self.default_config[attr]
+        raise AttributeError(f"'{self.__class__.__name__}' object has no attribute '{attr}'")
 
     def __setattr__(self, key, value):
-        if not key.startswith('opendal_') and type(value) == str and value.isnumeric():
-            value = int(value)
-        self.__dict__[key] = value
-        with open(env_path, 'w', encoding='utf-8') as f:
-            for key, value in self.__dict__.items():
-                f.write(f'{key}={value}\n')
+        if key in ['default_config', 'user_config']:
+            super().__setattr__(key, value)
+        else:
+            self.user_config[key] = value
 
     def items(self):
-        return self.__dict__.items()
+        return {**self.default_config, **self.user_config}.items()
 
 
-settings = Settings()
+settings = Settings(DEFAULT_CONFIG)
