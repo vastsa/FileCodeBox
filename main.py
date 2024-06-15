@@ -3,7 +3,6 @@
 # @File    : main.py
 # @Software: PyCharm
 import asyncio
-import re
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -78,6 +77,8 @@ async def get_config():
         'uploadSize': settings.uploadSize,
         'expireStyle': settings.expireStyle,
         'openUpload': settings.openUpload,
+        'notify_title': settings.notify_title,
+        'notify_content': settings.notify_content,
     })
 
 

@@ -9,6 +9,12 @@
     <el-form-item size="large" :label="t('admin.settings.keywords')" style="letter-spacing: 0.3rem">
       <el-input v-model="config.keywords" />
     </el-form-item>
+    <el-form-item size="large" :label="t('admin.settings.notify_title')">
+      <el-input v-model="config.notify_title" />
+    </el-form-item>
+    <el-form-item size="large" :label="t('admin.settings.notify_content')">
+      <el-input v-model="config.notify_content" />
+    </el-form-item>
     <el-form-item size="large" :label="t('admin.settings.background')">
       <el-input v-model="config.background" placeholder="url" />
     </el-form-item>
@@ -125,6 +131,8 @@ const config = ref({
   expireStyle: [],
   admin_token: '',
   keywords: '',
+  notify_title: '',
+  notify_content: '',
   openUpload: 1,
   uploadSize: 1,
   uploadMinute: 1,

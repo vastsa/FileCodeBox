@@ -53,7 +53,15 @@ const menus = ref([
   {
     name: t('admin.menu.about'),
     path: '/admin/about',
-  }
+  },
+  {
+    name: t('admin.menu.send'),
+    path: '/#/send',
+  },
+  {
+    name: t('admin.menu.receive'),
+    path: '/#/',
+  },
 ]);
 const refreshLoginStatus = () => {
   adminData.updateAdminPwd(adminData.adminPassword);

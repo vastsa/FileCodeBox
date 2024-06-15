@@ -53,6 +53,8 @@ export default {
       explain:'界面说明',
       errorlimit: '错误限制',
       keywords: '关键词',
+      notify_title: '通知标题',
+      notify_content: '通知内容',
       background: '背景图片',
       max_save_seconds: '最长保存',
       maxSaveSecondsNote: '最长保存时间，单位:（秒），默认为0则为7天',
@@ -104,6 +106,8 @@ export default {
       systemSetting: '系统设置',
       about: '关于我们',
       color: '颜色模式',
+      send: '寄件',
+      receive: '收件',
       signout: '退出登录',
     },
     login: {
