@@ -54,6 +54,7 @@ app.include_router(admin_api)
 async def startup_event():
     # 启动后台任务，不定时删除过期文件
     asyncio.create_task(delete_expire_files())
+    # 读取用户配置
     user_config, created = await KeyValue.get_or_create(key='settings', defaults={'value': DEFAULT_CONFIG})
     settings.user_config = user_config.value
 
