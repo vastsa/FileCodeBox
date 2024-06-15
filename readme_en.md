@@ -1,8 +1,8 @@
 <div align="center">
-<h1>File Express Cabinet - Lite</h1>
+<h1>FileCodeBox-Lite</h1>
 <h2>FileCodeBox-Lite</h2>
-<p><em>Anonymously share text and files, retrieve files like receiving packages</em></p>
-<p>Communication Q group: 739673698, welcome everyone to brainstorm, project conceptual reconstruction</p>
+<p><em>Share texts and files anonymously with passwords, just like picking up a package</em></p>
+<p>Join our QQ group: 739673698</p>
 </div>
 
 ![banner](https://fastly.jsdelivr.net/gh/vastsa/FileCodeBox@V1.6/static/banners/img_1.png)
@@ -13,198 +13,161 @@
 
 ## Main Features
 
-- [x] Lightweight and concise: Fastapi+Sqlite3+Vue3+ElementUI
-- [x] Easy upload: Copy and paste, drag and drop selection
-- [x] Multiple types: Text, file
-- [x] Prevent brute force: Limit the number of errors
-- [x] Prevent abuse: Limit the number of uploads by IP
-- [x] Password sharing: Random password, store and retrieve files, customize the number of times and validity period
-- [x] Anonymous sharing: No registration, no login, no IP records
-- [x] Management panel: View all files, delete files
-- [x] One-click deployment: Docker one-click deployment
-- [x] Free extension: S3 protocol, local file stream, can add storage engines in the storage file according to needs
-- [x] Simple and clear: Suitable for beginners' practice projects
+- [x] **Lightweight:** Built with FastAPI + Sqlite3 + Vue2 + ElementUI
+- [x] **Easy Upload:** Support copy-paste and drag-and-drop selection
+- [x] **Various Types:** Supports text and file sharing
+- [x] **Brute-force Protection:** Error limit on passwords
+- [x] **Abuse Prevention:** IP limits on upload attempts
+- [x] **Password Sharing:** Random password for accessing files, customizable access counts, and expiration
+- [x] **Internationalization:** Supports both Chinese and English
+- [x] **Anonymous Sharing:** No need for registration or login
+- [x] **Management Panel:** View and delete files
+- [x] **One-Click Deployment:** Support for Docker deployment
+- [x] **Free Extension:** Supports S3 protocol and local file stream; can add new storage engines in storage file as needed
+- [x] **Simple and Clear:** Great for beginners
+- [x] **Terminal Download:** Terminal command `wget https://share.lanol.cn/share/select?code=83432`
 
-## Deployment Method
+## Deployment Methods
 
-### Docker one-click deployment
+### 1Panel One-Click Deployment
 
-#### Version 2.0, under development
+Go to Application Store -> Utilities -> FileCodeBox
+![img_6.png](./.github/images/img_6.png)
+**Update:** Container -> Select -> More -> Edit -> Force Pull Image -> Confirm
 
-Default information
+### One-Click Deployment in BaoTa Application Store
 
-Backend address: `/#/admin`
+Current version is 1.6
+![img](https://img.065065.xyz/file/966c5239926f46e03bd91.png)
 
-Backend password: `FileCodeBox2023`
+### Docker One-Click Deployment
 
-AMD & ARM
+**Version 2.0**, work in progress
 
-One-click installation
+Default Info
+
+Backend Address: `/#/admin`
+
+Admin Password: `FileCodeBox2023`
+
+*Supports AMD & ARM*
+
+**One-Click Install**
 
 ```bash
 docker run -d --restart=always -p 12345:12345 -v /opt/FileCodeBox/:/app/data --name filecodebox lanol/filecodebox:beta
-
 ```
 
-One-click update
+**One-Click Update**
 
 ```bash
 docker pull lanol/filecodebox:beta && docker stop filecodebox && docker rm filecodebox && docker run -d --restart=always -p 12345:12345 -v /opt/FileCodeBox/:/app/data --name filecodebox lanol/filecodebox:beta
 ```
 
-#### Version 1.6 AMD
+**Version 1.6 AMD**
 
 ```bash
 docker run -d --restart=always -p 12345:12345 -v /opt/FileCodeBox/:/app/data --name filecodebox lanol/filecodebox:latest
 ```
 
-#### Version 1.6 ARM
+**Version 1.6 ARM**
 
 ```bash
 docker run -d --restart=always -p 12345:12345 -v /opt/FileCodeBox/:/app/data --name filecodebox lanol/filecodebox:arm
 ```
 
-### Baota deployment
+### Update Methods
 
-Not recommended, outdated
-https://www.yuque.com/lxyo/work/lc1oe0xqk8t9b976
+```bash
+// Update the container
+docker pull lanol/filecodebox:beta
+// Stop and remove the container
+docker stop filecodebox && docker rm filecodebox
+// Re-run the container
+docker run -d --restart=always -p 12345:12345 -v /opt/FileCodeBox/:/app/data --name filecodebox lanol/filecodebox:latest
+```
 
-### Version 1.6 Note
+### Notes on Version 1.6
 
-This version has relatively large changes. If there are any problems, you can try clearing the /opt/FileCodeBox directory. If you have any problems, please feel free to leave
-feedback.
-Note that if this is the first installation, please check the docker log to get the initial password and backend address, and refer to the instructions
-For the local file list of the background, you need to move the server files to the directory /opt/FileCodeBox/data/locals so that they can be displayed.
+This version has significant changes. If issues occur, try clearing the /opt/FileCodeBox directory. Feel free to provide feedback. **Note:** For first-time installations, check Docker logs for the initial password and backend address, as shown below:
 
 ```bash
 docker logs filecodebox
 ```
 
+**Backend Local File List**: Move server files to the /opt/FileCodeBox/data/locals directory for display.
+
 ## Preview
 
-### Example site
+### Example Site
 
 [https://share.lanol.cn](https://share.lanol.cn)
 
-### Dark mode
+### Screenshots
 
 <table style="width:100%">
-
 <tr style="width: 100%">
-<td style="width: 50%">
-<img src="https://fastly.jsdelivr.net/gh/vastsa/FileCodeBox@V1.6/images/img_10.png" alt="Send files">
-
-</td>
-<td style="width: 50%">
-<img src="https://fastly.jsdelivr.net/gh/vastsa/FileCodeBox@V1.6/images/img_11.png" alt="Send files">
-
-</td>
+<td style="width: 50%"><img src="./.github/images/img.png" alt="File Sharing"></td>
+<td style="width: 50%"><img src="./.github/images/img_1.png" alt="File Sharing"></td>
+</tr>
+<tr style="width: 100%">
+<td style="width: 50%"><img src="./.github/images/img_2.png" alt="File Sharing"></td>
+<td style="width: 50%"><img src="./.github/images/img_3.png" alt="File Sharing"></td>
+</tr>
+<tr style="width: 100%">
+<td style="width: 50%"><img src="./.github/images/img_4.png" alt="File Sharing"></td>
+<td style="width: 50%"><img src="./.github/images/img_5.png" alt="File Sharing"></td>
 </tr>
 </table>
 
-### Sending
+## Configuration File (for versions 1.7 and below)
 
-<table style="width: 100%">
-<tr style="width: 100%">
-<td style="width: 50%">
-<img src="https://fastly.jsdelivr.net/gh/vastsa/FileCodeBox@V1.6/images/img_1.png" alt="Send files">
-</td>
-<td style="width: 50%">
-<img src="https://fastly.jsdelivr.net/gh/vastsa/FileCodeBox@V1.6/images/img_2.png" alt="Send text">
-</td>
-</tr>
-<tr style="width: 100%;">
-<td colspan="2" style="width: 100%;">
-<img src="https://fastly.jsdelivr.net/gh/vastsa/FileCodeBox@V1.6/images/img_3.png" alt="Send text">
-</td>
-</tr>
-</table>
-
-### Retrieving
-
-<table style="width: 100%">
-<tr style="width: 100%">
-<td style="width: 50%">
-<img src="https://fastly.jsdelivr.net/gh/vastsa/FileCodeBox@V1.6/images/img_6.png" alt="Retrieve">
-</td>
-<td style="width: 50%">
-<img src="https://fastly.jsdelivr.net/gh/vastsa/FileCodeBox@V1.6/images/img_5.png" alt="Wrong retrieval code">
-</td>
-</tr>
-<tr style="width: 100%;">
-<td colspan="2" style="width: 100%;">
-<img src="https://fastly.jsdelivr.net/gh/vastsa/FileCodeBox@V1.6/images/img_4.png" alt="Retrieve file">
-</td>
-</tr>
-</table>
-
-### Management
-
-<table style="width: 100%">
-<tr style="width: 100%">
-<td style="width: 50%">
-<img src="https://fastly.jsdelivr.net/gh/vastsa/FileCodeBox@V1.6/images/img_7.png" alt="admin">
-</td>
-<td style="width: 50%">
-<img src="https://fastly.jsdelivr.net/gh/vastsa/FileCodeBox@V1.6/images/img_12.png" alt="admin">
-</td>
-</tr>
-<tr style="width: 100%;">
-<td colspan="2" style="width: 100%;">
-<img src="https://fastly.jsdelivr.net/gh/vastsa/FileCodeBox@V1.6/images/img_13.png" alt="admin">
-</td>
-</tr>
-</table>
-
-## Configuration file (only required for version 1.7 and below)
-
-If you need to modify the configuration, you can place this file in the `/opt/FileCodeBox/` directory and name it `.env`, then restart the container.
-If it is not Docker, you need to create a `data` folder in the same directory as the project, and then create a `.env` file.
+To modify the configuration, save the following content as a `.env` file in the `/opt/FileCodeBox/` directory, then restart the container. If not using Docker, create a `data` folder in the project directory and place the `.env` file inside.
 
 ```dotenv
-# 端口
+# Port
 PORT=12345
-# Sqlite数据库文件
+# Sqlite database file
 DATABASE_URL=sqlite+aiosqlite:///database.db
-# 静态文件夹
+# Static folder
 DATA_ROOT=./static
-# 静态文件夹URL
+# Static folder URL
 STATIC_URL=/static
-# 开启上传
+# Enable uploads
 ENABLE_UPLOAD=True
-# 错误次数
+# Error limit
 ERROR_COUNT=5
-# 错误限制分钟数
+# Error limit in minutes
 ERROR_MINUTE=10
-# 上传次数
+# Upload limit
 UPLOAD_COUNT=60
-# 上传限制分钟数
+# Upload limit in minutes
 UPLOAD_MINUTE=1
-# 删除过期文件的间隔（分钟）
+# Interval for deleting expired files (in minutes)
 DELETE_EXPIRE_FILES_INTERVAL=10
-# 管理地址
+# Admin address
 ADMIN_ADDRESS=admin
-# 管理密码
+# Admin password
 ADMIN_PASSWORD=admin
-# 文件大小限制，默认10MB
+# File size limit, default 10MB
 FILE_SIZE_LIMIT=10
-# 网站标题
-TITLE=文件快递柜
-# 网站描述
-DESCRIPTION=FileCodeBox，文件快递柜，口令传送箱，匿名口令分享文本，文件，图片，视频，音频，压缩包等文件
-# 网站关键词
-KEYWORDS=FileCodeBox，文件快递柜，口令传送箱，匿名口令分享文本，文件，图片，视频，音频，压缩包等文件
-# 存储引擎
+# Website title
+TITLE=FileCodeBox
+# Website description
+DESCRIPTION=FileCodeBox, file delivery cabinet, password transfer box, anonymous password sharing of text, files, images, videos, audio, compressed files, and other types of files
+# Website keywords
+KEYWORDS=FileCodeBox, file delivery cabinet, password transfer box, anonymous password sharing of text, files, images, videos, audio, compressed files, and other types of files
+# Storage engine
 STORAGE_ENGINE=filesystem
-# 如果使用阿里云OSS服务的话需要额外创建如下参数：
-# 阿里云账号AccessKey
-KeyId=阿里云账号AccessKey
-# 阿里云账号AccessKeySecret
-KeySecret=阿里云账号AccessKeySecret
-# 阿里云OSS Bucket的地域节点
-OSS_ENDPOINT=阿里云OSS Bucket的地域节点
-# 阿里云OSS Bucket的BucketName
-BUCKET_NAME=阿里云OSS Bucket的BucketName
+# If using Alibaba Cloud OSS service, create these additional parameters:
+# Alibaba Cloud Account AccessKey
+KeyId=Alibaba Cloud Account AccessKey
+# Alibaba Cloud Account AccessKeySecret
+KeySecret=Alibaba Cloud Account AccessKeySecret
+# Alibaba Cloud OSS Bucket region node
+OSS_ENDPOINT=Alibaba Cloud OSS Bucket region node
+# Alibaba Cloud OSS Bucket name
+BUCKET_NAME=Alibaba Cloud OSS Bucket name
 ```
 
 ## Status
@@ -215,30 +178,14 @@ BUCKET_NAME=阿里云OSS Bucket的BucketName
 
 [![Star History Chart](https://api.star-history.com/svg?repos=vastsa/FileCodeBox&type=Date)](https://star-history.com/#vastsa/FileCodeBox&Date)
 
-## Appreciation
+## Frequently Asked Questions (FAQ)
 
-<table style="width: 100%">
-<tr style="width: 100%">
-<td style="width: 50%;text-align: center;">
-Alipay
-<img src="https://fastly.jsdelivr.net/gh/vastsa/FileCodeBox@V1.6/images/img_9.png" alt="Alipay">
-</td>
-<td style="width: 50%;text-align: center">
-WeChat
-<img src="https://fastly.jsdelivr.net/gh/vastsa/FileCodeBox@V1.6/images/img_8.png" alt="WeChat">
-</td>
-</tr>
-</table>    
-
-## Frequently Asked Questions
-
-1. 413 Request Entity Too Large
-   Nginx restriction:
-   Find the nginx.conf configuration file of your host and open it.
-   Add `client_max_body_size 10m;` inside the `http{}` block.
-   Then restart nginx.
+1. *413 Request Entity Too Large*:  
+   Nginx limit resolution:
+   Open your host's `nginx.conf` configuration file, locate it,
+   Add `client_max_body_size 10m;` within the `http{}` block,
+   Then restart Nginx.
 
 ## Disclaimer
 
-This project is open source and is intended for learning purposes only. It must not be used for any illegal purposes. Any consequences arising from such use are the sole
-responsibility of the user and are not related to me. Please keep the project address when using. Thank you.
+This project is open-source and intended for learning purposes only. Do not use it for any illegal activities; any consequences are your own responsibility and unrelated to the author. Please retain the project address when using, thank you.
