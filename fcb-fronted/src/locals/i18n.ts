@@ -4,7 +4,7 @@ const language = (
   navigator.language  || 'zh_cn'
 ).toLowerCase();
 const lang = (localStorage.getItem('language') || language).replace(/-/, '_');
-console.log(lang)
+
 const i18n = createI18n({
   silentTranslationWarn: true,
   globalInjection: true,

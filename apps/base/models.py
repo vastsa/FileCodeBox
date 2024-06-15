@@ -24,7 +24,6 @@ class FileCodes(Model):
     expired_at: Optional[datetime] = fields.DatetimeField(null=True, description='过期时间')
     expired_count: Optional[int] = fields.IntField(description='可用次数', default=0)
     used_count: Optional[int] = fields.IntField(description='已用次数', default=0)
-
     created_at: Optional[datetime] = fields.DatetimeField(auto_now_add=True, description='创建时间')
 
     async def is_expired(self):
@@ -39,6 +38,13 @@ class FileCodes(Model):
 
     async def get_file_path(self):
         return f"{self.file_path}/{self.uuid_file_name}"
+
+
+class KeyValue(Model):
+    id: Optional[int] = fields.IntField(pk=True)
+    key: Optional[str] = fields.CharField(max_length=255, description='键', index=True, unique=True)
+    value: Optional[str] = fields.JSONField(description='值', null=True)
+    created_at: Optional[datetime] = fields.DatetimeField(auto_now_add=True, description='创建时间')
 
 
 file_codes_pydantic = pydantic_model_creator(FileCodes, name='FileCodes')

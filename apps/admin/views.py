@@ -8,7 +8,7 @@ from fastapi import APIRouter, Depends
 
 from apps.admin.depends import admin_required
 from apps.admin.pydantics import IDData
-from apps.base.models import FileCodes
+from apps.base.models import FileCodes, KeyValue
 from core.response import APIResponse
 from core.settings import settings
 from core.storage import file_storage
@@ -44,7 +44,7 @@ async def file_list(page: float = 1, size: int = 10):
 
 @admin_api.get('/config/get', dependencies=[Depends(admin_required)])
 async def get_config():
-    return APIResponse(detail=settings.__dict__)
+    return APIResponse(detail=settings.items())
 
 
 @admin_api.patch('/config/update', dependencies=[Depends(admin_required)])
@@ -52,7 +52,7 @@ async def update_config(data: dict):
     admin_token = data.get('admin_token')
     if admin_token is None or admin_token == '':
         return APIResponse(code=400, detail='管理员密码不能为空')
-
+    await KeyValue.filter(key='settings').update(value=data)
     for k, v in data.items():
         settings.__setattr__(k, v)
     return APIResponse()

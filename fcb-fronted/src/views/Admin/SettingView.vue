@@ -23,15 +23,28 @@
       <template #append>Bytes</template>
       <small>{{ t('admin.settings.uploadSizeNote') }}</small>
     </el-form-item>
+    <el-form-item size="large" :label="t('admin.settings.expireStyle')" >
+      <el-select
+          v-model="config.expireStyle"
+          multiple
+          style="width: 100%"
+      >
+        <el-option :label="t('send.expireData.day')" value="day" />
+        <el-option :label="t('send.expireData.hour')" value="hour" />
+        <el-option :label="t('send.expireData.minute')" value="minute" />
+        <el-option :label="t('send.expireData.forever')" value="forever" />
+        <el-option :label="t('send.expireData.count')" value="count" />
+      </el-select>
+    </el-form-item>
     <el-form-item size="large" :label="t('admin.settings.openUpload.title')">
-      <el-select v-model="config.openUpload">
+      <el-select v-model="config.openUpload" style="width: 80%">
         <el-option :label="t('admin.settings.openUpload.open')" :value="1" />
         <el-option :label="t('admin.settings.openUpload.close')" :value="0" />
       </el-select>
       <small style="margin-left: 0.4rem">{{ t('admin.settings.openUpload.note') }}</small>
     </el-form-item>
     <el-form-item size="large" :label="t('admin.settings.file_storage.title')">
-      <el-select v-model="config.file_storage">
+      <el-select v-model="config.file_storage" style="width: 80%">
         <el-option :label="t('admin.settings.file_storage.local')" value="local" />
         <el-option :label="t('admin.settings.file_storage.s3')" value="s3" />
       </el-select>
@@ -105,6 +118,7 @@ const config = ref({
   name: '',
   description: '',
   file_storage: '',
+  expireStyle: [],
   admin_token: '',
   keywords: '',
   openUpload: 1,
@@ -112,7 +126,7 @@ const config = ref({
   uploadMinute: 1,
   s3_access_key_id: '',
   background: '',
-  page_explain:'',
+  page_explain: '',
   s3_secret_access_key: '',
   aws_session_token: '',
   s3_signature_version: '',

@@ -3,8 +3,10 @@ import { ref } from 'vue'
 import CardTools from "@/components/CardTools.vue";
 import UploadFile from "@/components/UploadFile.vue";
 import UploadText from "@/components/UploadText.vue";
-
 import { useI18n } from 'vue-i18n'
+import { useConfigStore } from "@/stores/config";
+
+const { config } = useConfigStore();
 
 const { t } = useI18n()
 const shareData = ref({
@@ -27,11 +29,11 @@ const shareData = ref({
           >
             <template #prepend>
               <el-select v-model="shareData.expireStyle" :placeholder="t('send.expireStyle')" style="width: 75px">
-                <el-option :label="t('send.expireData.day')" value="day" />
-                <el-option :label="t('send.expireData.hour')" value="hour" />
-                <el-option :label="t('send.expireData.minute')" value="minute" />
-                <el-option :label="t('send.expireData.forever')" value="forever" />
-                <el-option :label="t('send.expireData.count')" value="count" />
+                <el-option v-for="item in config.expireStyle" :key="item" :label="t(`send.expireData.${item}`)" :value="item" />
+<!--                <el-option :label="t('send.expireData.hour')" value="hour" />-->
+<!--                <el-option :label="t('send.expireData.minute')" value="minute" />-->
+<!--                <el-option :label="t('send.expireData.forever')" value="forever" />-->
+<!--                <el-option :label="t('send.expireData.count')" value="count" />-->
               </el-select>
             </template>
             <template #append>

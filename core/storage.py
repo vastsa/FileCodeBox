@@ -288,4 +288,5 @@ storages = {
     'onedrive': OneDriveFileStorage,
     'opendal': OpenDALFileStorage,
 }
+
 file_storage: FileStorageInterface = storages[settings.file_storage]()

@@ -6,16 +6,16 @@ import asyncio
 import re
 
 from fastapi import FastAPI
-from starlette.middleware.cors import CORSMiddleware
-from starlette.responses import HTMLResponse, FileResponse
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import HTMLResponse
 from tortoise.contrib.fastapi import register_tortoise
 
+from apps.base.models import KeyValue
 from apps.base.views import share_api
 from apps.admin.views import admin_api
 from core.response import APIResponse
-from core.settings import data_root, settings, BASE_DIR
+from core.settings import data_root, settings, BASE_DIR, DEFAULT_CONFIG
 from core.tasks import delete_expire_files
-from core.utils import max_save_times_desc
 
 app = FastAPI()
 
@@ -26,27 +26,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-
-@app.get('/assets/{file_path:path}')
-async def assets(file_path: str):
-    if settings.max_save_seconds > 0:
-        if re.match(r'SendView-[\d|a-f|A-F]+\.js', file_path):
-            with open(BASE_DIR / f'fcb-fronted/dist/assets/{file_path}', 'r', encoding='utf-8') as f:
-                # 删除永久保存选项
-                content = f.read()
-                content = content.replace('_(c,{label:e(r)("send.expireData.forever"),value:"forever"},null,8,["label"]),', '')
-                return HTMLResponse(content=content, media_type='text/javascript')
-        if re.match(r'index-[\d|a-f|A-F]+\.js', file_path):
-            with open(BASE_DIR / f'fcb-fronted/dist/assets/{file_path}', 'r', encoding='utf-8') as f:
-                # 更改本文描述
-                desc_zh, desc_en = await max_save_times_desc(settings.max_save_seconds)
-                content = f.read()
-                content = content.replace('天数<7', desc_zh)
-                content = content.replace('Days <7', desc_en)
-                return HTMLResponse(content=content, media_type='text/javascript')
-    return FileResponse(f'fcb-fronted/dist/assets/{file_path}')
-
 
 register_tortoise(
     app,
@@ -75,6 +54,8 @@ app.include_router(admin_api)
 async def startup_event():
     # 启动后台任务，不定时删除过期文件
     asyncio.create_task(delete_expire_files())
+    user_config, created = await KeyValue.get_or_create(key='settings', defaults={'value': DEFAULT_CONFIG})
+    settings.user_config = user_config.value
 
 
 @app.get('/')
@@ -94,6 +75,7 @@ async def get_config():
     return APIResponse(detail={
         'explain': settings.page_explain,
         'uploadSize': settings.uploadSize,
+        'expireStyle': settings.expireStyle,
     })
 
 
