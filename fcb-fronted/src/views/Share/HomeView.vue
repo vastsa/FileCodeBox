@@ -20,7 +20,7 @@ const input_status = reactive({
 
 import { useI18n } from 'vue-i18n'
 const noDialog = ()=>{
-  ElMessageBox.alert(t('send.alert'), t('send.mzsm'), {
+  ElMessageBox.alert(t('send.alert'), t('send.disclaimers'), {
     confirmButtonText: '确定',
     callback: () => {
     }
@@ -99,7 +99,7 @@ const url = atob('aHR0cHM6Ly9naXRodWIuY29tL3Zhc3RzYS9GaWxlQ29kZUJveA==');
         <a style="text-decoration: none;color: #606266" target="_blank" :href="url">
           {{ name}}
         </a>
-        <a @click="noDialog" style="text-decoration: none;color: #606266;margin-left: 1rem" href="javascript:void(0)">{{t('send.mzsm')}}</a>
+        <a @click="noDialog" style="text-decoration: none;color: #606266;margin-left: 1rem" href="javascript:void(0)">{{t('send.disclaimers')}}</a>
       </div>
     </main>
 </template>

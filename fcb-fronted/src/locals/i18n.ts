@@ -3,9 +3,7 @@ import messages from './index'
 const language = (
   navigator.language  || 'zh'
 ).toLowerCase();
-
-const lang = localStorage.getItem('language') || language
-
+const lang = (localStorage.getItem('language') || language).replace(/-/, '_');
 const i18n = createI18n({
   silentTranslationWarn: true,
   globalInjection: true,
