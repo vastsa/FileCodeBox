@@ -30,10 +30,6 @@ const shareData = ref({
             <template #prepend>
               <el-select v-model="shareData.expireStyle" :placeholder="t('send.expireStyle')" style="width: 75px">
                 <el-option v-for="item in config.expireStyle" :key="item" :label="t(`send.expireData.${item}`)" :value="item" />
-<!--                <el-option :label="t('send.expireData.hour')" value="hour" />-->
-<!--                <el-option :label="t('send.expireData.minute')" value="minute" />-->
-<!--                <el-option :label="t('send.expireData.forever')" value="forever" />-->
-<!--                <el-option :label="t('send.expireData.count')" value="count" />-->
               </el-select>
             </template>
             <template #append>
