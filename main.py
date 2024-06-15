@@ -12,6 +12,7 @@ from tortoise.contrib.fastapi import register_tortoise
 
 from apps.base.views import share_api
 from apps.admin.views import admin_api
+from core.response import APIResponse
 from core.settings import data_root, settings, BASE_DIR
 from core.tasks import delete_expire_files
 from core.utils import max_save_times_desc
@@ -86,6 +87,14 @@ async def index():
         .replace('{{opacity}}', str(settings.opacity))
         .replace('{{background}}', str(settings.background))
         , media_type='text/html', headers={'Cache-Control': 'no-cache'})
+
+
+@app.post('/')
+async def get_config():
+    return APIResponse(detail={
+        'explain': settings.page_explain,
+        'uploadSize': settings.uploadSize,
+    })
 
 
 if __name__ == '__main__':

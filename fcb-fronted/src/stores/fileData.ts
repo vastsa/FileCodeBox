@@ -9,12 +9,12 @@ export const useFileDataStore = defineStore('fileData', () => {
     localStorage.setItem('shareData', JSON.stringify(shareData));
   }
   function addReceiveData(data:any) {
-    receiveData.push(data);
+    receiveData.unshift(data);
     save();
   }
 
   function addShareData(data:any) {
-    shareData.push(data);
+    shareData.unshift(data);
     save();
   }
 

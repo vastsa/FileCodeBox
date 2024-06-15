@@ -50,6 +50,7 @@ export default {
       name: '網站名稱',
       description: '網站描述',
       uploadlimit: '上傳限制',
+      explain:'介面說明',
       errorlimit: '錯誤限制',
       keywords: '關鍵詞',
       background: '背景圖片',

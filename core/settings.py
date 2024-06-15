@@ -13,6 +13,7 @@ default_value = {
     'file_storage': 'local',
     'name': '文件快递柜-FileCodeBox',
     'description': '开箱即用的文件快传系统',
+    'page_explain': '根据《中华人民共和国网络安全法》、《中华人民共和国刑法》、《中华人民共和国治安管理处罚法》等相关规定。 传播或存储违法、违规内容，会受到相关处罚，严重者将承担刑事责任。请勿上传非法文件，本站坚决配合相关部门，确保网络内容的安全，和谐，打造绿色网络环境。',
     'keywords': 'FileCodeBox, 文件快递柜, 口令传送箱, 匿名口令分享文本, 文件',
     'max_save_seconds': 0,
     's3_access_key_id': '',
@@ -57,7 +58,7 @@ class Settings:
             for line in f.readlines():
                 key, value = line.strip().split('=', maxsplit=1)
                 # 将字符串转换为原本的类型
-                if not key.startswith('opendal_') and isinstance(default_value[key], int):
+                if key and not key.startswith('opendal_') and isinstance(default_value.get(key, ''), int):
                     value = int(value)
                 default_value[key] = value
 

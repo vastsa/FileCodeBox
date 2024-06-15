@@ -1,7 +1,6 @@
 export default {
   send: {
     disclaimers:'免责声明',
-    alert: '根据《中华人民共和国网络安全法》、《中华人民共和国刑法》、《中华人民共和国治安管理处罚法》等相关规定。 传播或存储违法、违规内容，会受到相关处罚，严重者将承担刑事责任。请勿上传非法文件，本站坚决配合相关部门，确保网络内容的安全，和谐，打造绿色网络环境。',
     prompt1: '将文字、文件拖、粘贴到此处，或 ',
     prompt2: '天数<7或限制次数（24h后删除）',
     prompt3: '请输入您要寄出的文本，支持MarkDown格式',
@@ -114,5 +113,7 @@ export default {
   },
   msg:{
     fileOverSize: '文件过大',
+    fileUploadFail: '上传失败',
+    fileUploadSuccess: '上传成功',
   }
 };

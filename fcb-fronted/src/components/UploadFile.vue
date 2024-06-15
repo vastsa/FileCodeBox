@@ -5,7 +5,10 @@ import { request } from "@/utils/request";
 import { useFileDataStore } from "@/stores/fileData";
 import { useFileBoxStore } from "@/stores/fileBox";
 import { useI18n } from 'vue-i18n'
+import { useConfigStore } from "@/stores/config";
+import { ElMessage } from "element-plus";
 
+const { config } = useConfigStore();
 const { t } = useI18n()
 const fileBoxStore = useFileBoxStore();
 const fileStore = useFileDataStore();
@@ -38,6 +41,17 @@ const handleOnChangeFileList = (file: any) => {
 const handleHttpRequest = (options: any) => {
   fileBoxStore.showFileBox = true;
   const formData = new FormData();
+  if (options.file.size > config.uploadSize) {
+    fileStore.shareData.forEach((file: any) => {
+      if (file.uid === options.file.uid) {
+        ElMessage.error(t('msg.fileOverSize'));
+        file.status = 'fail';
+        file.code = t('msg.fileOverSize');
+        fileStore.save();
+      }
+    });
+    return;
+  }
   formData.append('file', options.file);
   formData.append('expire_value', props.shareData.expireValue);
   formData.append('expire_style', props.shareData.expireStyle);
@@ -63,6 +77,7 @@ const handleHttpRequest = (options: any) => {
         file.status = 'success';
         file.text = data.text;
         file.code = data.code;
+        ElMessage.success(t('msg.fileUploadSuccess'));
         fileStore.save();
       }
     });
@@ -70,7 +85,8 @@ const handleHttpRequest = (options: any) => {
     fileStore.shareData.forEach((file: any) => {
       if (file.uid === options.file.uid) {
         file.status = 'fail';
-        file.code = '上传失败';
+        file.code = t('msg.fileUploadFail');
+        ElMessage.error(t('msg.fileUploadFail'));
         fileStore.save();
       }
     });

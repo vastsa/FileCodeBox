@@ -114,19 +114,17 @@ async function saveFileByElementA(fileBlob: Blob, filename: string) {
   window.URL.revokeObjectURL(downloadUrl);
   document.body.removeChild(link);
 }
+
 async function saveFileByWebApi(fileBlob: Blob, filename: string) {
   // 创建一个新句柄。
   // @ts-ignore
   const newHandle = await window.showSaveFilePicker({
     suggestedName: filename,
   });
-
   // 创建一个 FileSystemWritableFileStream 用于写入。
   const writableStream = await newHandle.createWritable();
-
   // 写入我们的文件。
   await writableStream.write(fileBlob);
-
   // 关闭文件并将内容写入磁盘。
   await writableStream.close();
 }

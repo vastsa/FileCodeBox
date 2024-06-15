@@ -1,7 +1,7 @@
 import { createI18n } from 'vue-i18n' //引入vue-i18n组件
 import messages from './index'
 const language = (
-  navigator.language  || 'zh'
+  navigator.language  || 'zh_cn'
 ).toLowerCase();
 const lang = (localStorage.getItem('language') || language).replace(/-/, '_');
 const i18n = createI18n({

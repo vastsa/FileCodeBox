@@ -10,7 +10,10 @@
       <el-input v-model="config.keywords" />
     </el-form-item>
     <el-form-item size="large" :label="t('admin.settings.background')">
-      <el-input v-model="config.background" />
+      <el-input v-model="config.background" placeholder="url" />
+    </el-form-item>
+    <el-form-item size="large" :label="t('admin.settings.explain')">
+      <el-input type="textarea" v-model="config.page_explain" placeholder="explain" />
     </el-form-item>
     <el-form-item size="large" :label="t('admin.settings.admin_token')">
       <el-input type="password" v-model="config.admin_token" />
@@ -109,6 +112,7 @@ const config = ref({
   uploadMinute: 1,
   s3_access_key_id: '',
   background: '',
+  page_explain:'',
   s3_secret_access_key: '',
   aws_session_token: '',
   s3_signature_version: '',
@@ -153,7 +157,7 @@ const submitSave = () => {
   font-size: 1rem;
   letter-spacing: 0.4rem;
 }
-small{
+small,.el-form-item__content{
   color: #909399;
   margin-left: 0.4rem;
 }

@@ -17,13 +17,13 @@ const input_status = reactive({
   'readonly': false,
   'loading': false,
 })
-
 import { useI18n } from 'vue-i18n'
+import { useConfigStore } from "@/stores/config";
+
+const { config } = useConfigStore()
 const noDialog = ()=>{
-  ElMessageBox.alert(t('send.alert'), t('send.disclaimers'), {
-    confirmButtonText: '确定',
-    callback: () => {
-    }
+  ElMessageBox.alert(config.explain, t('send.disclaimers'), {
+    confirmButtonText: t('fileBox.ok'),
   });
 }
 const { t } = useI18n()

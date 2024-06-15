@@ -50,6 +50,7 @@ export default {
       name: 'Website Name',
       description: 'Website Description',
       keywords: 'Keywords',
+      explain:'Use Explain',
       uploadlimit:'Upload Limit',
       errorlimit:'Error Limit',
       background: 'Background Image',
