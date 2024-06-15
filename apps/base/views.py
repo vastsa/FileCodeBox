@@ -50,6 +50,8 @@ async def share_file(expire_value: int = Form(default=1, gt=0), expire_style: st
     if file.size > settings.uploadSize:
         raise HTTPException(status_code=403, detail=f'文件大小超过限制，最大为{settings.uploadSize}字节')
     # 获取过期信息
+    if expire_style not in settings.expireStyle:
+        raise HTTPException(status_code=400, detail='过期时间类型错误')
     expired_at, expired_count, used_count, code = await get_expire_info(expire_value, expire_style)
     # 获取文件路径和名称
     path, suffix, prefix, uuid_file_name, save_path = await get_file_path_name(file)
