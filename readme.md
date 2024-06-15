@@ -51,13 +51,14 @@
 - [x] **简单明了：** 适合新手练手项目
 - [x] **终端下载：** 终端命令`wget https://share.lanol.cn/share/select?code=83432`
 
-## 项目状态
+## 状态
 
-![Alt](https://repobeats.axiom.co/api/embed/7a6c92f1d96ee57e6fb67f0df371528397b0c9ac.svg)
+![Alt](https://repobeats.axiom.co/api/embed/7a6c92f1d96ee57e6fb67f0df371528397b0c9ac.svg "Repobeats analytics image")
 
 ## Star History
 
-[Star History Chart](https://api.star-history.com/svg?repos=vastsa/FileCodeBox&type=Date)
+[![Star History Chart](https://api.star-history.com/svg?repos=vastsa/FileCodeBox&type=Date)](https://star-history.com/#vastsa/FileCodeBox&Date)
+
 
 ## 免责声明
 
