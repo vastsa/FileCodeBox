@@ -56,6 +56,8 @@ export default {
       background: '背景图片',
       admin_token: '管理密码',
       uploadSize: '文件大小',
+      max_save_seconds: '最长保存',
+      maxSaveSecondsNote: '最长保存时间，单位:（秒），默认为0则为7天',
       uploadSizeNote: '最大文件大小，单位:（Bytes),1mb=1 * 1024 * 1024',
       openUpload: {
         title: '开启上传',

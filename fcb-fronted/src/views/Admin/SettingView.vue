@@ -20,8 +20,12 @@
     </el-form-item>
     <el-form-item size="large" :label="t('admin.settings.uploadSize')">
       <el-input type="number" v-model="config.uploadSize" />
-      <template #append>Bytes</template>
-      <small>{{ t('admin.settings.uploadSizeNote') }}</small>
+      <template #append></template>
+      <small>Bytes：{{ t('admin.settings.uploadSizeNote') }}</small>
+    </el-form-item>
+    <el-form-item size="large" :label="t('admin.settings.max_save_seconds')">
+      <el-input type="number" v-model="config.max_save_seconds" />
+      <small>Seconds:{{t('admin.settings.maxSaveSecondsNote')}}</small>
     </el-form-item>
     <el-form-item size="large" :label="t('admin.settings.expireStyle')" >
       <el-select
@@ -124,6 +128,7 @@ const config = ref({
   openUpload: 1,
   uploadSize: 1,
   uploadMinute: 1,
+  max_save_seconds: 0,
   s3_access_key_id: '',
   background: '',
   page_explain: '',

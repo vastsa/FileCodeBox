@@ -53,6 +53,8 @@ export default {
       explain:'Descripción de la interfaz',
       errorlimit: 'Límite de errores',
       keywords: 'Palabras clave',
+      max_save_seconds: 'Tiempo máximo de guardado',
+      maxSaveSecondsNote: 'Tiempo máximo de guardado en segundos, el valor predeterminado es 0, lo que significa 7 días',
       background: 'Imagen de fondo',
       admin_token: 'Contraseña de administrador',
       uploadSize: 'Tamaño del archivo',

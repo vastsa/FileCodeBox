@@ -52,6 +52,8 @@ export default {
       uploadlimit: '上傳限制',
       explain:'界面說明',
       errorlimit: '錯誤限制',
+      max_save_seconds: '最長保存',
+      maxSaveSecondsNote: '最長保存時間，單位:（秒），默認為0則為7天',
       keywords: '關鍵詞',
       background: '背景圖片',
       admin_token: '管理密碼',

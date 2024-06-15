@@ -54,6 +54,8 @@ export default {
       errorlimit: 'Error Limit',
       keywords: 'Keywords',
       background: 'Background Image',
+      max_save_seconds: 'Maximum Save Time',
+      maxSaveSecondsNote: 'Maximum save time in seconds, default is 0 which means 7 days',
       admin_token: 'Admin Password',
       uploadSize: 'File Size',
       uploadSizeNote: 'Maximum file size, in bytes: (Bytes), 1mb=1 * 1024 * 1024',

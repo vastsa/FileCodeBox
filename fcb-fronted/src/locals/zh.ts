@@ -54,6 +54,8 @@ export default {
       errorlimit: '错误限制',
       keywords: '关键词',
       background: '背景图片',
+      max_save_seconds: '最长保存',
+      maxSaveSecondsNote: '最长保存时间，单位:（秒），默认为0则为7天',
       admin_token: '管理密码',
       uploadSize: '文件大小',
       expireStyle: '过期方式',
