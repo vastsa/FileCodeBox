@@ -12,8 +12,8 @@
 <div align="center" style=text-align: center;margin: 20px 0;>
     <a href="./readme.md">简体中文</a> | 
     <a href="./readme_en.md">English</a> | 
-    <a href="[https://github.com/vastsa/FileCodeBox/wiki/%E9%83%A8%E7%BD%B2%E6%95%99%E7%A8%8B](https://github.com/vastsa/FileCodeBox/wiki/Deployment-Tutorial)">Deployment Guide</a> | 
-    <a href="[https://github.com/vastsa/FileCodeBox/wiki/%E9%83%A8%E7%BD%B2%E6%95%99%E7%A8%8B](https://github.com/vastsa/FileCodeBox/wiki/Frequently-asked-questions)">FAQ</a>
+    <a href="https://github.com/vastsa/FileCodeBox/wiki/Deployment-Tutorial">Deployment Guide</a> | 
+    <a href="https://github.com/vastsa/FileCodeBox/wiki/Frequently-asked-questions">FAQ</a>
 </div>
 
 ## Screenshots
