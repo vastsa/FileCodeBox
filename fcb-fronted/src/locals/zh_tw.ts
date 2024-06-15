@@ -1,7 +1,6 @@
 export default {
   send: {
-    disclaimers: '免責聲明',
-    alert: '根據《中華人民共和國網絡安全法》、《中華人民共和國刑法》、《中華人民共和國治安管理處罰法》等相關規定。 傳播或存儲違法、違規內容，會受到相關處罰，嚴重者將承擔刑事責任。請勿上傳非法文件，本站堅決配合相關部門，確保網絡內容的安全，和諧，打造綠色網絡環境。',
+    disclaimers:'頁面說明',
     prompt1: '將文字、文件拖、粘貼到此處，或 ',
     prompt2: '天數<7或限制次數（24h後刪除）',
     prompt3: '請輸入您要寄出的文本，支持MarkDown格式',
@@ -32,9 +31,10 @@ export default {
     copySuccess: '複製成功',
     inputNotEmpty: '請輸入五位取件碼',
     sendFileBox: '寄件箱',
+    ok:'確定',
     receiveFileBox: '收件箱',
     textDetail: '文本詳情',
-    copy: '複 制',
+    copy: '複 製',
     close: '關 閉',
     delete: '刪 除',
     download: '點 擊 下 載',
@@ -43,14 +43,14 @@ export default {
   },
   admin: {
     about: {
-      source1: '本專案開源於Github：',
+      source1: '本項目開源於Github：',
       source2: 'FileCodeBox'
     },
     settings: {
       name: '網站名稱',
       description: '網站描述',
       uploadlimit: '上傳限制',
-      explain:'介面說明',
+      explain:'界面說明',
       errorlimit: '錯誤限制',
       keywords: '關鍵詞',
       background: '背景圖片',
@@ -61,13 +61,13 @@ export default {
         title: '開啟上傳',
         open: '開啟遊客上傳',
         close: '關閉遊客上傳',
-        note: '關閉之後需要登入後台方可上傳',
+        note: '關閉之後需要登錄後臺方可上傳',
       },
       file_storage: {
         title: '存儲引擎',
         local: '本地存儲',
         s3: 'S3存儲',
-        note: '更新後需要重新啟動FileCodeBox',
+        note: '更新後需要重啟FileCodeBox',
       },
       mei: '每',
       minute: '分鐘',
@@ -110,5 +110,10 @@ export default {
       loginSuccess: '登錄成功',
       loginError: '登錄失敗',
     }
+  },
+  msg:{
+    fileOverSize: '文件過大',
+    fileUploadFail: '上傳失敗',
+    fileUploadSuccess: '上傳成功',
   }
 };

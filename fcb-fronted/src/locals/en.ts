@@ -1,14 +1,13 @@
 export default {
   send: {
-    disclaimers:'Disclaimers',
-    alert:'According to the relevant provisions of the Cybersecurity Law of the People\'s Republic of China, the Criminal Law of the People\'s Republic of China, the Law on Public Security Administration Punishments of the People\'s Republic of China, and other relevant regulations, the dissemination or storage of illegal or irregular content may be subject to corresponding penalties, and those who commit serious offenses will bear criminal responsibility. Please refrain from uploading illegal files. This website firmly cooperates with relevant departments to ensure the security and harmony of online content, and to create a green cyber environment.',
-    prompt1: 'Drag and drop text or files here, or ',
-    prompt2: 'Days <7 or limited times (deleted after 24h)',
-    prompt3: 'Please enter the text you want to send',
+    disclaimers:'Page Description',
+    prompt1: 'Drag or paste text, files here, or ',
+    prompt2: 'Days (<7) or limit times (delete after 24h)',
+    prompt3: 'Please enter the text you want to send, supports MarkDown format',
     share: 'Share',
     textShare: 'Text Share',
     clickUpload: 'Click to upload',
-    pleaseInputExpireValue: 'Please enter expiration value',
+    pleaseInputExpireValue: 'Please enter the expiration value',
     expireStyle: 'Expiration style',
     expireData: {
       day: 'Days',
@@ -18,10 +17,10 @@ export default {
       count: 'Times'
     },
     expireValue: {
-      day: 'Days',
-      hour: 'Hours',
-      minute: 'Minutes',
-      count: 'Times'
+      day: 'Day',
+      hour: 'Hour',
+      minute: 'Minute',
+      count: 'Time'
     },
     fileType: {
       file: 'File',
@@ -30,47 +29,48 @@ export default {
   },
   fileBox: {
     copySuccess: 'Copied successfully',
-    inputNotEmpty: 'Please enter the five-digit pickup code',
-    sendFileBox: 'Send File Box',
-    receiveFileBox: 'Receive File Box',
-    textDetail: 'Text Detail',
+    inputNotEmpty: 'Please enter a five-digit pickup code',
+    sendFileBox: 'Sending Box',
+    ok:'OK',
+    receiveFileBox: 'Receiving Box',
+    textDetail: 'Text Details',
     copy: 'Copy',
     close: 'Close',
     delete: 'Delete',
-    download: 'Click to download',
-    detail: 'View details',
-    copyLink: 'Copy link',
+    download: 'Click to Download',
+    detail: 'View Details',
+    copyLink: 'Copy Link',
   },
-  admin:{
-    about:{
-      source1:'This project is open source on Github: ',
-      source2:'FileCodeBox'
+  admin: {
+    about: {
+      source1: 'The project is open source on Github: ',
+      source2: 'FileCodeBox'
     },
     settings: {
-      name: 'Website Name',
-      description: 'Website Description',
+      name: 'Site Name',
+      description: 'Site Description',
+      uploadlimit: 'Upload Limit',
+      explain:'Interface Description',
+      errorlimit: 'Error Limit',
       keywords: 'Keywords',
-      explain:'Use Explain',
-      uploadlimit:'Upload Limit',
-      errorlimit:'Error Limit',
       background: 'Background Image',
       admin_token: 'Admin Password',
       uploadSize: 'File Size',
-      uploadSizeNote: 'Maximum file size, unit: (bit), 1mb = 1 * 1024 * 1024',
+      uploadSizeNote: 'Maximum file size, in bytes: (Bytes), 1mb=1 * 1024 * 1024',
       openUpload: {
         title: 'Enable Upload',
         open: 'Enable Guest Upload',
         close: 'Disable Guest Upload',
-        note: 'After disabling, login to the backend is required for uploading.',
+        note: 'After disabling, you need to log in to the backend to upload',
       },
       file_storage: {
         title: 'Storage Engine',
         local: 'Local Storage',
         s3: 'S3 Storage',
-        note: 'FileCodeBox needs to be restarted after updating.',
+        note: 'FileCodeBox needs to be restarted after update',
       },
       mei: 'Every',
-      minute: 'Minutes',
+      minute: 'Minute',
       upload: 'Upload',
       files: 'Files',
       allow: 'Allow',
@@ -79,20 +79,20 @@ export default {
       saveSuccess: 'Saved successfully',
     },
     fileView: {
-      code: 'Access Code',
+      code: 'Pickup Code',
       prefix: 'File Prefix',
       suffix: 'File Suffix',
       text: 'Text',
       used_count: 'Used Count',
-      expired_count: 'Available Count',
+      expired_count: 'Available Times',
       size: 'File Size',
       expired_at: 'Expiration Time',
       file_path: 'File Path',
       action: 'Action',
       delete: 'Delete',
-      delete_success: 'Delete successful',
-      forever: 'Forever',
-      unlimited_count: 'Unlimited',
+      delete_success: 'Deleted successfully',
+      forever: 'Permanent',
+      unlimited_count: 'Unlimited Times',
       download: 'Download',
       download_fail: 'File save failed, please try again later~',
     },
@@ -110,5 +110,10 @@ export default {
       loginSuccess: 'Login successful',
       loginError: 'Login failed',
     }
+  },
+  msg:{
+    fileOverSize: 'File too large',
+    fileUploadFail: 'Upload failed',
+    fileUploadSuccess: 'Upload successful',
   }
-}
+};
