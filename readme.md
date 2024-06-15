@@ -9,7 +9,7 @@
 
 ---
 
-[简体中文](./readme.md) | [English](./readme_en.md)
+[简体中文](./readme.md) | [English](./readme_en.md) | [部署教程](https://github.com/vastsa/FileCodeBox/wiki/%E9%83%A8%E7%BD%B2%E6%95%99%E7%A8%8B) | [常见问题]([https://github.com/vastsa/FileCodeBox/wiki/%E9%83%A8%E7%BD%B2%E6%95%99%E7%A8%8B](https://github.com/vastsa/FileCodeBox/wiki/%E5%B8%B8%E8%A7%81%E9%97%AE%E9%A2%98))
 
 ## 主要特色
 
