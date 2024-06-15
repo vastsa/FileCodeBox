@@ -10,8 +10,11 @@
 ---
 
 
-<div style="text-align: center;">
-  [简体中文](./readme.md) | [English](./readme_en.md) | [部署教程](https://github.com/vastsa/FileCodeBox/wiki/%E9%83%A8%E7%BD%B2%E6%95%99%E7%A8%8B) | [常见问题](https://github.com/vastsa/FileCodeBox/wiki/%E9%83%A8%E7%BD%B2%E6%95%99%E7%A8%8B)
+<div style=text-align: center;margin: 20px 0;>
+    <a href="./readme.md">简体中文</a> | 
+    <a href="./readme_en.md">English</a> | 
+    <a href="https://github.com/vastsa/FileCodeBox/wiki/%E9%83%A8%E7%BD%B2%E6%95%99%E7%A8%8B">部署教程</a> | 
+    <a href="https://github.com/vastsa/FileCodeBox/wiki/%E9%83%A8%E7%BD%B2%E6%95%99%E7%A8%8B">常见问题</a>
 </div>
 
 
