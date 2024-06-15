@@ -7,6 +7,7 @@ import asyncio
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse
+from fastapi.staticfiles import StaticFiles
 from tortoise.contrib.fastapi import register_tortoise
 
 from apps.base.models import KeyValue
@@ -25,6 +26,8 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+app.mount('/assets', StaticFiles(directory='./fcb-fronted/dist/assets'), name="assets")
 
 register_tortoise(
     app,
