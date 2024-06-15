@@ -7,8 +7,10 @@ import { useFileBoxStore } from "@/stores/fileBox";
 import { ElMessage } from "element-plus";
 
 import { useI18n } from 'vue-i18n'
+import { useConfigStore } from "@/stores/config";
 
 const { t } = useI18n()
+const {config} = useConfigStore();
 const fileBoxStore = useFileBoxStore();
 const fileStore = useFileDataStore();
 const props = defineProps({
@@ -25,6 +27,8 @@ const props = defineProps({
 const handleSubmitShareText = ()=>{
   if (shareText.value === '') {
     ElMessage.warning(t('send.prompt3'));
+  } else if(config.openUpload === 0 && localStorage.getItem('adminPassword') === null){
+    ElMessage.error(t('msg.uploadClose'));
   } else {
     const formData = new FormData();
     formData.append('text', shareText.value);

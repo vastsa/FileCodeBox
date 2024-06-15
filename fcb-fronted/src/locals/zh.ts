@@ -118,5 +118,6 @@ export default {
     fileOverSize: '文件过大',
     fileUploadFail: '上传失败',
     fileUploadSuccess: '上传成功',
+    uploadClose: '本站已关闭游客上传',
   }
 };

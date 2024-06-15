@@ -77,6 +77,7 @@ async def get_config():
         'explain': settings.page_explain,
         'uploadSize': settings.uploadSize,
         'expireStyle': settings.expireStyle,
+        'openUpload': settings.openUpload,
     })
 
 
