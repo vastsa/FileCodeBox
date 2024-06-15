@@ -9,9 +9,13 @@
 
 ---
 
-[简体中文](./readme.md) | [English](./readme_en.md) | [部署教程](https://github.com/vastsa/FileCodeBox/wiki/%E9%83%A8%E7%BD%B2%E6%95%99%E7%A8%8B) | [常见问题](https://github.com/vastsa/FileCodeBox/wiki/%E9%83%A8%E7%BD%B2%E6%95%99%E7%A8%8B)
 
-### 截图
+<div style="text-align: center;">
+  [简体中文](./readme.md) | [English](./readme_en.md) | [部署教程](https://github.com/vastsa/FileCodeBox/wiki/%E9%83%A8%E7%BD%B2%E6%95%99%E7%A8%8B) | [常见问题](https://github.com/vastsa/FileCodeBox/wiki/%E9%83%A8%E7%BD%B2%E6%95%99%E7%A8%8B)
+</div>
+
+
+## 部分截图
 
 <table style="width:100%">
 <tr style="width: 100%">
