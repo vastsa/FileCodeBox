@@ -2,9 +2,6 @@
 import { onMounted } from "vue";
 import { request } from "@/utils/request";
 import { ElNotification } from 'element-plus'
-import { useConfigStore } from "@/stores/config";
-
-const { config } = useConfigStore();
 onMounted(() => {
   request({
     url:'/',
@@ -12,12 +9,12 @@ onMounted(() => {
   }).then((res:any)=>{
     if (res.code === 200) {
       localStorage.setItem('config', JSON.stringify(res.detail));
-      if (config.notify_title && config.notify_content && localStorage.getItem('notify') !== config.notify_title + config.notify_content) {
-        localStorage.setItem('notify', config.notify_title + config.notify_content);
+      if (res.detail.notify_title && res.detail.notify_content && localStorage.getItem('notify') !== res.detail.notify_title + res.detail.notify_content) {
+        localStorage.setItem('notify', res.detail.notify_title + res.detail.notify_content);
         ElNotification({
-          title: config.notify_title,
+          title: res.detail.notify_title,
           dangerouslyUseHTMLString: true,
-          message: config.notify_content,
+          message: res.detail.notify_content,
           type: 'success'
         });
       }
