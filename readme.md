@@ -51,7 +51,7 @@
 - [x] **简单明了：** 适合新手练手项目
 - [x] **终端下载：** 终端命令`wget https://share.lanol.cn/share/select?code=83432`
 
-## Bridges
+## Badges
 <div align="center">
 <a href="https://hellogithub.com/repository/75ad7ffedd404a6485b4d621ec5b47e6" target="_blank"><img src="https://api.hellogithub.com/v1/widgets/recommend.svg?rid=75ad7ffedd404a6485b4d621ec5b47e6&claim_uid=beSz6INEkCM4mDH" alt="Featured｜HelloGitHub" style="width: 250px; height: 54px;" width="250" height="54" /></a>
 </div>
