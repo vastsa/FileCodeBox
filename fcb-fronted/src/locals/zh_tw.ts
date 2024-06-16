@@ -1,7 +1,7 @@
 export default {
   send: {
     disclaimers:'頁面說明',
-    prompt1: '將文字、文件拖、粘貼到此處，或 ',
+    prompt1: '將文字、文件拖、貼到此處，或 ',
     prompt2: '天數<7或限制次數（24h後刪除）',
     prompt3: '請輸入您要寄出的文本，支持MarkDown格式',
     share: '分享',
@@ -52,12 +52,15 @@ export default {
       uploadlimit: '上傳限制',
       explain:'界面說明',
       errorlimit: '錯誤限制',
+      keywords: '關鍵詞',
+      notify_title: '通知標題',
+      notify_content: '通知內容',
+      background: '背景圖片',
       max_save_seconds: '最長保存',
       maxSaveSecondsNote: '最長保存時間，單位:（秒），默認為0則為7天',
-      keywords: '關鍵詞',
-      background: '背景圖片',
       admin_token: '管理密碼',
       uploadSize: '文件大小',
+      expireStyle: '過期方式',
       uploadSizeNote: '最大文件大小，單位:（Bytes),1mb=1 * 1024 * 1024',
       openUpload: {
         title: '開啟上傳',
@@ -103,6 +106,8 @@ export default {
       systemSetting: '系統設置',
       about: '關於我們',
       color: '顏色模式',
+      send: '寄件',
+      receive: '收件',
       signout: '退出登錄',
     },
     login: {
@@ -117,5 +122,6 @@ export default {
     fileOverSize: '文件過大',
     fileUploadFail: '上傳失敗',
     fileUploadSuccess: '上傳成功',
+    uploadClose: '本站已關閉遊客上傳',
   }
 };
