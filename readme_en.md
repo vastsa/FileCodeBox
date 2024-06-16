@@ -9,7 +9,7 @@
 
 ---
 
-<div align="center" style=text-align: center;margin: 20px 0;>
+<div align="center" style="text-align: center;margin: 20px 0">
     <a href="./readme.md">简体中文</a> | 
     <a href="./readme_en.md">English</a> | 
     <a href="https://github.com/vastsa/FileCodeBox/wiki/Deployment-Tutorial">Deployment Guide</a> | 
@@ -59,4 +59,5 @@
 
 ## Disclaimer
 
-This project is open-sourced for learning purposes only and shall not be used for any illegal activities. Any consequences are the sole responsibility of the user and have no relation to the author. Please retain the project link when using. Thank you.
+This project is open-sourced for learning purposes only and shall not be used for any illegal activities. Any consequences are the sole responsibility of the user and have no
+relation to the author. Please retain the project link when using. Thank you.
