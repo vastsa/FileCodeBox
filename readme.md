@@ -1,3 +1,5 @@
+![banner](https://fastly.jsdelivr.net/gh/vastsa/FileCodeBox@V1.6/static/banners/img_1.png)
+
 <div align="center">
 <h1>文件快递柜-轻量</h1>
 <h2>FileCodeBox-Lite</h2>
@@ -5,7 +7,6 @@
 <p>交流Q群：739673698</p>
 </div>
 
-![banner](https://fastly.jsdelivr.net/gh/vastsa/FileCodeBox@V1.6/static/banners/img_1.png)
 
 ---
 
