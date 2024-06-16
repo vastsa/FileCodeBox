@@ -41,7 +41,7 @@ const handleOnChangeFileList = (file: any) => {
 const handleHttpRequest = (options: any) => {
   fileBoxStore.showFileBox = true;
   const formData = new FormData();
-  if (config.openUpload === 0 || localStorage.getItem('adminPassword') === null) {
+  if (config.openUpload === 0 && localStorage.getItem('adminPassword') === null) {
     fileStore.shareData.forEach((file: any) => {
       if (file.uid === options.file.uid) {
         ElMessage.error(t('msg.uploadClose'));
