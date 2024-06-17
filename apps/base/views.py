@@ -47,7 +47,7 @@ async def share_text(text: str = Form(...), expire_value: int = Form(default=1, 
 @share_api.post('/file/', dependencies=[Depends(admin_required)])
 async def share_file(expire_value: int = Form(default=1, gt=0), expire_style: str = Form(default='day'), file: UploadFile = File(...), ip: str = Depends(upload_ip_limit)):
     # 检查文件大小是否超过限制
-    if file.size > settings.uploadSize:
+    if file.size > int(settings.uploadSize):
         raise HTTPException(status_code=403, detail=f'文件大小超过限制，最大为{settings.uploadSize}字节')
     # 获取过期信息
     if expire_style not in settings.expireStyle:
