@@ -11,7 +11,7 @@ from apps.admin.pydantics import IDData
 from apps.base.models import FileCodes, KeyValue
 from core.response import APIResponse
 from core.settings import settings
-from core.storage import file_storage
+from core.storage import FileStorageInterface, storages
 
 admin_api = APIRouter(
     prefix='/admin',
@@ -26,6 +26,7 @@ async def login():
 
 @admin_api.delete('/file/delete', dependencies=[Depends(admin_required)])
 async def file_delete(data: IDData):
+    file_storage: FileStorageInterface = storages[settings.file_storage]()
     file_code = await FileCodes.get(id=data.id)
     await file_storage.delete_file(file_code)
     await file_code.delete()
@@ -79,6 +80,7 @@ async def get_file_by_id(id):
 
 @admin_api.get('/file/download', dependencies=[Depends(admin_required)])
 async def file_download(id: int):
+    file_storage: FileStorageInterface = storages[settings.file_storage]()
     has, file_code = await get_file_by_id(id)
     # 检查文件是否存在
     if not has:

@@ -8,11 +8,13 @@ from tortoise.expressions import Q
 
 from apps.base.models import FileCodes
 from apps.base.utils import error_ip_limit, upload_ip_limit
-from core.storage import file_storage
+from core.settings import settings
+from core.storage import FileStorageInterface, storages
 from core.utils import get_now
 
 
 async def delete_expire_files():
+    file_storage: FileStorageInterface = storages[settings.file_storage]()
     while True:
         try:
             await error_ip_limit.remove_expired_ip()

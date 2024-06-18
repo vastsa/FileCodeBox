@@ -10,7 +10,7 @@ from apps.base.pydantics import SelectFileModel
 from apps.base.utils import get_expire_info, get_file_path_name, error_ip_limit, upload_ip_limit
 from core.response import APIResponse
 from core.settings import settings
-from core.storage import file_storage
+from core.storage import storages, FileStorageInterface
 from core.utils import get_select_token
 
 # 创建一个API路由
@@ -56,6 +56,7 @@ async def share_file(expire_value: int = Form(default=1, gt=0), expire_style: st
     # 获取文件路径和名称
     path, suffix, prefix, uuid_file_name, save_path = await get_file_path_name(file)
     # 保存文件
+    file_storage: FileStorageInterface = storages[settings.file_storage]()
     await file_storage.save_file(file, save_path)
     # 创建一个新的FileCodes实例
     await FileCodes.create(
@@ -94,6 +95,7 @@ async def get_code_file_by_code(code, check=True):
 # 获取文件的API
 @share_api.get('/select/')
 async def get_code_file(code: str, ip: str = Depends(error_ip_limit)):
+    file_storage: FileStorageInterface = storages[settings.file_storage]()
     # 获取文件
     has, file_code = await get_code_file_by_code(code)
     # 检查文件是否存在
@@ -115,6 +117,7 @@ async def get_code_file(code: str, ip: str = Depends(error_ip_limit)):
 # 选择文件的API
 @share_api.post('/select/')
 async def select_file(data: SelectFileModel, ip: str = Depends(error_ip_limit)):
+    file_storage: FileStorageInterface = storages[settings.file_storage]()
     # 获取文件
     has, file_code = await get_code_file_by_code(data.code)
     # 检查文件是否存在
@@ -141,6 +144,7 @@ async def select_file(data: SelectFileModel, ip: str = Depends(error_ip_limit)):
 # 下载文件的API
 @share_api.get('/download')
 async def download_file(key: str, code: str, ip: str = Depends(error_ip_limit)):
+    file_storage: FileStorageInterface = storages[settings.file_storage]()
     # 检查token是否有效
     is_valid = await get_select_token(code) == key
     if not is_valid:

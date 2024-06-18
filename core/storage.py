@@ -2,6 +2,8 @@
 # @Author  : Lan
 # @File    : storage.py
 # @Software: PyCharm
+from typing import Optional
+
 import aiohttp
 import asyncio
 from pathlib import Path
@@ -20,6 +22,12 @@ from fastapi.responses import FileResponse
 
 
 class FileStorageInterface:
+    _instance: Optional['FileStorageInterface'] = None
+
+    def __new__(cls, *args, **kwargs):
+        if cls._instance is None:
+            cls._instance = super(FileStorageInterface, cls).__new__(cls, *args, **kwargs)
+        return cls._instance
 
     async def save_file(self, file: UploadFile, save_path: str):
         """
@@ -79,7 +87,7 @@ class SystemFileStorage(FileStorageInterface):
         return await get_file_url(file_code.code)
 
     async def get_file_response(self, file_code: FileCodes):
-        file_path = file_storage.root_path / await file_code.get_file_path()
+        file_path = self.root_path / await file_code.get_file_path()
         if not file_path.exists():
             return APIResponse(code=404, detail='文件已过期删除')
         return FileResponse(file_path, filename=file_code.prefix + file_code.suffix)
@@ -288,5 +296,3 @@ storages = {
     'onedrive': OneDriveFileStorage,
     'opendal': OpenDALFileStorage,
 }
-
-file_storage: FileStorageInterface = storages[settings.file_storage]()
