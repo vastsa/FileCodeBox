@@ -16,7 +16,12 @@
       <el-input v-model="config.notify_content" />
     </el-form-item>
     <el-form-item size="large" :label="t('admin.settings.background')">
-      <el-input v-model="config.background" placeholder="url" />
+      <span style="display: flex;height: 38px;width: 45%">
+          <el-input v-model="config.background" placeholder="url" />
+      </span>
+      <span style="display: flex;height: 38px;margin-left: 20px">
+         Opacity: <el-input type="number" v-model="config.opacity" />
+      </span>
     </el-form-item>
     <el-form-item size="large" :label="t('admin.settings.explain')">
       <el-input type="textarea" v-model="config.page_explain" placeholder="explain" />
@@ -137,6 +142,7 @@ const config = ref({
   uploadSize: 1,
   uploadMinute: 1,
   max_save_seconds: 0,
+  opacity: 0.9,
   s3_access_key_id: '',
   background: '',
   page_explain: '',

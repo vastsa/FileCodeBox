@@ -50,6 +50,15 @@ async def get_config():
 @admin_api.patch('/config/update', dependencies=[Depends(admin_required)])
 async def update_config(data: dict):
     admin_token = data.get('admin_token')
+    for key, value in data.items():
+        if key not in settings.default_config:
+            continue
+        if key in ['errorCount', 'errorMinute', 'max_save_seconds', 'onedrive_proxy', 'openUpload', 'port', 's3_proxy', 'uploadCount', 'uploadMinute', 'uploadSize']:
+            data[key] = int(value)
+        elif key in ['opacity']:
+            data[key] = float(value)
+        else:
+            data[key] = value
     if admin_token is None or admin_token == '':
         return APIResponse(code=400, detail='管理员密码不能为空')
     await KeyValue.filter(key='settings').update(value=data)
