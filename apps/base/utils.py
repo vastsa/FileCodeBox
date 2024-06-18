@@ -43,7 +43,7 @@ async def get_expire_info(expire_value: int, expire_style: str):
     :return: expired_at 过期时间, expired_count 可用次数, used_count 已用次数, code 随机码
     """
     expired_count, used_count, now, code = -1, 0, datetime.datetime.now(), None
-    if settings.max_save_seconds > 0:
+    if int(settings.max_save_seconds) > 0:
         max_timedelta = datetime.timedelta(seconds=settings.max_save_seconds)
         detail = await max_save_times_desc(settings.max_save_seconds)
         detail = f'保存时间超过限制，{detail[0]}'
