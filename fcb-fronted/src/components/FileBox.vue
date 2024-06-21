@@ -98,7 +98,7 @@ function getQrCodeUrl(code: string) {
           </template>
           <div style="width: 200px;">
             <div style="display: flex;justify-content: space-between">
-              <qrcode-vue v-if="value.name!=='文本分享'" :value="getQrCodeUrl(value.text)" :size="100"></qrcode-vue>
+              <qrcode-vue v-if="value.name!=='文本分享'" :value="getQrCodeUrl(value.code)" :size="100"></qrcode-vue>
               <div v-else style="width: 100px;height: 100px;flex-wrap: wrap;overflow-y:scroll ">{{value.text}}</div>
               <div style="display: flex;flex-direction: column;justify-content: space-around">
                 <el-tag size="large" style="cursor: pointer" @click="copyText(value.code)">{{ value.code }}</el-tag>
