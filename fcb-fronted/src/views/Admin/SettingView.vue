@@ -23,6 +23,16 @@
          Opacity: <el-input type="number" v-model="config.opacity" />
       </span>
     </el-form-item>
+    <el-form-item size="large" :label="t('admin.settings.showAdminAddr')">
+      <el-select v-model="config.showAdminAddr" style="width: 80%">
+        <el-option :label="t('admin.settings.showAdmin.open')" :value="1" />
+        <el-option :label="t('admin.settings.showAdmin.close')" :value="0" />
+      </el-select>
+      <small style="margin-left: 0.4rem">{{ t('admin.settings.showAdmin.note') }}</small>
+    </el-form-item>
+    <el-form-item size="large" label="robots.Text">
+      <el-input type="textarea" v-model="config.robotsText" placeholder="explain" />
+    </el-form-item>
     <el-form-item size="large" :label="t('admin.settings.explain')">
       <el-input type="textarea" v-model="config.page_explain" placeholder="explain" />
     </el-form-item>
@@ -135,6 +145,7 @@ const config = ref({
   file_storage: '',
   expireStyle: [],
   admin_token: '',
+  robotsText:'',
   keywords: '',
   notify_title: '',
   notify_content: '',
@@ -145,6 +156,7 @@ const config = ref({
   opacity: 0.9,
   s3_access_key_id: '',
   background: '',
+  showAdminAddr: 0,
   page_explain: '',
   s3_secret_access_key: '',
   aws_session_token: '',

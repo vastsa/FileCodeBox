@@ -73,6 +73,11 @@ async def index():
         , media_type='text/html', headers={'Cache-Control': 'no-cache'})
 
 
+@app.get('/robots.txt')
+async def robots():
+    return HTMLResponse(content=settings.robotsText, media_type='text/plain')
+
+
 @app.post('/')
 async def get_config():
     return APIResponse(detail={
@@ -82,6 +87,7 @@ async def get_config():
         'openUpload': settings.openUpload,
         'notify_title': settings.notify_title,
         'notify_content': settings.notify_content,
+        'show_admin_address': settings.showAdminAddr,
     })
 
 

@@ -50,7 +50,7 @@ export default {
       name: '網站名稱',
       description: '網站描述',
       uploadlimit: '上傳限制',
-      explain:'界面說明',
+      explain: '界面說明',
       errorlimit: '錯誤限制',
       keywords: '關鍵詞',
       notify_title: '通知標題',
@@ -62,6 +62,11 @@ export default {
       uploadSize: '文件大小',
       expireStyle: '過期方式',
       uploadSizeNote: '最大文件大小，單位:（Bytes),1mb=1 * 1024 * 1024',
+      showAdmin: {
+        open: '開啟',
+        close: '關閉',
+        note: '是否在頁面底部顯示後臺入口',
+      },
       openUpload: {
         title: '開啟上傳',
         open: '開啟遊客上傳',

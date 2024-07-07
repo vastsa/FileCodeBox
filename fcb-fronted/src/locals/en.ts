@@ -62,6 +62,11 @@ export default {
       uploadSize: 'File Size',
       expireStyle: 'Expiration Method',
       uploadSizeNote: 'Maximum file size, unit: (Bytes), 1mb = 1 * 1024 * 1024',
+      showAdmin: {
+        open: 'Open',
+        close: 'Close',
+        note: 'Is the backend entrance displayed at the bottom of the page?',
+      },
       openUpload: {
         title: 'Enable Upload',
         open: 'Enable Guest Upload',

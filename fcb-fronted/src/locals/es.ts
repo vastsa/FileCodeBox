@@ -68,6 +68,11 @@ export default {
         close: 'Deshabilitar subida para visitantes',
         note: 'Después de deshabilitar, es necesario iniciar sesión en el backend para poder subir archivos',
       },
+      showAdmin: {
+        open: 'abierto',
+        close: 'cierre',
+        note: 'si mostrar la entrada de fondo en la parte inferior de la página',
+      },
       file_storage: {
         title: 'Motor de almacenamiento',
         local: 'Almacenamiento local',

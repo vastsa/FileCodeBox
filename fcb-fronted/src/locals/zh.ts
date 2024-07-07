@@ -1,6 +1,6 @@
 export default {
   send: {
-    disclaimers:'页面说明',
+    disclaimers:'系统说明',
     prompt1: '将文字、文件拖、粘贴到此处，或 ',
     prompt2: '天数<7或限制次数（24h后删除）',
     prompt3: '请输入您要寄出的文本，支持MarkDown格式',
@@ -67,6 +67,11 @@ export default {
         open: '开启游客上传',
         close: '关闭游客上传',
         note: '关闭之后需要登录后台方可上传',
+      },
+      showAdmin:{
+        open: '开启',
+        close: '关闭',
+        note: '是否在页面底部显示后台入口',
       },
       file_storage: {
         title: '存储引擎',

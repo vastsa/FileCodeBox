@@ -100,6 +100,7 @@ const url = atob('aHR0cHM6Ly9naXRodWIuY29tL3Zhc3RzYS9GaWxlQ29kZUJveA==');
           {{ name }}
         </a>
         <a @click="noDialog" style="text-decoration: none;color: #606266;margin-left: 1rem" href="javascript:void(0)">{{t('send.disclaimers')}}</a>
+        <a v-if="config.show_admin_address" style="color: #606266;margin-left: 1rem;text-decoration: none" href="#/admin">Admin</a>
       </div>
     </main>
 </template>
