@@ -1,6 +1,6 @@
 export default {
   send: {
-    disclaimers:'頁面說明',
+    disclaimers:'使用須知',
     prompt1: '將文字、文件拖、貼到此處，或 ',
     prompt2: '天數<7或限制次數（24h後刪除）',
     prompt3: '請輸入您要寄出的文本，支持MarkDown格式',

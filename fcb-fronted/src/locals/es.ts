@@ -1,6 +1,6 @@
 export default {
   send: {
-    disclaimers: 'Avisos legales',
+    disclaimers: 'Términos y condiciones',
     prompt1: 'Arrastre, pegue el texto, archivos aquí, o ',
     prompt2: 'Días<7 o límite de veces (elimina después de 24h)',
     prompt3: 'Ingrese el texto que desea enviar, admite formato MarkDown',
