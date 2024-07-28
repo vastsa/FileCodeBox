@@ -46,10 +46,10 @@ async def get_expire_info(expire_value: int, expire_style: str):
     if int(settings.max_save_seconds) > 0:
         max_timedelta = datetime.timedelta(seconds=settings.max_save_seconds)
         detail = await max_save_times_desc(settings.max_save_seconds)
-        detail = f'保存时间超过限制，{detail[0]}'
+        detail = f'限制最长时间为 {detail[0]}，可换用其他方式'
     else:
         max_timedelta = datetime.timedelta(days=7)
-        detail = '保存时间超过限制，最长保存时间：7天'
+        detail = '限制最长时间为 7天，可换用其他方式'
     if expire_style == 'day':
         if datetime.timedelta(days=expire_value) > max_timedelta:
             raise HTTPException(status_code=403, detail=detail)

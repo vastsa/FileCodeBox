@@ -23,6 +23,12 @@ share_api = APIRouter(
 # 分享文本的API
 @share_api.post('/text/', dependencies=[Depends(admin_required)])
 async def share_text(text: str = Form(...), expire_value: int = Form(default=1, gt=0), expire_style: str = Form(default='day'), ip: str = Depends(ip_limit['upload'])):
+    # 获取大小
+    text_size = len(text.encode('utf-8'))
+    # 限制 222KB
+    max_txt_size = 222 * 1024  # 转换为字节
+    if text_size > max_txt_size:
+        raise HTTPException(status_code=403, detail=f'内容过多，建议采用文件形式')
     # 获取过期信息
     expired_at, expired_count, used_count, code = await get_expire_info(expire_value, expire_style)
     # 创建一个新的FileCodes实例
@@ -47,9 +53,10 @@ async def share_text(text: str = Form(...), expire_value: int = Form(default=1, 
 @share_api.post('/file/', dependencies=[Depends(admin_required)])
 async def share_file(expire_value: int = Form(default=1, gt=0), expire_style: str = Form(default='day'), file: UploadFile = File(...),
                      ip: str = Depends(ip_limit['upload'])):
-    # 检查文件大小是否超过限制
-    if file.size > int(settings.uploadSize):
-        raise HTTPException(status_code=403, detail=f'文件大小超过限制，最大为{settings.uploadSize}字节')
+    if file.size > settings.uploadSize:
+        # 转换为 MB 并格式化输出
+        max_size_mb = settings.uploadSize / (1024 * 1024)
+        raise HTTPException(status_code=403, detail=f'大小超过限制，最大为{max_size_mb:.2f} MB')
     # 获取过期信息
     if expire_style not in settings.expireStyle:
         raise HTTPException(status_code=400, detail='过期时间类型错误')

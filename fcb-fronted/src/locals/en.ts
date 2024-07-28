@@ -1,6 +1,6 @@
 export default {
   send: {
-    disclaimers: 'Page Instructions',
+    disclaimers: 'Terms and Conditions',
     prompt1: 'Drag and drop text or files here, or ',
     prompt2: 'Days <7 or limited number of times (deleted after 24h)',
     prompt3: 'Please enter the text you want to send, supports MarkDown format',
