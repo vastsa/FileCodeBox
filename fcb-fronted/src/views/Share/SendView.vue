@@ -11,7 +11,7 @@ const { config } = useConfigStore();
 const { t } = useI18n()
 const shareData = ref({
   expireValue: 1,
-  expireStyle: 'day',
+  expireStyle: config.expireStyle.length > 0 ? config.expireStyle[0] : 'day',
   targetType: 'file',
 })
 </script>
