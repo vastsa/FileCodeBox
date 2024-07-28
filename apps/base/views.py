@@ -7,7 +7,7 @@ from fastapi import APIRouter, Form, UploadFile, File, Depends, HTTPException
 from apps.admin.depends import admin_required
 from apps.base.models import FileCodes
 from apps.base.pydantics import SelectFileModel
-from apps.base.utils import get_expire_info, get_file_path_name, error_ip_limit, upload_ip_limit
+from apps.base.utils import get_expire_info, get_file_path_name, ip_limit
 from core.response import APIResponse
 from core.settings import settings
 from core.storage import storages, FileStorageInterface
@@ -22,7 +22,7 @@ share_api = APIRouter(
 
 # 分享文本的API
 @share_api.post('/text/', dependencies=[Depends(admin_required)])
-async def share_text(text: str = Form(...), expire_value: int = Form(default=1, gt=0), expire_style: str = Form(default='day'), ip: str = Depends(upload_ip_limit)):
+async def share_text(text: str = Form(...), expire_value: int = Form(default=1, gt=0), expire_style: str = Form(default='day'), ip: str = Depends(ip_limit['upload'])):
     # 获取过期信息
     expired_at, expired_count, used_count, code = await get_expire_info(expire_value, expire_style)
     # 创建一个新的FileCodes实例
@@ -36,7 +36,7 @@ async def share_text(text: str = Form(...), expire_value: int = Form(default=1, 
         prefix='文本分享'
     )
     # 添加IP到限制列表
-    upload_ip_limit.add_ip(ip)
+    ip_limit['upload'].add_ip(ip)
     # 返回API响应
     return APIResponse(detail={
         'code': code,
@@ -45,7 +45,8 @@ async def share_text(text: str = Form(...), expire_value: int = Form(default=1, 
 
 # 分享文件的API
 @share_api.post('/file/', dependencies=[Depends(admin_required)])
-async def share_file(expire_value: int = Form(default=1, gt=0), expire_style: str = Form(default='day'), file: UploadFile = File(...), ip: str = Depends(upload_ip_limit)):
+async def share_file(expire_value: int = Form(default=1, gt=0), expire_style: str = Form(default='day'), file: UploadFile = File(...),
+                     ip: str = Depends(ip_limit['upload'])):
     # 检查文件大小是否超过限制
     if file.size > int(settings.uploadSize):
         raise HTTPException(status_code=403, detail=f'文件大小超过限制，最大为{settings.uploadSize}字节')
@@ -71,7 +72,7 @@ async def share_file(expire_value: int = Form(default=1, gt=0), expire_style: st
         used_count=used_count,
     )
     # 添加IP到限制列表
-    upload_ip_limit.add_ip(ip)
+    ip_limit['upload'].add_ip(ip)
     # 返回API响应
     return APIResponse(detail={
         'code': code,
@@ -94,14 +95,14 @@ async def get_code_file_by_code(code, check=True):
 
 # 获取文件的API
 @share_api.get('/select/')
-async def get_code_file(code: str, ip: str = Depends(error_ip_limit)):
+async def get_code_file(code: str, ip: str = Depends(ip_limit['error'])):
     file_storage: FileStorageInterface = storages[settings.file_storage]()
     # 获取文件
     has, file_code = await get_code_file_by_code(code)
     # 检查文件是否存在
     if not has:
         # 添加IP到限制列表
-        error_ip_limit.add_ip(ip)
+        ip_limit['error'].add_ip(ip)
         # 返回API响应
         return APIResponse(code=404, detail=file_code)
     # 更新文件的使用次数和过期次数
@@ -116,14 +117,14 @@ async def get_code_file(code: str, ip: str = Depends(error_ip_limit)):
 
 # 选择文件的API
 @share_api.post('/select/')
-async def select_file(data: SelectFileModel, ip: str = Depends(error_ip_limit)):
+async def select_file(data: SelectFileModel, ip: str = Depends(ip_limit['error'])):
     file_storage: FileStorageInterface = storages[settings.file_storage]()
     # 获取文件
     has, file_code = await get_code_file_by_code(data.code)
     # 检查文件是否存在
     if not has:
         # 添加IP到限制列表
-        error_ip_limit.add_ip(ip)
+        ip_limit['error'].add_ip(ip)
         # 返回API响应
         return APIResponse(code=404, detail=file_code)
     # 更新文件的使用次数和过期次数
@@ -143,13 +144,13 @@ async def select_file(data: SelectFileModel, ip: str = Depends(error_ip_limit)):
 
 # 下载文件的API
 @share_api.get('/download')
-async def download_file(key: str, code: str, ip: str = Depends(error_ip_limit)):
+async def download_file(key: str, code: str, ip: str = Depends(ip_limit['error'])):
     file_storage: FileStorageInterface = storages[settings.file_storage]()
     # 检查token是否有效
     is_valid = await get_select_token(code) == key
     if not is_valid:
         # 添加IP到限制列表
-        error_ip_limit.add_ip(ip)
+        ip_limit['error'].add_ip(ip)
     # 获取文件
     has, file_code = await get_code_file_by_code(code, False)
     # 检查文件是否存在

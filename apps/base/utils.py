@@ -86,7 +86,7 @@ async def get_random_code(style='num'):
             return code
 
 
-# 错误IP限制器
-error_ip_limit = IPRateLimit(count=settings.errorCount, minutes=settings.errorMinute)
-# 上传文件限制器
-upload_ip_limit = IPRateLimit(count=settings.uploadCount, minutes=settings.errorMinute)
+ip_limit = {
+    'error': IPRateLimit(count=settings.uploadCount, minutes=settings.errorMinute),
+    'upload': IPRateLimit(count=settings.errorCount, minutes=settings.errorMinute)
+}
