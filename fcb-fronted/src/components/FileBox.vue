@@ -62,7 +62,8 @@ function renderMarkdown(message: string) {
 }
 
 function getQrCodeUrl(code: string) {
-  return code.toString().startsWith('http') ? code : window.location.origin + '/#/?code=' +code;
+  // 否是接收的文件，如果是则返回下载直链，否则拼接分享链接
+  return code.toString().startsWith('/share/download') ? window.location.origin + code : window.location.origin + '/#/?code=' + code;
 }
 </script>
 
@@ -98,7 +99,11 @@ function getQrCodeUrl(code: string) {
           </template>
           <div style="width: 200px;">
             <div style="display: flex;justify-content: space-between">
-              <qrcode-vue v-if="value.name!=='文本分享'" :value="getQrCodeUrl(value.text)" :size="100"></qrcode-vue>
+              <!-- 下载二维码白色边框 -->
+              <div v-if="value.name!=='文本分享'"
+                   style="padding: 5px; background-color: white; border: 2px solid white; box-sizing: border-box; height: 114px;">
+                <qrcode-vue :value="getQrCodeUrl(value.text)" :size="100"></qrcode-vue>
+              </div>
               <div v-else style="width: 100px;height: 100px;flex-wrap: wrap;overflow-y:scroll ">{{value.text}}</div>
               <div style="display: flex;flex-direction: column;justify-content: space-around">
                 <el-tag size="large" style="cursor: pointer" @click="copyText(value.code)">{{ value.code }}</el-tag>
@@ -123,7 +128,10 @@ function getQrCodeUrl(code: string) {
             <el-progress v-if="value.status!='success' && value.status!='fail'" striped :percentage="value.percentage" :text-inside="true"
                          :stroke-width="20"></el-progress>
             <div v-else style="display: flex;justify-content: space-between">
-              <qrcode-vue :value="getQrCodeUrl(value.code)" :size="100"></qrcode-vue>
+              <!-- 分享二维码白色边框 -->
+              <div style="padding: 5px; background-color: white; border: 2px solid white; box-sizing: border-box; height: 114px;">
+                <qrcode-vue :value="getQrCodeUrl(value.code)" :size="100"></qrcode-vue>
+              </div>
               <div style="display: flex;flex-direction: column;justify-content: space-around">
                 <el-tag size="large" style="cursor: pointer" @click="copyText(value.code)">{{ value.code }}</el-tag>
                 <el-tag size="large" type="success" style="cursor: pointer" @click="copyText(value.code,1);">{{ t('fileBox.copyLink') }}
