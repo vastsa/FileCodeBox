@@ -112,6 +112,7 @@ export default {
       about: 'About Us',
       color: 'Color Mode',
       send: 'Send',
+      local:'Local File',
       receive: 'Receive',
       signout: 'Sign Out',
     },
@@ -121,6 +122,12 @@ export default {
       login: 'Login',
       loginSuccess: 'Login Successful',
       loginError: 'Login Failed',
+    },
+    local: {
+      Name: '文件',
+      Expire: '过期',
+      Cancel: '取消',
+      Confirm: '确定',
     }
   },
   msg: {

@@ -29,6 +29,11 @@ const router = createRouter({
           component: () => import('@/views/Admin/SettingView.vue'),
         },
         {
+          path: 'local',
+          name: 'local',
+          component: () => import('@/views/Admin/LocalView.vue'),
+        },
+        {
           path: 'about',
           name: 'about',
           component: () => import('@/views/Admin/AboutView.vue'),

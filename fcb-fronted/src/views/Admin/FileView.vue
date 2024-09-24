@@ -71,7 +71,6 @@ const deleteFile = (id: number) => {
   });
 };
 const downloadFile = (id: number) => {
-
   request({
     url: '/admin/file/download',
     method: 'get',

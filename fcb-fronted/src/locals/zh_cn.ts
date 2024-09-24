@@ -112,6 +112,7 @@ export default {
       fileManage: '文件管理',
       systemSetting: '系统设置',
       about: '关于我们',
+      local:'本地文件',
       color: '颜色模式',
       send: '寄件',
       receive: '收件',
@@ -123,6 +124,12 @@ export default {
       login: '登 录',
       loginSuccess: '登录成功',
       loginError: '登录失败',
+    },
+    local: {
+      Name: '文件',
+      Expire: '过期',
+      Cancel: '取消',
+      Confirm: '确定',
     }
   },
   msg:{

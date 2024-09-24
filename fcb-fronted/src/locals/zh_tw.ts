@@ -112,6 +112,7 @@ export default {
       about: '關於我們',
       color: '顏色模式',
       send: '寄件',
+      local:'本地文件',
       receive: '收件',
       signout: '退出登錄',
     },
@@ -121,7 +122,12 @@ export default {
       login: '登 錄',
       loginSuccess: '登錄成功',
       loginError: '登錄失敗',
-    }
+    },local: {
+      Name: '文件',
+      Expire: '過期',
+      Cancel: '取消',
+      Confirm: '確定',
+    },
   },
   msg:{
     fileOverSize: '文件過大',

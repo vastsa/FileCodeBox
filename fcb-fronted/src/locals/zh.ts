@@ -111,6 +111,7 @@ export default {
       systemSetting: '系统设置',
       about: '关于我们',
       color: '颜色模式',
+      local:'本地文件',
       send: '寄件',
       receive: '收件',
       signout: '退出登录',
@@ -121,6 +122,12 @@ export default {
       login: '登 录',
       loginSuccess: '登录成功',
       loginError: '登录失败',
+    },
+    local: {
+      Name: '文件',
+      Expire: '过期',
+      Cancel: '取消',
+      Confirm: '确定',
     }
   },
   msg:{

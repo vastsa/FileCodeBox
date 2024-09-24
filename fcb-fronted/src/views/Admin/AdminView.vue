@@ -51,6 +51,10 @@ const menus = ref([
     path: '/admin/setting',
   },
   {
+    name: t('admin.menu.local'),
+    path: '/admin/local',
+  },
+  {
     name: t('admin.menu.about'),
     path: '/admin/about',
   },
