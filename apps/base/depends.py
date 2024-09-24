@@ -19,7 +19,7 @@ class IPRateLimit:
     def check_ip(self, ip):
         # 检查ip是否被禁止
         if ip in self.ips:
-            if self.ips[ip]['count'] >= self.count:
+            if int(self.ips[ip]['count']) >= int(self.count):
                 if self.ips[ip]['time'] + timedelta(minutes=self.minutes) > datetime.now():
                     return False
                 else:
