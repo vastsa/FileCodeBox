@@ -17,6 +17,22 @@
     <a href="https://github.com/vastsa/FileCodeBox/wiki/%E9%83%A8%E7%BD%B2%E6%95%99%E7%A8%8B">常见问题</a>
 </div>
 
+## 新版预览（待发布）
+
+<table style="width:100%">
+<tr style="width: 100%">
+<td style="width: 50%"><img src="./.github/images/img_7.png" alt="寄文件"></td>
+<td style="width: 50%"><img src="./.github/images/img_8.png" alt="寄文件"></td>
+</tr>
+<tr style="width: 100%">
+<td style="width: 50%"><img src="./.github/images/img_10.png" alt="寄文件"></td>
+<td style="width: 50%"><img src="./.github/images/img_9.png" alt="寄文件"></td>
+</tr>
+<tr style="width: 100%">
+<td style="width: 50%"><img src="./.github/images/img_11.png" alt="寄文件"></td>
+<td style="width: 50%"><img src="./.github/images/img_12.png" alt="寄文件"></td>
+</tr>
+</table>
 
 ## 部分截图
 
