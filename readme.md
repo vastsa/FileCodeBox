@@ -32,6 +32,10 @@
 <td style="width: 50%"><img src="./.github/images/img_11.png" alt="寄文件"></td>
 <td style="width: 50%"><img src="./.github/images/img_12.png" alt="寄文件"></td>
 </tr>
+<tr style="width: 100%">
+<td style="width: 50%"><img src="./.github/images/img_13.png" alt="寄文件"></td>
+<td style="width: 50%"><img src="./.github/images/img_14.png" alt="寄文件"></td>
+</tr>
 </table>
 
 ## 部分截图
