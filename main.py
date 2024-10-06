@@ -5,6 +5,7 @@
 import asyncio
 
 from fastapi import FastAPI
+
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
@@ -18,7 +19,49 @@ from core.response import APIResponse
 from core.settings import data_root, settings, BASE_DIR, DEFAULT_CONFIG
 from core.tasks import delete_expire_files
 
-app = FastAPI()
+from contextlib import asynccontextmanager
+from tortoise import Tortoise
+
+
+async def init_db():
+    await Tortoise.init(
+        db_url=f'sqlite://{data_root}/filecodebox.db',
+        modules={'models': ['apps.base.models']},
+        use_tz=False,
+        timezone="Asia/Shanghai"
+    )
+    await Tortoise.generate_schemas()
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # 初始化数据库
+    await init_db()
+
+    # 启动后台任务，不定时删除过期文件
+    task = asyncio.create_task(delete_expire_files())
+    # 读取用户配置
+    user_config, created = await KeyValue.get_or_create(key='settings', defaults={'value': DEFAULT_CONFIG})
+    settings.user_config = user_config.value
+    ip_limit['error'].minutes = settings.errorMinute
+    ip_limit['error'].count = settings.errorCount
+    ip_limit['upload'].minutes = settings.uploadMinute
+    ip_limit['upload'].count = settings.uploadCount
+
+    yield
+
+    # 清理操作
+    task.cancel()
+    try:
+        await task
+    except asyncio.CancelledError:
+        pass
+
+    # 关闭数据库连接
+    await Tortoise.close_connections()
+
+
+app = FastAPI(lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
@@ -30,40 +73,24 @@ app.add_middleware(
 
 app.mount('/assets', StaticFiles(directory='./fcb-fronted/dist/assets'), name="assets")
 
+# 使用 register_tortoise 来添加异常处理器
 register_tortoise(
     app,
-    generate_schemas=True,
-    add_exception_handlers=True,
     config={
-        'connections': {
-            'default': f'sqlite://{data_root}/filecodebox.db'
-        },
+        'connections': {'default': f'sqlite://{data_root}/filecodebox.db'},
         'apps': {
             'models': {
-                "models": ["apps.base.models"],
+                'models': ['apps.base.models'],
                 'default_connection': 'default',
-            }
+            },
         },
-        "use_tz": False,
-        "timezone": "Asia/Shanghai",
-    }
+    },
+    generate_schemas=False,  # 我们已经在 init_db 中生成了 schema
+    add_exception_handlers=True,
 )
 
 app.include_router(share_api)
 app.include_router(admin_api)
-
-
-@app.on_event("startup")
-async def startup_event():
-    # 启动后台任务，不定时删除过期文件
-    asyncio.create_task(delete_expire_files())
-    # 读取用户配置
-    user_config, created = await KeyValue.get_or_create(key='settings', defaults={'value': DEFAULT_CONFIG})
-    settings.user_config = user_config.value
-    ip_limit['error'].minutes = settings.errorMinute
-    ip_limit['error'].count = settings.errorCount
-    ip_limit['upload'].minutes = settings.uploadMinute
-    ip_limit['upload'].count = settings.uploadCount
 
 
 @app.get('/')
