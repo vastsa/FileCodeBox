@@ -17,7 +17,7 @@ charset-normalizer==3.2.0
 click==8.1.6
 cryptography==43.0.1
 exceptiongroup==1.1.2
-fastapi==0.109.1
+fastapi==0.115.0
 frozenlist==1.4.0
 greenlet==2.0.2
 h11==0.14.0
@@ -40,7 +40,7 @@ s3transfer==0.6.1
 six==1.16.0
 sniffio==1.3.0
 SQLAlchemy==2.0.19
-starlette==0.35.1
+starlette==0.38.6
 tortoise-orm==0.20.0
 typing_extensions==4.8.0
 urllib3==1.26.20
