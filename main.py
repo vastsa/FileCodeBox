@@ -10,7 +10,6 @@ from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from tortoise.contrib.fastapi import register_tortoise
 
-from apps.base.depends import IPRateLimit
 from apps.base.models import KeyValue
 from apps.base.utils import ip_limit
 from apps.base.views import share_api
