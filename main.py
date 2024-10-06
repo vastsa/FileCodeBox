@@ -38,27 +38,29 @@ async def lifespan(app: FastAPI):
     # 初始化数据库
     await init_db()
 
-    # 启动后台任务，不定时删除过期文件
+    # 启动后台任务
     task = asyncio.create_task(delete_expire_files())
-    # 读取用户配置
-    user_config, created = await KeyValue.get_or_create(key='settings', defaults={'value': DEFAULT_CONFIG})
+
+    # 加载配置
+    await load_config()
+
+    try:
+        yield
+    finally:
+        # 清理操作
+        task.cancel()
+        await asyncio.gather(task, return_exceptions=True)
+        await Tortoise.close_connections()
+
+
+async def load_config():
+    user_config, _ = await KeyValue.get_or_create(key='settings', defaults={'value': DEFAULT_CONFIG})
     settings.user_config = user_config.value
+    # 更新 ip_limit 配置
     ip_limit['error'].minutes = settings.errorMinute
     ip_limit['error'].count = settings.errorCount
     ip_limit['upload'].minutes = settings.uploadMinute
     ip_limit['upload'].count = settings.uploadCount
-
-    yield
-
-    # 清理操作
-    task.cancel()
-    try:
-        await task
-    except asyncio.CancelledError:
-        pass
-
-    # 关闭数据库连接
-    await Tortoise.close_connections()
 
 
 app = FastAPI(lifespan=lifespan)

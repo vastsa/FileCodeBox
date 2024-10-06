@@ -8,7 +8,7 @@ import random
 import string
 import time
 
-from apps.base.depends import IPRateLimit
+from apps.base.dependencies import IPRateLimit
 
 
 async def get_random_num():
