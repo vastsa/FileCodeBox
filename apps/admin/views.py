@@ -6,7 +6,7 @@
 from fastapi import APIRouter, Depends
 from apps.admin.services import FileService, ConfigService, LocalFileService
 from apps.admin.dependencies import admin_required, get_file_service, get_config_service, get_local_file_service
-from apps.admin.schemas import IDData, ConfigUpdateData, ShareItem, DeleteItem
+from apps.admin.schemas import IDData, ShareItem, DeleteItem
 from core.response import APIResponse
 
 admin_api = APIRouter(prefix='/admin', tags=['管理'])
@@ -53,7 +53,7 @@ async def get_config(
 
 @admin_api.patch('/config/update')
 async def update_config(
-        data: ConfigUpdateData,
+        data: dict,
         config_service: ConfigService = Depends(get_config_service),
         admin: bool = Depends(admin_required)
 ):
