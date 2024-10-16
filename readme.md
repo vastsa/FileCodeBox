@@ -18,7 +18,8 @@
 </div>
 
 ## 新版预览（待发布）
-
+前端开源地址：https://github.com/vastsa/FileCodeBoxFronted
+预览:fcb.065065.xyz
 <table style="width:100%">
 <tr style="width: 100%">
 <td style="width: 50%"><img src="./.github/images/img_7.png" alt="寄文件"></td>
