@@ -3,6 +3,7 @@
 # @File    : main.py
 # @Software: PyCharm
 import asyncio
+import time
 
 from fastapi import FastAPI
 
@@ -55,6 +56,7 @@ async def lifespan(app: FastAPI):
 
 async def load_config():
     user_config, _ = await KeyValue.get_or_create(key='settings', defaults={'value': DEFAULT_CONFIG})
+    await KeyValue.update_or_create(key='sys_start', defaults={'value': int(time.time() * 1000)})
     settings.user_config = user_config.value
     # 更新 ip_limit 配置
     ip_limit['error'].minutes = settings.errorMinute

@@ -2,8 +2,6 @@
 # @Author  : Lan
 # @File    : depends.py
 # @Software: PyCharm
-from typing import Union
-
 from fastapi import Header, HTTPException
 from fastapi.requests import Request
 from core.settings import settings
@@ -11,7 +9,7 @@ from apps.admin.services import FileService, ConfigService, LocalFileService
 
 
 async def admin_required(authorization: str = Header(default=None), request: Request = None):
-    is_admin = authorization == str(settings.admin_token)
+    is_admin = authorization.split(' ')[-1] if authorization else '' == str(settings.admin_token)
     if request.url.path.startswith('/share/'):
         if not settings.openUpload and not is_admin:
             raise HTTPException(status_code=403, detail='本站未开启游客上传，如需上传请先登录后台')
