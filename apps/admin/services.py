@@ -19,10 +19,10 @@ class FileService:
         await self.file_storage.delete_file(file_code)
         await file_code.delete()
 
-    async def list_files(self, page: int, size: int):
+    async def list_files(self, page: int, size: int, keyword: str = ''):
         offset = (page - 1) * size
-        files = await FileCodes.all().limit(size).offset(offset)
-        total = await FileCodes.all().count()
+        files = await FileCodes.filter(prefix__icontains=keyword).limit(size).offset(offset)
+        total = await FileCodes.filter(prefix__icontains=keyword).count()
         return files, total
 
     async def download_file(self, file_id: int):

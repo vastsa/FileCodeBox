@@ -63,10 +63,11 @@ async def file_delete(
 async def file_list(
         page: int = 1,
         size: int = 10,
+        keyword: str = '',
         file_service: FileService = Depends(get_file_service),
         admin: bool = Depends(admin_required)
 ):
-    files, total = await file_service.list_files(page, size)
+    files, total = await file_service.list_files(page, size, keyword)
     return APIResponse(detail={
         'page': page,
         'size': size,
