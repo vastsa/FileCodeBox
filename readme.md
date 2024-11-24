@@ -17,9 +17,10 @@
     <a href="https://github.com/vastsa/FileCodeBox/wiki/%E9%83%A8%E7%BD%B2%E6%95%99%E7%A8%8B">常见问题</a>
 </div>
 
-## 新版预览（待发布）
+## 新版预览
 前端开源地址：https://github.com/vastsa/FileCodeBoxFronted
-预览:fcb.065065.xyz
+
+预览:share.lanol.cn
 <table style="width:100%">
 <tr style="width: 100%">
 <td style="width: 50%"><img src="./.github/images/img_7.png" alt="寄文件"></td>
