@@ -41,7 +41,7 @@ async def share_text(
         expired_count=expired_count,
         used_count=used_count,
         size=len(text),
-        prefix='文本分享'
+        prefix='Text'
     )
     ip_limit['upload'].add_ip(ip)
     return APIResponse(detail={'code': code})
