@@ -2,7 +2,6 @@
 # @Author  : Lan
 # @File    : settings.py
 # @Software: PyCharm
-import json
 from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -43,6 +42,21 @@ DEFAULT_CONFIG = {
     'opacity': 0.9,
     'background': '',
     'uploadCount': 10,
+    'themesChoices': [
+        {
+            'name': '2023',
+            'key': 'themes/2023',
+            'author': 'Lan',
+            'version': '1.0',
+        },
+        {
+            'name': '2024',
+            'key': 'themes/2024',
+            'author': 'Lan',
+            'version': '1.0',
+        }
+    ],
+    'themesSelect': 'themes/2024',
     'errorMinute': 1,
     'errorCount': 1,
     'port': 12345,

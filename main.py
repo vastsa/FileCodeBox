@@ -44,6 +44,7 @@ async def lifespan(app: FastAPI):
 
     # 加载配置
     await load_config()
+    app.mount('/assets', StaticFiles(directory=f'./{settings.themesSelect}/assets'), name="assets")
 
     try:
         yield
@@ -75,8 +76,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.mount('/assets', StaticFiles(directory='./fcb-fronted/dist/assets'), name="assets")
-
 # 使用 register_tortoise 来添加异常处理器
 register_tortoise(
     app,
@@ -100,7 +99,7 @@ app.include_router(admin_api)
 @app.get('/')
 async def index():
     return HTMLResponse(
-        content=open(BASE_DIR / 'fcb-fronted/dist/index.html', 'r', encoding='utf-8').read()
+        content=open(BASE_DIR / f'{settings.themesSelect}/index.html', 'r', encoding='utf-8').read()
         .replace('{{title}}', str(settings.name))
         .replace('{{description}}', str(settings.description))
         .replace('{{keywords}}', str(settings.keywords))

@@ -53,6 +53,7 @@ export default {
       explain: 'Interface Instructions',
       errorlimit: 'Error Limit',
       keywords: 'Keywords',
+      themeSelect: 'Theme Selection',
       notify_title: 'Notification Title',
       notify_content: 'Notification Content',
       background: 'Background Image',

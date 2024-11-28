@@ -9,6 +9,15 @@
     <el-form-item size="large" :label="t('admin.settings.keywords')" style="letter-spacing: 0.3rem">
       <el-input v-model="config.keywords" />
     </el-form-item>
+    <el-form-item size="large" :label="t('admin.settings.themeSelect')" >
+      <el-select
+          v-model="config.themesSelect"
+          multiple
+          style="width: 100%"
+      >
+        <el-option v-for="item in config.themesChoices" :label="item.name" :value="item.key" />
+      </el-select>
+    </el-form-item>
     <el-form-item size="large" :label="t('admin.settings.notify_title')">
       <el-input v-model="config.notify_title" />
     </el-form-item>
@@ -139,11 +148,13 @@ import { useI18n } from 'vue-i18n'
 
 const { t } = useI18n()
 
-const config = ref({
+const config:any = ref({
   name: '',
   description: '',
   file_storage: '',
   expireStyle: [],
+  themesChoices: [],
+  themesSelect: '',
   admin_token: '',
   robotsText:'',
   keywords: '',

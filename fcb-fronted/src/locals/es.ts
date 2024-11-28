@@ -53,6 +53,7 @@ export default {
       explain: 'Descripción de la interfaz',
       errorlimit: 'Límite de errores',
       keywords: 'Palabras clave',
+      themeSelect: 'Selección de tema',
       notify_title: 'Título de notificación',
       notify_content: 'Contenido de notificación',
       background: 'Imagen de fondo',

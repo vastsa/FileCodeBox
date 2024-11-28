@@ -53,6 +53,7 @@ export default {
       explain:'界面说明',
       errorlimit: '错误限制',
       keywords: '关键词',
+      themeSelect: '主题选择',
       notify_title: '通知标题',
       notify_content: '通知内容',
       background: '背景图片',

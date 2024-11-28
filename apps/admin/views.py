@@ -90,6 +90,7 @@ async def update_config(
         config_service: ConfigService = Depends(get_config_service),
         admin: bool = Depends(admin_required)
 ):
+    data.pop('themesChoices')
     await config_service.update_config(data)
     return APIResponse()
 
