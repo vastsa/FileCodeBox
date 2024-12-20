@@ -88,7 +88,7 @@ register_tortoise(
             },
         },
     },
-    generate_schemas=False,  # 我们已经在 init_db 中生成了 schema
+    generate_schemas=False,
     add_exception_handlers=True,
 )
 
@@ -116,6 +116,8 @@ async def robots():
 @app.post('/')
 async def get_config():
     return APIResponse(detail={
+        'name': settings.name,
+        'description': settings.description,
         'explain': settings.page_explain,
         'uploadSize': settings.uploadSize,
         'expireStyle': settings.expireStyle,

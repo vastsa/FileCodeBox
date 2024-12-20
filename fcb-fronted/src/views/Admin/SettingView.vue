@@ -12,7 +12,6 @@
     <el-form-item size="large" :label="t('admin.settings.themeSelect')" >
       <el-select
           v-model="config.themesSelect"
-          multiple
           style="width: 100%"
       >
         <el-option v-for="item in config.themesChoices" :label="item.name" :value="item.key" />
