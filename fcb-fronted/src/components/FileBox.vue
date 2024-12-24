@@ -63,7 +63,12 @@ function renderMarkdown(message: string) {
 
 function getQrCodeUrl(code: string) {
   // 否是接收的文件，如果是则返回下载直链，否则拼接分享链接
-  return code.toString().startsWith('/share/download') ? window.location.origin + code : window.location.origin + '/#/?code=' + code;
+  if (code) {
+    return code.toString().startsWith('/share/download') ? window.location.origin + code : window.location.origin + '/#/?code=' + code;
+  }
+  else {
+    return '';
+  }
 }
 </script>
 
@@ -100,14 +105,14 @@ function getQrCodeUrl(code: string) {
           <div style="width: 200px;">
             <div style="display: flex;justify-content: space-between">
               <!-- 下载二维码白色边框 -->
-              <div v-if="value.name!=='文本分享'"
+              <div v-if="value.name!=='Text'"
                    style="padding: 5px; background-color: white; border: 2px solid white; box-sizing: border-box; height: 114px;">
                 <qrcode-vue :value="getQrCodeUrl(value.text)" :size="100"></qrcode-vue>
               </div>
               <div v-else style="width: 100px;height: 100px;flex-wrap: wrap;overflow-y:scroll ">{{value.text}}</div>
               <div style="display: flex;flex-direction: column;justify-content: space-around">
                 <el-tag size="large" style="cursor: pointer" @click="copyText(value.code)">{{ value.code }}</el-tag>
-                <el-tag v-if="value.name!=='文本分享'" size="large" type="success" style="cursor: pointer" @click="openUrl(value.text);">
+                <el-tag v-if="value.name!=='Text'" size="large" type="success" style="cursor: pointer" @click="openUrl(value.text);">
                   {{ t('fileBox.download') }}
                 </el-tag>
                 <el-tag v-else size="large" type="success" style="cursor: pointer" @click="showTextDetail(value.text);">{{ t('fileBox.detail') }}</el-tag>
