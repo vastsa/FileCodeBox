@@ -10,7 +10,7 @@
 [![GitHub forks](https://img.shields.io/github/forks/vastsa/FileCodeBox)](https://github.com/vastsa/FileCodeBox/network)
 [![GitHub issues](https://img.shields.io/github/issues/vastsa/FileCodeBox)](https://github.com/vastsa/FileCodeBox/issues)
 [![GitHub license](https://img.shields.io/github/license/vastsa/FileCodeBox)](https://github.com/vastsa/FileCodeBox/blob/master/LICENSE)
-[![QQ Group](https://img.shields.io/badge/QQ%20Group-739673698-blue.svg)](https://qm.qq.com/cgi-bin/qm/qr?k=eMXxqKZBrwjWYgPgpBjhQ8-q8_eK-BoR&jump_from=webapi&authKey=6vXVaJ3nXgEVoQzV9OFX+XvRyPJhJd7l9QQhBkZz+qBk1YYqxUXyqBuPL4WLkjMj)
+[![QQ Group](https://img.shields.io/badge/QQ%20Group-739673698-blue.svg)](https://qm.qq.com/q/PemPzhdEIM)
 [![Python Version](https://img.shields.io/badge/Python-3.8+-blue.svg)](https://www.python.org)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.68+-green.svg)](https://fastapi.tiangolo.com)
 [![Vue Version](https://img.shields.io/badge/Vue.js-3.x-brightgreen.svg)](https://v3.vuejs.org)
