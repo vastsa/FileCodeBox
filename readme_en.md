@@ -179,11 +179,7 @@ Command-line download
 ### Docker Deployment
 
 ```bash
-docker run -d --name filecode \
-  -p 12345:12345 \
-  -v /opt/filecode:/app/data \
-  --restart=always \
-  vastsa/filecode
+docker run -d --restart=always -p 12345:12345 -v /opt/FileCodeBox/:/app/data --name filecodebox lanol/filecodebox:beta
 ```
 
 ### Manual Deployment
