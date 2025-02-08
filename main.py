@@ -39,12 +39,12 @@ async def lifespan(app: FastAPI):
     # 初始化数据库
     await init_db()
 
-    # 启动后台任务
-    task = asyncio.create_task(delete_expire_files())
-
     # 加载配置
     await load_config()
     app.mount('/assets', StaticFiles(directory=f'./{settings.themesSelect}/assets'), name="assets")
+
+    # 启动后台任务
+    task = asyncio.create_task(delete_expire_files())
 
     try:
         yield
