@@ -68,13 +68,13 @@ const menus = ref([
   },
 ]);
 const refreshLoginStatus = () => {
-  adminData.updateAdminPwd(adminData.adminPassword);
   request({
     url: '/admin/login',
     method: 'post',
   }).then((res: any) => {
     if (res.code === 200) {
       isLogin.value = true;
+      adminData.updateAdminPwd(res.detail.token);
       ElMessage.success(t('admin.login.loginSuccess'));
     } else {
       ElMessage.error(t('admin.login.loginError'));
