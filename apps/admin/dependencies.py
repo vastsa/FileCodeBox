@@ -68,13 +68,13 @@ async def admin_required(authorization: str = Header(default=None), request: Req
     验证管理员权限
     """
     try:
-        if not authorization or not authorization.startswith('Bearer '):
-            raise ValueError("缺少Bearer token")
-            
-        token = authorization.split(' ')[1]
-        payload = verify_token(token)
-        is_admin = payload.get("is_admin", False)
-        
+        if not authorization or not authorization.startswith("Bearer "):
+            is_admin = False
+        else:
+            token = authorization.split(" ")[1]
+            payload = verify_token(token)
+            is_admin = payload.get("is_admin", False)
+
         if request.url.path.startswith('/share/'):
             if not settings.openUpload and not is_admin:
                 raise HTTPException(status_code=403, detail='本站未开启游客上传，如需上传请先登录后台')
