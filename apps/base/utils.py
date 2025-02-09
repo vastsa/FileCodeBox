@@ -1,8 +1,9 @@
 import datetime
-import uuid
 import os
+import uuid
+
 from fastapi import UploadFile, HTTPException
-from typing import Tuple, Optional
+from typing import Optional, Tuple
 
 from apps.base.dependencies import IPRateLimit
 from apps.base.models import FileCodes

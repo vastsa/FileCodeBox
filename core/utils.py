@@ -7,9 +7,7 @@ import hashlib
 import random
 import string
 import time
-
-from apps.base.dependencies import IPRateLimit
-
+from core.settings import settings
 
 async def get_random_num():
     """
@@ -46,7 +44,7 @@ async def get_select_token(code: str):
     :param code:
     :return:
     """
-    token = "123456"
+    token = settings.admin_token
     return hashlib.sha256(f"{code}{int(time.time() / 1000)}000{token}".encode()).hexdigest()
 
 

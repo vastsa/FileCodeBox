@@ -16,7 +16,6 @@ from core.utils import get_now
 
 async def delete_expire_files():
     file_storage: FileStorageInterface = storages[settings.file_storage]()
-    print(settings.file_storage)
     while True:
         try:
             # 遍历 share目录下的所有文件夹，删除空的文件夹，并判断父目录是否为空，如果为空也删除

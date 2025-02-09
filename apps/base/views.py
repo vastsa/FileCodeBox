@@ -135,4 +135,8 @@ async def download_file(key: str, code: str, ip: str = Depends(ip_limit['error']
     if not has:
         return APIResponse(code=404, detail='文件不存在')
 
-    return APIResponse(detail=file_code.text) if file_code.text else await file_storage.get_file_response(file_code)
+    return (
+        APIResponse(detail=file_code.text)
+        if file_code.text
+        else await file_storage.get_file_response(file_code)
+    )
