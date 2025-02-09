@@ -8,7 +8,7 @@ const instance = axios.create({
 instance.interceptors.request.use(
   (config: any) => {
     config.headers= {
-      'Authorization': localStorage.getItem('adminPassword') || '',
+      'Authorization': 'Bearer '+ localStorage.getItem('adminPassword') || '',
     }
     return config;
   });
@@ -24,6 +24,7 @@ instance.interceptors.response.use(
       return Promise.reject(response.data);
     }
   }, (error:any) => {
+    localStorage.clear()
     ElMessage.error(error.response.data.detail);
     return Promise.reject(error);
   });

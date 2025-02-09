@@ -1,10 +1,10 @@
 <template>
-  <el-container v-if="isLogin" style="height: 100vh;width: 100vw;position: relative;user-select: none">
+  <el-container v-if="adminData.isAdmin" style="height: 100vh;width: 100vw;position: relative;user-select: none">
     <el-header>
       <el-menu mode="horizontal" router :default-active="route.path">
         <el-menu-item v-for="menu in menus" :index="menu.path" :key="menu.path">{{menu.name}}</el-menu-item>
         <el-menu-item style="float: right" @click="toggleDark(!isDark)">{{ t('admin.menu.color') }}</el-menu-item>
-        <el-menu-item style="float: right" @click="adminData.updateAdminPwd('');isLogin=false">{{ t('admin.menu.signout') }}</el-menu-item>
+        <el-menu-item style="float: right" @click="logout()">{{ t('admin.menu.signout') }}</el-menu-item>
       </el-menu>
     </el-header>
     <el-main>
@@ -29,7 +29,6 @@
 import { useDark, useToggle } from '@vueuse/core';
 import { ref } from "vue";
 const isDark = useDark()
-const isLogin = ref(false);
 const toggleDark = useToggle(isDark)
 import { useRoute } from 'vue-router';
 import { useAdminData } from "@/stores/adminData";
@@ -71,19 +70,23 @@ const refreshLoginStatus = () => {
   request({
     url: '/admin/login',
     method: 'post',
+    data: {
+      password: adminData.adminPassword,
+    },
   }).then((res: any) => {
     if (res.code === 200) {
-      isLogin.value = true;
       adminData.updateAdminPwd(res.detail.token);
       ElMessage.success(t('admin.login.loginSuccess'));
     } else {
+      localStorage.clear();
       ElMessage.error(t('admin.login.loginError'));
     }
   });
 };
-if (adminData.adminPassword !== '') {
-  refreshLoginStatus();
-}
+const logout = () => {
+  localStorage.clear();
+};
+
 </script>
 <style lang="scss" scoped>
 </style>

@@ -90,6 +90,8 @@ class ConfigService:
 class LocalFileService:
     async def list_files(self):
         files = []
+        if not os.path.exists(data_root / 'local'):
+            os.makedirs(data_root / 'local')
         for file in os.listdir(data_root / 'local'):
             files.append(LocalFileClass(file))
         return files

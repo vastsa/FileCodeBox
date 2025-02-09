@@ -11,6 +11,7 @@ import time
 from core.settings import settings
 from apps.admin.services import FileService, ConfigService, LocalFileService
 
+
 def create_token(data: dict, expires_in: int = 3600 * 24) -> str:
     """
     创建JWT token
@@ -22,15 +23,16 @@ def create_token(data: dict, expires_in: int = 3600 * 24) -> str:
         **data,
         "exp": int(time.time()) + expires_in
     }).encode()).decode()
-    
+
     signature = hmac.new(
         settings.admin_token.encode(),
         f"{header}.{payload}".encode(),
         'sha256'
     ).digest()
     signature = base64.b64encode(signature).decode()
-    
+
     return f"{header}.{payload}.{signature}"
+
 
 def verify_token(token: str) -> dict:
     """
@@ -40,7 +42,7 @@ def verify_token(token: str) -> dict:
     """
     try:
         header_b64, payload_b64, signature_b64 = token.split('.')
-        
+
         # 验证签名
         expected_signature = hmac.new(
             settings.admin_token.encode(),
@@ -48,20 +50,21 @@ def verify_token(token: str) -> dict:
             'sha256'
         ).digest()
         expected_signature_b64 = base64.b64encode(expected_signature).decode()
-        
+
         if signature_b64 != expected_signature_b64:
             raise ValueError("无效的签名")
-            
+
         # 解码payload
         payload = json.loads(base64.b64decode(payload_b64))
-        
+
         # 检查是否过期
         if payload.get("exp", 0) < time.time():
             raise ValueError("token已过期")
-            
+
         return payload
     except Exception as e:
         raise ValueError(f"token验证失败: {str(e)}")
+
 
 async def admin_required(authorization: str = Header(default=None), request: Request = None):
     """
@@ -71,9 +74,12 @@ async def admin_required(authorization: str = Header(default=None), request: Req
         if not authorization or not authorization.startswith("Bearer "):
             is_admin = False
         else:
-            token = authorization.split(" ")[1]
-            payload = verify_token(token)
-            is_admin = payload.get("is_admin", False)
+            try:
+                token = authorization.split(" ")[1]
+                payload = verify_token(token)
+                is_admin = payload.get("is_admin", False)
+            except ValueError as e:
+                is_admin = False
 
         if request.url.path.startswith('/share/'):
             if not settings.openUpload and not is_admin:
@@ -84,6 +90,7 @@ async def admin_required(authorization: str = Header(default=None), request: Req
         return is_admin
     except ValueError as e:
         raise HTTPException(status_code=401, detail=str(e))
+
 
 async def get_file_service():
     return FileService()
