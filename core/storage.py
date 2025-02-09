@@ -442,7 +442,6 @@ class WebDAVFileStorage(FileStorageInterface):
         # 分离文件名和目录路径
         path_obj = Path(save_path)
         directory_path = str(path_obj.parent)
-        file_name = path_obj.name
 
         try:
             # 先创建目录结构
