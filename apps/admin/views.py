@@ -4,19 +4,30 @@
 # @Software: PyCharm
 import datetime
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from apps.admin.services import FileService, ConfigService, LocalFileService
 from apps.admin.dependencies import admin_required, get_file_service, get_config_service, get_local_file_service
-from apps.admin.schemas import IDData, ShareItem, DeleteItem
+from apps.admin.schemas import IDData, ShareItem, DeleteItem, LoginData
 from core.response import APIResponse
 from apps.base.models import FileCodes, KeyValue
+from apps.admin.dependencies import create_token
+from core.settings import settings
 
 admin_api = APIRouter(prefix='/admin', tags=['管理'])
 
 
 @admin_api.post('/login')
-async def login(admin: bool = Depends(admin_required)):
-    return APIResponse()
+async def login(data: LoginData):
+    # 验证管理员密码
+    if data.password != settings.admin_password:
+        raise HTTPException(status_code=401, detail="密码错误")
+        
+    # 生成包含管理员身份的token
+    token = create_token({"is_admin": True})
+    return APIResponse(detail={
+        "token": token,
+        "token_type": "Bearer"
+    })
 
 
 @admin_api.get('/dashboard')

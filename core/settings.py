@@ -66,6 +66,9 @@ DEFAULT_CONFIG = {
     'port': 12345,
     'showAdminAddr': 0,
     'robotsText': 'User-agent: *\nDisallow: /',
+    'jwt_secret_key': "your-secret-key",  # 建议使用环境变量
+    'jwt_algorithm': "HS256",
+    'admin_password': 'FileCodeBox2023',  # 建议使用环境变量存储
 }
 
 

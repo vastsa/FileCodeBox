@@ -13,3 +13,7 @@ class ShareItem(BaseModel):
 
 class DeleteItem(BaseModel):
     filename: str
+
+
+class LoginData(BaseModel):
+    password: str
