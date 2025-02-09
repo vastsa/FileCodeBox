@@ -24,7 +24,7 @@ def create_token(data: dict, expires_in: int = 3600 * 24) -> str:
     }).encode()).decode()
     
     signature = hmac.new(
-        settings.jwt_secret_key.encode(),
+        settings.admin_token.encode(),
         f"{header}.{payload}".encode(),
         'sha256'
     ).digest()
@@ -43,7 +43,7 @@ def verify_token(token: str) -> dict:
         
         # 验证签名
         expected_signature = hmac.new(
-            settings.jwt_secret_key.encode(),
+            settings.admin_token.encode(),
             f"{header_b64}.{payload_b64}".encode(),
             'sha256'
         ).digest()
