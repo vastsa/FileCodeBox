@@ -36,8 +36,6 @@ DEFAULT_CONFIG = {
     'onedrive_root_path': 'filebox_storage',
     'onedrive_proxy': 0,
     'webdav_hostname': '',
-    'webdav_username': '',
-    'webdav_password': '',
     'webdav_root_path': 'filebox_storage',
     'webdav_proxy': 0,
     'admin_token': 'FileCodeBox2023',
@@ -71,9 +69,6 @@ DEFAULT_CONFIG = {
     'port': 12345,
     'showAdminAddr': 0,
     'robotsText': 'User-agent: *\nDisallow: /',
-    'jwt_secret_key': "your-secret-key",  # 建议使用环境变量
-    'jwt_algorithm': "HS256",
-    'admin_password': 'FileCodeBox2023',  # 建议使用环境变量存储
 }
 
 

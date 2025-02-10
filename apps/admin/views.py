@@ -19,7 +19,7 @@ admin_api = APIRouter(prefix='/admin', tags=['管理'])
 @admin_api.post('/login')
 async def login(data: LoginData):
     # 验证管理员密码
-    if data.password != settings.admin_password:
+    if data.password != settings.admin_token:
         raise HTTPException(status_code=401, detail="密码错误")
         
     # 生成包含管理员身份的token
