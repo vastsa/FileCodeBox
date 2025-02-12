@@ -5,7 +5,6 @@ export default defineConfig({
     title: 'FileCodeBox',
     description: '简单高效的文件分享工具',
     lang: 'zh-CN',
-    base: 'FileCodeBox',
     lastUpdated: true,
     locales: {
         root: {
