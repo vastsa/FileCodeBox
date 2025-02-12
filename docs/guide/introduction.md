@@ -1,5 +1,3 @@
-# FileCodeBox - 文件快递柜
-
 <div align="center">
 
 <img src="https://fastly.jsdelivr.net/gh/vastsa/FileCodeBox@V1.6/static/banners/img_1.png" alt="FileCodeBox Logo">
@@ -22,7 +20,7 @@
 
 ## 🚀 更新计划
 - [ ] 切片上传，同文件秒传，断点续传
-- [x] 用户登录重构
+- [ ] 用户登录重构
 - [x] webdav存储
 - [x] 存储支持自定义路径
 - [x] s3优化，不修改昵称为uuid，新建目录
