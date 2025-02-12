@@ -4,7 +4,6 @@ import { defineConfig } from 'vitepress'
 export default defineConfig({
   title: 'FileCodeBox',
   description: '简单高效的文件分享工具',
-  base: '/FileCodeBox/',
   lang: 'zh-CN',
   lastUpdated: true,
   locales: {
@@ -19,6 +18,7 @@ export default defineConfig({
           { text: '首页', link: '/' },
           { text: '指南', link: '/guide/getting-started' },
           { text: 'API', link: '/api/' },
+          { text: 'Demo', link: 'https://share.lanol.cn' },
           {
             text: '了解更多',
             items: [
@@ -96,6 +96,7 @@ export default defineConfig({
           { text: 'Home', link: '/en/' },
           { text: 'Guide', link: '/en/guide/getting-started' },
           { text: 'API', link: '/en/api/' },
+          { text: 'Demo', link: 'https://share.lanol.cn' },
           {
             text: 'More',
             items: [

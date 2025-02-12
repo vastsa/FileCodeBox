@@ -15,33 +15,26 @@ FileCodeBox is a simple and efficient file sharing tool that supports temporary 
 
 ## Deployment Methods
 
-### Docker Deployment (Recommended)
+### Docker Deployment
 
 ```bash
-docker run -d \
-  --name filecodebox \
-  -p 12345:12345 \
-  -v /path/to/data:/app/data \
-  vastsa/filecodebox
+docker run -d --restart=always -p 12345:12345 -v /opt/FileCodeBox/:/app/data --name filecodebox lanol/filecodebox:beta
 ```
 
 ### Manual Deployment
 
-1. Clone the project
-
+1. Clone the repository
 ```bash
 git clone https://github.com/vastsa/FileCodeBox.git
-cd FileCodeBox
 ```
 
 2. Install dependencies
-
 ```bash
+cd FileCodeBox
 pip install -r requirements.txt
 ```
 
-3. Start service
-
+3. Start the service
 ```bash
 python main.py
 ```
@@ -62,7 +55,7 @@ python main.py
    - Download file
 
 4. Admin Panel
-   - Visit `http://localhost:12345/admin`
+   - Visit `http://localhost:12345/#/admin`
    - Enter admin password: `FileCodeBox2023`
    - Enter admin panel
    - View system information, file list, user management, etc.

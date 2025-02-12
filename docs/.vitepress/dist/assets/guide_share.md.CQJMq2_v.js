@@ -1,1 +1,0 @@
-import{_ as e,c as t,o as a}from"./chunks/framework.BmLMQRXF.js";const m=JSON.parse('{"title":"","description":"","frontmatter":{},"headers":[],"relativePath":"guide/share.md","filePath":"guide/share.md","lastUpdated":1739330962000}'),r={name:"guide/share.md"};function s(o,c,d,n,i,p){return a(),t("div")}const f=e(r,[["render",s]]);export{m as __pageData,f as default};

@@ -1,1 +1,0 @@
-import{_ as e,c as t,o as a}from"./chunks/framework.BmLMQRXF.js";const i=JSON.parse('{"title":"","description":"","frontmatter":{},"headers":[],"relativePath":"en/changelog.md","filePath":"en/changelog.md","lastUpdated":1739330962000}'),n={name:"en/changelog.md"};function o(c,r,s,d,l,p){return a(),t("div")}const g=e(n,[["render",o]]);export{i as __pageData,g as default};

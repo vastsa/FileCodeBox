@@ -18,33 +18,27 @@ FileCodeBox 是一个简单高效的文件分享工具，支持文件临时中�
 ### Docker 部署（推荐）
 
 ```bash
-docker run -d \
-  --name filecodebox \
-  -p 12345:12345 \
-  -v /path/to/data:/app/data \
-  vastsa/filecodebox
+docker run -d --restart=always -p 12345:12345 -v /opt/FileCodeBox/:/app/data --name filecodebox lanol/filecodebox:beta
 ```
 
 ### 手动部署
 
 1. 克隆项目
-
 ```bash
 git clone https://github.com/vastsa/FileCodeBox.git
-cd FileCodeBox
 ```
 
 2. 安装依赖
-
 ```bash
+cd FileCodeBox
 pip install -r requirements.txt
 ```
 
 3. 启动服务
-
 ```bash
 python main.py
 ```
+
 
 ## 使用方法
 
@@ -62,7 +56,7 @@ python main.py
    - 下载文件
 
 4. 后台管理
-   - 访问 `http://localhost:12345/admin`
+   - 访问 `http://localhost:12345/#/admin`
    - 输入管理员密码：`FileCodeBox2023`
    - 进入后台管理页面
    - 查看系统信息、文件列表、用户管理等

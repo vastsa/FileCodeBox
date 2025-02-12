@@ -13,6 +13,9 @@ hero:
       text: 快速开始
       link: /guide/getting-started
     - theme: alt
+      text: 在线体验
+      link: https://share.lanol.cn
+    - theme: alt
       text: 在 GitHub 上查看
       link: https://github.com/vastsa/FileCodeBox
 

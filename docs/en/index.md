@@ -13,6 +13,9 @@ hero:
       text: Get Started
       link: /en/guide/getting-started
     - theme: alt
+      text: Live Demo
+      link: https://share.lanol.cn
+    - theme: alt
       text: View on GitHub
       link: https://github.com/vastsa/FileCodeBox
 

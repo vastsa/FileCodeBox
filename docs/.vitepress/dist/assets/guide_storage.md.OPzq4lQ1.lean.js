@@ -1,1 +1,0 @@
-import{_ as e,c as t,o as a}from"./chunks/framework.BmLMQRXF.js";const m=JSON.parse('{"title":"","description":"","frontmatter":{},"headers":[],"relativePath":"guide/storage.md","filePath":"guide/storage.md","lastUpdated":1739330962000}'),r={name:"guide/storage.md"};function o(s,c,d,n,i,p){return a(),t("div")}const f=e(r,[["render",o]]);export{m as __pageData,f as default};
