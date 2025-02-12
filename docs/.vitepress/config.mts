@@ -73,8 +73,8 @@ export default defineConfig({
           { icon: 'github', link: 'https://github.com/vastsa/FileCodeBox' },
         ],
         footer: {
-          message: '基于 MIT 许可发布',
-          copyright: 'Copyright © 2023-present FileCodeBox',
+          message: '基于 LGPL-3.0 license 发布',
+          copyright: 'Copyright © 2022-present FileCodeBox',
         },
         search: {
           provider: 'local',
@@ -157,8 +157,8 @@ export default defineConfig({
           { icon: 'github', link: 'https://github.com/vastsa/FileCodeBox' },
         ],
         footer: {
-          message: 'Released under the MIT License',
-          copyright: 'Copyright © 2023-present FileCodeBox',
+          message: 'Released under the LGPL-3.0 license',
+          copyright: 'Copyright © 2022-present FileCodeBox',
         },
         search: {
           provider: 'local',
@@ -182,8 +182,8 @@ export default defineConfig({
 
     // 页脚
     footer: {
-      message: '基于 MIT 许可发布',
-      copyright: 'Copyright © 2023-present FileCodeBox',
+      message: '基于 LGPL-3.0 license 发布',
+      copyright: 'Copyright © 2022-present FileCodeBox',
     },
 
     // 搜索
