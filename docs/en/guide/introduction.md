@@ -13,8 +13,6 @@
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.68+-green.svg)](https://fastapi.tiangolo.com)
 [![Vue Version](https://img.shields.io/badge/Vue.js-3.x-brightgreen.svg)](https://v3.vuejs.org)
 
-[简体中文](./readme.md) | [Deployment Guide](https://github.com/vastsa/FileCodeBox/wiki/Deployment-Guide) | [FAQ](https://github.com/vastsa/FileCodeBox/wiki/FAQ)
-
 </div>
 
 ## 📝 Introduction
@@ -35,45 +33,6 @@ FileCodeBox is a lightweight file sharing tool developed with FastAPI + Vue3. It
 </h3>
 </div>
 
-### New Interface
-<div align="center">
-<table>
-<tr>
-<td><img src="./.github/images/img_7.png" alt="File Upload" title="File Upload Interface"></td>
-<td><img src="./.github/images/img_8.png" alt="Text Share" title="Text Share Interface"></td>
-</tr>
-<tr>
-<td><img src="./.github/images/img_10.png" alt="File Management" title="File Management Interface"></td>
-<td><img src="./.github/images/img_9.png" alt="System Settings" title="System Settings Interface"></td>
-</tr>
-<tr>
-<td><img src="./.github/images/img_11.png" alt="Mobile View" title="Mobile Interface"></td>
-<td><img src="./.github/images/img_12.png" alt="Dark Mode" title="Dark Mode Interface"></td>
-</tr>
-<tr>
-<td><img src="./.github/images/img_13.png" alt="Internationalization" title="Language Support"></td>
-<td><img src="./.github/images/img_14.png" alt="Responsive" title="Responsive Design"></td>
-</tr>
-</table>
-</div>
-
-### Classic Interface
-<div align="center">
-<table>
-<tr>
-<td><img src="./.github/images/img.png" alt="Home" title="Home Page"></td>
-<td><img src="./.github/images/img_1.png" alt="Upload" title="Upload Interface"></td>
-</tr>
-<tr>
-<td><img src="./.github/images/img_2.png" alt="Management" title="Management Interface"></td>
-<td><img src="./.github/images/img_3.png" alt="Settings" title="Settings Interface"></td>
-</tr>
-<tr>
-<td><img src="./.github/images/img_4.png" alt="Share" title="Share Interface"></td>
-<td><img src="./.github/images/img_5.png" alt="Download" title="Download Interface"></td>
-</tr>
-</table>
-</div>
 
 ## 🎯 Use Cases
 

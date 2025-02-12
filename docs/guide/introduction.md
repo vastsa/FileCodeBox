@@ -12,9 +12,6 @@
 [![Python Version](https://img.shields.io/badge/Python-3.8+-blue.svg)](https://www.python.org)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.68+-green.svg)](https://fastapi.tiangolo.com)
 [![Vue Version](https://img.shields.io/badge/Vue.js-3.x-brightgreen.svg)](https://v3.vuejs.org)
-
-[English](./readme_en.md) | [部署教程](https://github.com/vastsa/FileCodeBox/wiki/部署教程) | [常见问题](https://github.com/vastsa/FileCodeBox/wiki/常见问题)
-
 </div>
 
 
@@ -28,60 +25,6 @@
 ## 📝 项目简介
 
 FileCodeBox 是一个基于 FastAPI + Vue3 开发的轻量级文件分享工具。它允许用户通过简单的方式分享文本和文件，接收者只需要一个提取码就可以取得文件，就像从快递柜取出快递一样简单。
-
-## 🖼️ 功能预览
-
-<div align="center">
-<h3>
-<a href="https://github.com/vastsa/FileCodeBoxFronted" target="_blank">
-<img src="https://img.shields.io/badge/Frontend-FileCodeBoxFronted-blue?style=for-the-badge&logo=github" alt="前端仓库">
-</a>
-&nbsp;&nbsp;&nbsp;
-<a href="https://share.lanol.cn" target="_blank">
-<img src="https://img.shields.io/badge/Demo-share.lanol.cn-green?style=for-the-badge&logo=internet-explorer" alt="演示站点">
-</a>
-</h3>
-</div>
-
-### 新版界面
-<div align="center">
-<table>
-<tr>
-<td><img src="./.github/images/img_7.png" alt="文件上传" title="文件上传界面"></td>
-<td><img src="./.github/images/img_8.png" alt="文本分享" title="文本分享界面"></td>
-</tr>
-<tr>
-<td><img src="./.github/images/img_10.png" alt="文件管理" title="文件管理界面"></td>
-<td><img src="./.github/images/img_9.png" alt="系统设置" title="系统设置界面"></td>
-</tr>
-<tr>
-<td><img src="./.github/images/img_11.png" alt="移动端" title="移动端界面"></td>
-<td><img src="./.github/images/img_12.png" alt="深色模式" title="深色模式界面"></td>
-</tr>
-<tr>
-<td><img src="./.github/images/img_13.png" alt="国际化" title="国际化支持"></td>
-<td><img src="./.github/images/img_14.png" alt="响应式" title="响应式设计"></td>
-</tr>
-</table>
-</div>
-
-### 经典界面
-<div align="center">
-<table>
-<tr>
-<td><img src="./.github/images/img.png" alt="首页" title="首页界面"></td>
-<td><img src="./.github/images/img_1.png" alt="上传" title="上传界面"></td>
-</tr>
-<tr>
-<td><img src="./.github/images/img_2.png" alt="管理" title="管理界面"></td>
-<td><img src="./.github/images/img_3.png" alt="设置" title="设置界面"></td>
-</tr>
-<tr>
-<td><img src="./.github/images/img_4.png" alt="分享" title="分享界面"></td>
-<td><img src="./.github/images/img_5.png" alt="下载" title="下载界面"></td>
-</tr>
-</table>
-</div>
 
 ## 🎯 应用场景
 
