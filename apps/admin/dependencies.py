@@ -18,16 +18,15 @@ def create_token(data: dict, expires_in: int = 3600 * 24) -> str:
     :param data: 数据负载
     :param expires_in: 过期时间(秒)
     """
-    header = base64.b64encode(json.dumps({"alg": "HS256", "typ": "JWT"}).encode()).decode()
-    payload = base64.b64encode(json.dumps({
-        **data,
-        "exp": int(time.time()) + expires_in
-    }).encode()).decode()
+    header = base64.b64encode(
+        json.dumps({"alg": "HS256", "typ": "JWT"}).encode()
+    ).decode()
+    payload = base64.b64encode(
+        json.dumps({**data, "exp": int(time.time()) + expires_in}).encode()
+    ).decode()
 
     signature = hmac.new(
-        settings.admin_token.encode(),
-        f"{header}.{payload}".encode(),
-        'sha256'
+        settings.admin_token.encode(), f"{header}.{payload}".encode(), "sha256"
     ).digest()
     signature = base64.b64encode(signature).decode()
 
@@ -41,13 +40,13 @@ def verify_token(token: str) -> dict:
     :return: 解码后的数据
     """
     try:
-        header_b64, payload_b64, signature_b64 = token.split('.')
+        header_b64, payload_b64, signature_b64 = token.split(".")
 
         # 验证签名
         expected_signature = hmac.new(
             settings.admin_token.encode(),
             f"{header_b64}.{payload_b64}".encode(),
-            'sha256'
+            "sha256",
         ).digest()
         expected_signature_b64 = base64.b64encode(expected_signature).decode()
 
@@ -66,7 +65,9 @@ def verify_token(token: str) -> dict:
         raise ValueError(f"token验证失败: {str(e)}")
 
 
-async def admin_required(authorization: str = Header(default=None), request: Request = None):
+async def admin_required(
+    authorization: str = Header(default=None), request: Request = None
+):
     """
     验证管理员权限
     """
@@ -81,12 +82,14 @@ async def admin_required(authorization: str = Header(default=None), request: Req
             except ValueError as e:
                 is_admin = False
 
-        if request.url.path.startswith('/share/'):
+        if request.url.path.startswith("/share/"):
             if not settings.openUpload and not is_admin:
-                raise HTTPException(status_code=403, detail='本站未开启游客上传，如需上传请先登录后台')
+                raise HTTPException(
+                    status_code=403, detail="本站未开启游客上传，如需上传请先登录后台"
+                )
         else:
             if not is_admin:
-                raise HTTPException(status_code=401, detail='未授权或授权校验失败')
+                raise HTTPException(status_code=401, detail="未授权或授权校验失败")
         return is_admin
     except ValueError as e:
         raise HTTPException(status_code=401, detail=str(e))

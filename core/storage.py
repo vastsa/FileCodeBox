@@ -412,7 +412,7 @@ class WebDAVFileStorage(FileStorageInterface):
     async def _is_dir_empty(self, dir_path: str) -> bool:
         """检查目录是否为空"""
         url = self._build_url(dir_path)
-        
+
         async with aiohttp.ClientSession(auth=self.auth) as session:
             async with session.request("PROPFIND", url, headers={"Depth": "1"}) as resp:
                 if resp.status != 207:  # 207 是 Multi-Status 响应
@@ -425,16 +425,16 @@ class WebDAVFileStorage(FileStorageInterface):
         """递归删除空目录"""
         path_obj = Path(file_path)
         current_path = path_obj.parent
-        
+
         while str(current_path) != ".":
             if not await self._is_dir_empty(str(current_path)):
                 break
-                
+
             url = self._build_url(str(current_path))
             async with session.delete(url) as resp:
                 if resp.status not in (200, 204, 404):
                     break
-            
+
             current_path = current_path.parent
 
     async def save_file(self, file: UploadFile, save_path: str):
@@ -478,10 +478,10 @@ class WebDAVFileStorage(FileStorageInterface):
                             status_code=resp.status,
                             detail=f"WebDAV删除失败: {content[:200]}",
                         )
-                
+
                 # 使用同一个 session 删除空目录
                 await self._delete_empty_dirs(file_path, session)
-                
+
         except aiohttp.ClientError as e:
             raise HTTPException(status_code=503, detail=f"WebDAV连接异常: {str(e)}")
 
