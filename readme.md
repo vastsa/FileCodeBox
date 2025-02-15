@@ -36,9 +36,12 @@ FileCodeBox 是一个基于 FastAPI + Vue3 开发的轻量级文件分享工具�
 <div align="center">
 <h3>
 <a href="https://github.com/vastsa/FileCodeBoxFronted" target="_blank">
-<img src="https://img.shields.io/badge/Frontend-FileCodeBoxFronted-blue?style=for-the-badge&logo=github" alt="前端仓库">
+<img src="https://img.shields.io/badge/Frontend-FileCodeBoxFronted2024-blue?style=for-the-badge&logo=github" alt="前端仓库2024">
 </a>
-&nbsp;&nbsp;&nbsp;
+<a href="https://github.com/vastsa/FileCodeBoxFronted2023" target="_blank">
+<img src="https://img.shields.io/badge/Frontend-FileCodeBoxFronted2023-blue?style=for-the-badge&logo=github" alt="前端仓库2023">
+</a>
+&nbsp;&nbsp;&nbsp;&nbsp;
 <a href="https://share.lanol.cn" target="_blank">
 <img src="https://img.shields.io/badge/Demo-share.lanol.cn-green?style=for-the-badge&logo=internet-explorer" alt="演示站点">
 </a>
