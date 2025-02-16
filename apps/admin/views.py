@@ -63,9 +63,9 @@ async def dashboard(admin: bool = Depends(admin_required)):
 
 @admin_api.delete("/file/delete")
 async def file_delete(
-    data: IDData,
-    file_service: FileService = Depends(get_file_service),
-    admin: bool = Depends(admin_required),
+        data: IDData,
+        file_service: FileService = Depends(get_file_service),
+        admin: bool = Depends(admin_required),
 ):
     await file_service.delete_file(data.id)
     return APIResponse()
@@ -73,11 +73,11 @@ async def file_delete(
 
 @admin_api.get("/file/list")
 async def file_list(
-    page: int = 1,
-    size: int = 10,
-    keyword: str = "",
-    file_service: FileService = Depends(get_file_service),
-    admin: bool = Depends(admin_required),
+        page: int = 1,
+        size: int = 10,
+        keyword: str = "",
+        file_service: FileService = Depends(get_file_service),
+        admin: bool = Depends(admin_required),
 ):
     files, total = await file_service.list_files(page, size, keyword)
     return APIResponse(
@@ -92,17 +92,17 @@ async def file_list(
 
 @admin_api.get("/config/get")
 async def get_config(
-    config_service: ConfigService = Depends(get_config_service),
-    admin: bool = Depends(admin_required),
+        config_service: ConfigService = Depends(get_config_service),
+        admin: bool = Depends(admin_required),
 ):
     return APIResponse(detail=config_service.get_config())
 
 
 @admin_api.patch("/config/update")
 async def update_config(
-    data: dict,
-    config_service: ConfigService = Depends(get_config_service),
-    admin: bool = Depends(admin_required),
+        data: dict,
+        config_service: ConfigService = Depends(get_config_service),
+        admin: bool = Depends(admin_required),
 ):
     data.pop("themesChoices")
     await config_service.update_config(data)
@@ -111,9 +111,9 @@ async def update_config(
 
 @admin_api.get("/file/download")
 async def file_download(
-    id: int,
-    file_service: FileService = Depends(get_file_service),
-    admin: bool = Depends(admin_required),
+        id: int,
+        file_service: FileService = Depends(get_file_service),
+        admin: bool = Depends(admin_required),
 ):
     file_content = await file_service.download_file(id)
     return file_content
@@ -121,8 +121,8 @@ async def file_download(
 
 @admin_api.get("/local/lists")
 async def get_local_lists(
-    local_file_service: LocalFileService = Depends(get_local_file_service),
-    admin: bool = Depends(admin_required),
+        local_file_service: LocalFileService = Depends(get_local_file_service),
+        admin: bool = Depends(admin_required),
 ):
     files = await local_file_service.list_files()
     return APIResponse(detail=files)
@@ -130,9 +130,9 @@ async def get_local_lists(
 
 @admin_api.delete("/local/delete")
 async def delete_local_file(
-    item: DeleteItem,
-    local_file_service: LocalFileService = Depends(get_local_file_service),
-    admin: bool = Depends(admin_required),
+        item: DeleteItem,
+        local_file_service: LocalFileService = Depends(get_local_file_service),
+        admin: bool = Depends(admin_required),
 ):
     result = await local_file_service.delete_file(item.filename)
     return APIResponse(detail=result)
@@ -140,9 +140,9 @@ async def delete_local_file(
 
 @admin_api.post("/local/share")
 async def share_local_file(
-    item: ShareItem,
-    file_service: FileService = Depends(get_file_service),
-    admin: bool = Depends(admin_required),
+        item: ShareItem,
+        file_service: FileService = Depends(get_file_service),
+        admin: bool = Depends(admin_required),
 ):
     share_info = await file_service.share_local_file(item)
     return APIResponse(detail=share_info)

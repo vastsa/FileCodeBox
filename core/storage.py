@@ -92,7 +92,14 @@ class SystemFileStorage(FileStorageInterface):
         file_path = self.root_path / await file_code.get_file_path()
         if not file_path.exists():
             return APIResponse(code=404, detail="文件已过期删除")
-        return FileResponse(file_path, filename=file_code.prefix + file_code.suffix)
+        filename = f"{file_code.prefix}{file_code.suffix}"
+        encoded_filename = quote(filename, safe='')
+        content_disposition = f"attachment; filename*=UTF-8''{encoded_filename}"
+        return FileResponse(
+            file_path,
+            headers={"Content-Disposition": content_disposition},
+            filename=filename  # 保留原始文件名以备某些场景使用
+        )
 
 
 class S3FileStorage(FileStorageInterface):
@@ -118,11 +125,11 @@ class S3FileStorage(FileStorageInterface):
 
     async def save_file(self, file: UploadFile, save_path: str):
         async with self.session.client(
-            "s3",
-            endpoint_url=self.endpoint_url,
-            aws_session_token=self.aws_session_token,
-            region_name=self.region_name,
-            config=Config(signature_version=self.signature_version),
+                "s3",
+                endpoint_url=self.endpoint_url,
+                aws_session_token=self.aws_session_token,
+                region_name=self.region_name,
+                config=Config(signature_version=self.signature_version),
         ) as s3:
             await s3.put_object(
                 Bucket=self.bucket_name,
@@ -133,10 +140,10 @@ class S3FileStorage(FileStorageInterface):
 
     async def delete_file(self, file_code: FileCodes):
         async with self.session.client(
-            "s3",
-            endpoint_url=self.endpoint_url,
-            region_name=self.region_name,
-            config=Config(signature_version=self.signature_version),
+                "s3",
+                endpoint_url=self.endpoint_url,
+                region_name=self.region_name,
+                config=Config(signature_version=self.signature_version),
         ) as s3:
             await s3.delete_object(
                 Bucket=self.bucket_name, Key=await file_code.get_file_path()
@@ -146,10 +153,10 @@ class S3FileStorage(FileStorageInterface):
         try:
             filename = file_code.prefix + file_code.suffix
             async with self.session.client(
-                "s3",
-                endpoint_url=self.endpoint_url,
-                region_name=self.region_name,
-                config=Config(signature_version=self.signature_version),
+                    "s3",
+                    endpoint_url=self.endpoint_url,
+                    region_name=self.region_name,
+                    config=Config(signature_version=self.signature_version),
             ) as s3:
                 link = await s3.generate_presigned_url(
                     "get_object",
@@ -183,10 +190,10 @@ class S3FileStorage(FileStorageInterface):
             return await get_file_url(file_code.code)
         else:
             async with self.session.client(
-                "s3",
-                endpoint_url=self.endpoint_url,
-                region_name=self.region_name,
-                config=Config(signature_version=self.signature_version),
+                    "s3",
+                    endpoint_url=self.endpoint_url,
+                    region_name=self.region_name,
+                    config=Config(signature_version=self.signature_version),
             ) as s3:
                 result = await s3.generate_presigned_url(
                     "get_object",
@@ -452,7 +459,7 @@ class WebDAVFileStorage(FileStorageInterface):
             async with aiohttp.ClientSession(auth=self.auth) as session:
                 content = await file.read()  # 注意：大文件需要分块读取
                 async with session.put(
-                    url, data=content, headers={"Content-Type": file.content_type}
+                        url, data=content, headers={"Content-Type": file.content_type}
                 ) as resp:
                     if resp.status not in (200, 201, 204):
                         content = await resp.text()
