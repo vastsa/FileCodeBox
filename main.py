@@ -16,22 +16,13 @@ from apps.base.models import KeyValue
 from apps.base.utils import ip_limit
 from apps.base.views import share_api
 from apps.admin.views import admin_api
+from core.database import init_db
 from core.response import APIResponse
 from core.settings import data_root, settings, BASE_DIR, DEFAULT_CONFIG
 from core.tasks import delete_expire_files
 
 from contextlib import asynccontextmanager
 from tortoise import Tortoise
-
-
-async def init_db():
-    await Tortoise.init(
-        db_url=f"sqlite://{data_root}/filecodebox.db",
-        modules={"models": ["apps.base.models"]},
-        use_tz=False,
-        timezone="Asia/Shanghai",
-    )
-    await Tortoise.generate_schemas()
 
 
 @asynccontextmanager
@@ -115,6 +106,7 @@ async def index():
         .replace("{{description}}", str(settings.description))
         .replace("{{keywords}}", str(settings.keywords))
         .replace("{{opacity}}", str(settings.opacity))
+        .replace('"/assets/', '"assets/')
         .replace("{{background}}", str(settings.background)),
         media_type="text/html",
         headers={"Cache-Control": "no-cache"},
