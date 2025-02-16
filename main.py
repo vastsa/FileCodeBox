@@ -95,8 +95,9 @@ app.include_router(share_api)
 app.include_router(admin_api)
 
 
+@app.exception_handler(404)
 @app.get("/")
-async def index():
+async def index(request=None, exc=None):
     return HTMLResponse(
         content=open(
             BASE_DIR / f"{settings.themesSelect}/index.html", "r", encoding="utf-8"
