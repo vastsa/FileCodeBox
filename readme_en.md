@@ -28,11 +28,14 @@ FileCodeBox is a lightweight file sharing tool developed with FastAPI + Vue3. It
 <div align="center">
 <h3>
 <a href="https://github.com/vastsa/FileCodeBoxFronted" target="_blank">
-<img src="https://img.shields.io/badge/Frontend-FileCodeBoxFronted-blue?style=for-the-badge&logo=github" alt="Frontend Repository">
+<img src="https://img.shields.io/badge/Frontend-FileCodeBoxFronted2024-blue?style=for-the-badge&logo=github" alt="前端仓库2024">
 </a>
-&nbsp;&nbsp;&nbsp;
+<a href="https://github.com/vastsa/FileCodeBoxFronted2023" target="_blank">
+<img src="https://img.shields.io/badge/Frontend-FileCodeBoxFronted2023-blue?style=for-the-badge&logo=github" alt="前端仓库2023">
+</a>
+&nbsp;&nbsp;&nbsp;&nbsp;
 <a href="https://share.lanol.cn" target="_blank">
-<img src="https://img.shields.io/badge/Demo-share.lanol.cn-green?style=for-the-badge&logo=internet-explorer" alt="Demo Site">
+<img src="https://img.shields.io/badge/Demo-share.lanol.cn-green?style=for-the-badge&logo=internet-explorer" alt="演示站点">
 </a>
 </h3>
 </div>

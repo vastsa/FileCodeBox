@@ -9,6 +9,7 @@ import string
 import time
 from core.settings import settings
 
+
 async def get_random_num():
     """
     获取随机数
@@ -25,7 +26,7 @@ async def get_random_string():
     获取随机字符串
     :return:
     """
-    return ''.join(random.choice(r_s) for _ in range(5))
+    return "".join(random.choice(r_s) for _ in range(5))
 
 
 async def get_now():
@@ -33,9 +34,7 @@ async def get_now():
     获取当前时间
     :return:
     """
-    return datetime.datetime.now(
-        datetime.timezone(datetime.timedelta(hours=8))
-    )
+    return datetime.datetime.now(datetime.timezone(datetime.timedelta(hours=8)))
 
 
 async def get_select_token(code: str):
@@ -45,7 +44,9 @@ async def get_select_token(code: str):
     :return:
     """
     token = settings.admin_token
-    return hashlib.sha256(f"{code}{int(time.time() / 1000)}000{token}".encode()).hexdigest()
+    return hashlib.sha256(
+        f"{code}{int(time.time() / 1000)}000{token}".encode()
+    ).hexdigest()
 
 
 async def get_file_url(code: str):
@@ -54,7 +55,7 @@ async def get_file_url(code: str):
     :param code:
     :return:
     """
-    return f'/share/download?key={await get_select_token(code)}&code={code}'
+    return f"/share/download?key={await get_select_token(code)}&code={code}"
 
 
 async def max_save_times_desc(max_save_seconds: int):
@@ -66,28 +67,28 @@ async def max_save_times_desc(max_save_seconds: int):
 
     def gen_desc_zh(value: int, desc: str):
         if value > 0:
-            return f'{value}{desc}'
+            return f"{value}{desc}"
         else:
-            return ''
+            return ""
 
     def gen_desc_en(value: int, desc: str):
         if value > 0:
-            ret = f'{value} {desc}'
+            ret = f"{value} {desc}"
             if value > 1:
-                ret += 's'
-            ret += ' '
+                ret += "s"
+            ret += " "
             return ret
         else:
-            return ''
+            return ""
 
     max_timedelta = datetime.timedelta(seconds=max_save_seconds)
-    desc_zh, desc_en = '最长保存时间：', 'Max save time: '
-    desc_zh += gen_desc_zh(max_timedelta.days, '天')
-    desc_en += gen_desc_en(max_timedelta.days, 'day')
-    desc_zh += gen_desc_zh(max_timedelta.seconds // 3600, '小时')
-    desc_en += gen_desc_en(max_timedelta.seconds // 3600, 'hour')
-    desc_zh += gen_desc_zh(max_timedelta.seconds % 3600 // 60, '分钟')
-    desc_en += gen_desc_en(max_timedelta.seconds % 3600 // 60, 'minute')
-    desc_zh += gen_desc_zh(max_timedelta.seconds % 60, '秒')
-    desc_en += gen_desc_en(max_timedelta.seconds % 60, 'second')
+    desc_zh, desc_en = "最长保存时间：", "Max save time: "
+    desc_zh += gen_desc_zh(max_timedelta.days, "天")
+    desc_en += gen_desc_en(max_timedelta.days, "day")
+    desc_zh += gen_desc_zh(max_timedelta.seconds // 3600, "小时")
+    desc_en += gen_desc_en(max_timedelta.seconds // 3600, "hour")
+    desc_zh += gen_desc_zh(max_timedelta.seconds % 3600 // 60, "分钟")
+    desc_en += gen_desc_en(max_timedelta.seconds % 3600 // 60, "minute")
+    desc_zh += gen_desc_zh(max_timedelta.seconds % 60, "秒")
+    desc_en += gen_desc_en(max_timedelta.seconds % 60, "second")
     return desc_zh, desc_en

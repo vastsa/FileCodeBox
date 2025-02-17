@@ -7,7 +7,7 @@ class IDData(BaseModel):
 
 class ShareItem(BaseModel):
     expire_value: int
-    expire_style: str = 'day'
+    expire_style: str = "day"
     filename: str
 
 
