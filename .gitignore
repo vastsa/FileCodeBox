@@ -154,3 +154,6 @@ for_test.py
 data/.env
 .backup/
 /cloc-1.64.exe
+
+# Ignore node_modules
+node_modules/

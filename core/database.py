@@ -4,6 +4,7 @@ import os
 
 from tortoise import Tortoise
 
+from core.logger import logger
 from core.settings import data_root
 
 
@@ -32,7 +33,7 @@ async def init_db():
         await execute_migrations()
 
     except Exception as e:
-        print(f"数据库初始化失败: {str(e)}")
+        logger.error(f"数据库初始化失败: {str(e)}")
         raise
 
 
@@ -58,7 +59,7 @@ async def execute_migrations():
             )
 
             if not executed[1]:
-                print(f"执行迁移: {file_name}")
+                logger.info(f"执行迁移: {file_name}")
                 # 导入并执行migration
                 module_path = migration_file.replace("/", ".").replace("\\", ".").replace(".py", "")
                 try:
@@ -70,11 +71,11 @@ async def execute_migrations():
                             "INSERT INTO migrates (migration_file) VALUES (?)",
                             [file_name]
                         )
-                        print(f"迁移完成: {file_name}")
+                        logger.info(f"迁移完成: {file_name}")
                 except Exception as e:
-                    print(f"迁移 {file_name} 执行失败: {str(e)}")
+                    logger.error(f"迁移 {file_name} 执行失败: {str(e)}")
                     raise
 
     except Exception as e:
-        print(f"迁移过程发生错误: {str(e)}")
+        logger.error(f"迁移过程发生错误: {str(e)}")
         raise

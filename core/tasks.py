@@ -3,6 +3,7 @@
 # @File    : tasks.py
 # @Software: PyCharm
 import asyncio
+import logging
 import os
 
 from tortoise.expressions import Q
@@ -32,6 +33,6 @@ async def delete_expire_files():
                 await file_storage.delete_file(exp)
                 await exp.delete()
         except Exception as e:
-            print(e)
+            logging.error(e)
         finally:
             await asyncio.sleep(600)

@@ -1,4 +1,5 @@
 import datetime
+import hashlib
 import os
 import uuid
 
@@ -29,8 +30,19 @@ async def get_file_path_name(file: UploadFile) -> Tuple[str, str, str, str, str]
     return path, suffix, prefix, file.filename, save_path
 
 
+async def get_chunk_file_path_name(file_name: str, upload_id: str) -> Tuple[str, str, str, str, str]:
+    """获取切片文件的路径和文件名"""
+    today = datetime.datetime.now()
+    storage_path = settings.storage_path.strip("/")  # 移除开头和结尾的斜杠
+    base_path = f"share/data/{today.strftime('%Y/%m/%d')}/{upload_id}"
+    path = f"{storage_path}/{base_path}" if storage_path else base_path
+    prefix, suffix = os.path.splitext(file_name)
+    save_path = f"{path}/{prefix}{suffix}"
+    return path, suffix, prefix, file_name, save_path
+
+
 async def get_expire_info(
-    expire_value: int, expire_style: str
+        expire_value: int, expire_style: str
 ) -> Tuple[Optional[datetime.datetime], int, int, str]:
     """获取过期信息"""
     expired_count, used_count = -1, 0
@@ -84,6 +96,18 @@ async def get_random_code(style="num") -> str:
         code = await get_random_num() if style == "num" else await get_random_string()
         if not await FileCodes.filter(code=code).exists():
             return code
+
+
+async def calculate_file_hash(file: UploadFile, chunk_size=1024 * 1024) -> str:
+    sha = hashlib.sha256()
+    await file.seek(0)
+    while True:
+        chunk = await file.read(chunk_size)
+        if not chunk:
+            break
+        sha.update(chunk)
+    await file.seek(0)
+    return sha.hexdigest()
 
 
 ip_limit = {

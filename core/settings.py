@@ -43,6 +43,7 @@ DEFAULT_CONFIG = {
     "uploadSize": 1024 * 1024 * 10,
     "expireStyle": ["day", "hour", "minute", "forever", "count"],
     "uploadMinute": 1,
+    "enableChunk": 0,
     "webdav_url": "",
     "webdav_password": "",
     "webdav_username": "",
