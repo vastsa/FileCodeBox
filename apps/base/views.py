@@ -4,7 +4,7 @@ import uuid
 from fastapi import APIRouter, Form, UploadFile, File, Depends, HTTPException
 from starlette import status
 
-from apps.admin.dependencies import admin_required
+from apps.admin.dependencies import share_required_login
 from apps.base.models import FileCodes, UploadChunk
 from apps.base.schemas import SelectFileModel, InitChunkUploadModel, CompleteUploadModel
 from apps.base.utils import get_expire_info, get_file_path_name, ip_limit, get_chunk_file_path_name
@@ -35,7 +35,7 @@ class ShareTextRequest(BaseModel):
     expire_style: str = "day"
 
 
-@share_api.post("/text/", dependencies=[Depends(admin_required)])
+@share_api.post("/text/", dependencies=[Depends(share_required_login)])
 async def share_text(
         request: ShareTextRequest,
         ip: str = Depends(ip_limit["upload"]),
@@ -77,7 +77,7 @@ async def share_text(
     return APIResponse(detail={"code": code})
 
 
-@share_api.post("/file/", dependencies=[Depends(admin_required)])
+@share_api.post("/file/", dependencies=[Depends(share_required_login)])
 async def share_file(
         expire_value: int = Form(default=1, gt=0),
         expire_style: str = Form(default="day"),
@@ -181,7 +181,7 @@ async def download_file(key: str, code: str, ip: str = Depends(ip_limit["error"]
 chunk_api = APIRouter(prefix="/chunk", tags=["切片"])
 
 
-@chunk_api.post("/upload/init/")
+@chunk_api.post("/upload/init/", dependencies=[Depends(share_required_login)])
 async def init_chunk_upload(data: InitChunkUploadModel):
     # 秒传检查
     existing = await FileCodes.filter(file_hash=data.file_hash).first()
@@ -224,7 +224,7 @@ async def init_chunk_upload(data: InitChunkUploadModel):
     })
 
 
-@chunk_api.post("/upload/chunk/{upload_id}/{chunk_index}")
+@chunk_api.post("/upload/chunk/{upload_id}/{chunk_index}", dependencies=[Depends(share_required_login)])
 async def upload_chunk(
         upload_id: str,
         chunk_index: int,
@@ -264,7 +264,7 @@ async def upload_chunk(
     return APIResponse(detail={"chunk_hash": chunk_hash})
 
 
-@chunk_api.post("/upload/complete/{upload_id}")
+@chunk_api.post("/upload/complete/{upload_id}", dependencies=[Depends(share_required_login)])
 async def complete_upload(upload_id: str, data: CompleteUploadModel, ip: str = Depends(ip_limit["upload"])):
     # 获取上传基本信息
     chunk_info = await UploadChunk.filter(upload_id=upload_id, chunk_index=-1).first()

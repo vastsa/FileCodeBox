@@ -95,6 +95,39 @@ async def admin_required(
         raise HTTPException(status_code=401, detail=str(e))
 
 
+async def share_required_login(
+    authorization: str = Header(default=None), request: Request = None
+):
+    """
+    验证分享上传权限
+    
+    当settings.openUpload为False时，要求用户必须登录并具有管理员权限
+    当settings.openUpload为True时，允许游客上传
+    
+    :param authorization: 认证头信息
+    :param request: 请求对象
+    :return: 验证结果
+    """
+    if not settings.openUpload:
+        try:
+            if not authorization or not authorization.startswith("Bearer "):
+                raise HTTPException(
+                    status_code=403, detail="本站未开启游客上传，如需上传请先登录后台"
+                )
+            
+            token = authorization.split(" ")[1]
+            try:
+                payload = verify_token(token)
+                if not payload.get("is_admin", False):
+                    raise HTTPException(status_code=401, detail="未授权或授权校验失败")
+            except ValueError as e:
+                raise HTTPException(status_code=401, detail=str(e))
+        except Exception as e:
+            raise HTTPException(status_code=401, detail="认证失败：" + str(e))
+
+    return True
+
+
 async def get_file_service():
     return FileService()
 
