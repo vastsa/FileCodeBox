@@ -12,6 +12,7 @@ from core.response import APIResponse
 from core.settings import settings
 from core.storage import storages, FileStorageInterface
 from core.utils import get_select_token
+from pydantic import BaseModel
 
 share_api = APIRouter(prefix="/share", tags=["分享"])
 
@@ -28,21 +29,41 @@ async def create_file_code(code, **kwargs):
     return await FileCodes.create(code=code, **kwargs)
 
 
+class ShareTextRequest(BaseModel):
+    text: str
+    expire_value: int = 1
+    expire_style: str = "day"
+
+
 @share_api.post("/text/", dependencies=[Depends(admin_required)])
 async def share_text(
-        text: str = Form(...),
-        expire_value: int = Form(default=1, gt=0),
-        expire_style: str = Form(default="day"),
+        request: ShareTextRequest,
         ip: str = Depends(ip_limit["upload"]),
 ):
+    text = request.text
     text_size = len(text.encode("utf-8"))
     max_txt_size = 222 * 1024
     if text_size > max_txt_size:
         raise HTTPException(status_code=403, detail="内容过多,建议采用文件形式")
 
     expired_at, expired_count, used_count, code = await get_expire_info(
-        expire_value, expire_style
+        request.expire_value, request.expire_style
     )
+    # @share_api.post("/text/", dependencies=[Depends(admin_required)])
+    # async def share_text(
+    #         text: str = Form(...),
+    #         expire_value: int = Form(default=1, gt=0),
+    #         expire_style: str = Form(default="day"),
+    #         ip: str = Depends(ip_limit["upload"]),
+    # ):
+    #     text_size = len(text.encode("utf-8"))
+    #     max_txt_size = 222 * 1024
+    #     if text_size > max_txt_size:
+    #         raise HTTPException(status_code=403, detail="内容过多,建议采用文件形式")
+    #
+    #     expired_at, expired_count, used_count, code = await get_expire_info(
+    #         expire_value, expire_style
+    #     )
     await create_file_code(
         code=code,
         text=text,
