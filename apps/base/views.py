@@ -162,20 +162,20 @@ chunk_api = APIRouter(prefix="/chunk", tags=["切片"])
 
 @chunk_api.post("/upload/init/", dependencies=[Depends(share_required_login)])
 async def init_chunk_upload(data: InitChunkUploadModel):
-    # 秒传检查
-    existing = await FileCodes.filter(file_hash=data.file_hash).first()
-    if existing:
-        if await existing.is_expired():
-            file_storage: FileStorageInterface = storages[settings.file_storage](
-            )
-            await file_storage.delete_file(existing)
-            await existing.delete()
-        else:
-            return APIResponse(detail={
-                "code": existing.code,
-                "existed": True,
-                "name": f'{existing.prefix}{existing.suffix}'
-            })
+    # # 秒传检查
+    # existing = await FileCodes.filter(file_hash=data.file_hash).first()
+    # if existing:
+    #     if await existing.is_expired():
+    #         file_storage: FileStorageInterface = storages[settings.file_storage](
+    #         )
+    #         await file_storage.delete_file(existing)
+    #         await existing.delete()
+    #     else:
+    #         return APIResponse(detail={
+    #             "code": existing.code,
+    #             "existed": True,
+    #             "name": f'{existing.prefix}{existing.suffix}'
+    #         })
 
     # 创建上传会话
     upload_id = uuid.uuid4().hex
