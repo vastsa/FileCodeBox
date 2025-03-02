@@ -139,6 +139,7 @@ async def get_config():
             "notify_title": settings.notify_title,
             "notify_content": settings.notify_content,
             "show_admin_address": settings.showAdminAddr,
+            "max_save_seconds": settings.max_save_seconds,
         }
     )
 
