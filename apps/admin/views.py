@@ -12,7 +12,7 @@ from apps.admin.dependencies import (
     get_config_service,
     get_local_file_service,
 )
-from apps.admin.schemas import IDData, ShareItem, DeleteItem, LoginData
+from apps.admin.schemas import IDData, ShareItem, DeleteItem, LoginData, UpdateFileData
 from core.response import APIResponse
 from apps.base.models import FileCodes, KeyValue
 from apps.admin.dependencies import create_token
@@ -146,3 +146,31 @@ async def share_local_file(
 ):
     share_info = await file_service.share_local_file(item)
     return APIResponse(detail=share_info)
+
+
+@admin_api.patch("/file/update")
+async def update_file(
+        data: UpdateFileData,
+        admin: bool = Depends(admin_required),
+):
+    file_code = await FileCodes.filter(id=data.id).first()
+    if not file_code:
+        raise HTTPException(status_code=404, detail="文件不存在")
+    update_data = {}
+
+    if data.code is not None and data.code != file_code.code:
+        # 判断code是否存在
+        if await FileCodes.filter(code=data.code).first():
+            raise HTTPException(status_code=400, detail="code已存在")
+        update_data["code"] = data.code
+    if data.prefix is not None and data.prefix != file_code.prefix:
+        update_data["prefix"] = data.prefix
+    if data.suffix is not None and data.suffix != file_code.suffix:
+        update_data["suffix"] = data.suffix
+    if data.expired_at is not None and data.expired_at != file_code.expired_at:
+        update_data["expired_at"] = data.expired_at
+    if data.expired_count is not None and data.expired_count != file_code.expired_count:
+        update_data["expired_count"] = data.expired_count
+
+    await file_code.update_from_dict(update_data).save()
+    return APIResponse(detail="更新成功")

@@ -1,0 +1,1 @@
+.animate-modal-scale{animation:modal-scale .3s ease-out}@keyframes modal-scale{0%{transform:scale(.95);opacity:0}to{transform:scale(1);opacity:1}}input:focus{transform:scale(1.002)}

@@ -1,3 +1,5 @@
+import datetime
+from typing import Optional
 from pydantic import BaseModel
 
 
@@ -17,3 +19,12 @@ class DeleteItem(BaseModel):
 
 class LoginData(BaseModel):
     password: str
+
+
+class UpdateFileData(BaseModel):
+    id: int
+    code: Optional[str] = None
+    prefix: Optional[str] = None
+    suffix: Optional[str] = None
+    expired_at: Optional[datetime.datetime] = None
+    expired_count: Optional[int] = None
