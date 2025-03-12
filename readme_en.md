@@ -181,8 +181,26 @@ Command-line download
 
 ### Docker Deployment
 
+
+#### Docker CLI
 ```bash
 docker run -d --restart=always -p 12345:12345 -v /opt/FileCodeBox/:/app/data --name filecodebox lanol/filecodebox:beta
+```
+
+#### Docker Compose
+```yml
+version: "3"
+services:
+  file-code-box:
+    image: lanol/filecodebox:latest
+    volumes:
+      - fcb-data:/app/data:rw
+    restart: unless-stopped
+    ports:
+      - "12345:12345"
+volumes:
+  fcb-data:
+    external: false
 ```
 
 ### Manual Deployment
