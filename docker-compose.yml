@@ -1,0 +1,12 @@
+version: "3"
+services:
+  file-code-box:
+    image: lanol/filecodebox:latest
+    volumes:
+      - fcb-data:/app/data:rw
+    restart: unless-stopped
+    ports:
+      - "12345:12345"
+volumes:
+  fcb-data:
+    external: false
