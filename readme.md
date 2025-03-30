@@ -22,11 +22,7 @@
 
 ## 🚀 更新计划
 - [ ] 切片上传，同文件秒传，断点续传
-- [x] 适配子目录 
-- [x] 用户登录重构
-- [x] webdav存储
-- [x] 存储支持自定义路径
-- [x] s3优化，不修改昵称为uuid，新建目录
+- [ ] 文件收集功能
 
 ## 📝 项目简介
 
@@ -34,6 +30,7 @@ FileCodeBox 是一个基于 FastAPI + Vue3 开发的轻量级文件分享工具�
 
 ## 🖼️ 功能预览
 
+别问前端源码怎么是js了，麻烦仔细看下面的内容
 <div align="center">
 <h3>
 <a href="https://github.com/vastsa/FileCodeBoxFronted" target="_blank">
