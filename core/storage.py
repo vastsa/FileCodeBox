@@ -2,6 +2,7 @@
 # @Author  : Lan
 # @File    : storage.py
 # @Software: PyCharm
+import base64
 import hashlib
 from core.logger import logger
 import shutil
@@ -656,7 +657,6 @@ class WebDAVFileStorage(FileStorageInterface):
         """删除WebDAV文件及空目录"""
         file_path = await file_code.get_file_path()
         url = self._build_url(file_path)
-
         try:
             async with aiohttp.ClientSession(auth=self.auth) as session:
                 # 删除文件
@@ -683,7 +683,9 @@ class WebDAVFileStorage(FileStorageInterface):
         try:
             filename = file_code.prefix + file_code.suffix
             url = self._build_url(await file_code.get_file_path())
-            async with aiohttp.ClientSession(auth=self.auth) as session:
+            async with aiohttp.ClientSession(headers={
+                "Authorization": f"Basic {base64.b64encode(f'{settings.webdav_username}:{settings.webdav_password}'.encode()).decode()}"
+            }) as session:
                 async with session.get(url) as resp:
                     if resp.status != 200:
                         raise HTTPException(
