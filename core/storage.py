@@ -571,7 +571,7 @@ class WebDAVFileStorage(FileStorageInterface):
             self._initialized = True
 
     def _build_url(self, path: str) -> str:
-        encoded_path = quote(str(path).lstrip("/"))
+        encoded_path = quote(str(path.replace("\\", "/").lstrip("/")).lstrip("/"))
         return f"{self.base_url}{encoded_path}"
 
     async def _mkdir_p(self, directory_path: str):
@@ -630,11 +630,9 @@ class WebDAVFileStorage(FileStorageInterface):
         # 分离文件名和目录路径
         path_obj = Path(save_path)
         directory_path = str(path_obj.parent)
-
         try:
             # 先创建目录结构
             await self._mkdir_p(directory_path)
-
             # 上传文件
             url = self._build_url(save_path)
             async with aiohttp.ClientSession(auth=self.auth) as session:
@@ -690,7 +688,7 @@ class WebDAVFileStorage(FileStorageInterface):
                     if resp.status != 200:
                         raise HTTPException(
                             status_code=resp.status,
-                            detail=f"文件获取失败: {await resp.text()}",
+                            detail=f"文件获取失败{resp.status}: {await resp.text()}",
                         )
                     # 读取内容到内存
                     content = await resp.read()
@@ -708,8 +706,7 @@ class WebDAVFileStorage(FileStorageInterface):
                 status_code=503, detail=f"WebDAV连接异常: {str(e)}")
 
     async def save_chunk(self, upload_id: str, chunk_index: int, chunk_data: bytes, chunk_hash: str, save_path: str):
-        chunk_path = str(Path(save_path).parent / "chunks" /
-                         upload_id / f"{chunk_index}.part")
+        chunk_path = str(Path(save_path).parent / "chunks" / upload_id / f"{chunk_index}.part")
         chunk_url = self._build_url(chunk_path)
         async with aiohttp.ClientSession(auth=self.auth) as session:
             await session.put(chunk_url, data=chunk_data)
