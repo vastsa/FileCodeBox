@@ -79,7 +79,7 @@ async def get_expire_info(
                 code = await get_random_code(style="string")  # 移动到这里
         else:
             expired_at = result
-        if expired_at and expired_at - now > max_timedelta:
+        if expired_at and expire_style != "count" and expired_at - now > max_timedelta:
             raise HTTPException(status_code=403, detail=detail)
     else:
         expired_at = now + datetime.timedelta(days=1)
