@@ -22,7 +22,7 @@ from fastapi import HTTPException, Response, UploadFile
 from core.response import APIResponse
 from core.settings import data_root, settings
 from apps.base.models import FileCodes, UploadChunk
-from core.utils import get_file_url
+from core.utils import get_file_url, sanitize_filename
 from fastapi.responses import FileResponse
 
 
@@ -109,10 +109,16 @@ class SystemFileStorage(FileStorageInterface):
                 chunk = file.read(self.chunk_size)
 
     async def save_file(self, file: UploadFile, save_path: str):
-        save_path = self.root_path / save_path
-        if not save_path.parent.exists():
-            save_path.parent.mkdir(parents=True)
-        await asyncio.to_thread(self._save, file.file, save_path)
+        path_obj = Path(save_path)
+        directory = str(path_obj.parent)
+        # 提取原始文件名并进行清理
+        filename = await sanitize_filename(path_obj.name)
+        # 构建安全的完整保存路径
+        safe_save_path = self.root_path / directory / filename
+        # 确保目录存在
+        if not safe_save_path.parent.exists():
+            safe_save_path.parent.mkdir(parents=True)
+        await asyncio.to_thread(self._save, file.file, safe_save_path)
 
     async def delete_file(self, file_code: FileCodes):
         save_path = self.root_path / await file_code.get_file_path()
@@ -447,7 +453,7 @@ class OneDriveFileStorage(FileStorageInterface):
 
     def _save(self, file, save_path):
         content = file.file.read()
-        name = file.filename
+        name = save_path(file.filename)
         path = self._get_path_str(save_path)
         self.root_path.get_by_path(path).upload(name, content).execute_query()
 
@@ -627,16 +633,20 @@ class WebDAVFileStorage(FileStorageInterface):
 
     async def save_file(self, file: UploadFile, save_path: str):
         """保存文件（自动创建目录）"""
-        # 分离文件名和目录路径
         path_obj = Path(save_path)
         directory_path = str(path_obj.parent)
+        # 提取原始文件名并进行清理
+        filename = await sanitize_filename(path_obj.name)
+        # 构建安全的保存路径
+        safe_save_path = str(Path(directory_path) / filename)
+
         try:
             # 先创建目录结构
             await self._mkdir_p(directory_path)
             # 上传文件
-            url = self._build_url(save_path)
+            url = self._build_url(safe_save_path)
             async with aiohttp.ClientSession(auth=self.auth) as session:
-                content = await file.read()  # 注意：大文件需要分块读取
+                content = await file.read()
                 async with session.put(
                         url, data=content, headers={
                             "Content-Type": file.content_type}

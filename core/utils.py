@@ -4,7 +4,9 @@
 # @Software: PyCharm
 import datetime
 import hashlib
+import os
 import random
+import re
 import string
 import time
 from core.settings import settings
@@ -92,3 +94,27 @@ async def max_save_times_desc(max_save_seconds: int):
     desc_zh += gen_desc_zh(max_timedelta.seconds % 60, "秒")
     desc_en += gen_desc_en(max_timedelta.seconds % 60, "second")
     return desc_zh, desc_en
+
+
+async def sanitize_filename(filename: str) -> str:
+    """
+    安全处理文件名：
+    1. 剥离路径只保留文件名
+    2. 替换非法字符
+    3. 处理空文件名情况
+    """
+    filename = os.path.basename(filename)
+    illegal_chars = r'[\\/*?:"<>|\x00-\x1F]'  # 包含控制字符
+    # 替换非法字符为下划线
+    cleaned = re.sub(illegal_chars, '_', filename)
+    # 处理空格（可选替换为_）
+    cleaned = cleaned.replace(' ', '_')
+    # 处理连续下划线
+    cleaned = re.sub(r'_+', '_', cleaned)
+    # 处理首尾特殊字符
+    cleaned = cleaned.strip('._')
+    # 处理空文件名情况
+    if not cleaned:
+        cleaned = 'unnamed_file'
+    # 长度限制（按需调整）
+    return cleaned[:255]
