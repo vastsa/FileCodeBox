@@ -21,7 +21,9 @@
 
 ## 📝 Introduction
 
-FileCodeBox is a lightweight file sharing tool developed with FastAPI + Vue3. It allows users to share text and files easily, where recipients only need a passcode to retrieve the files, just like picking up a package from a delivery locker.
+FileCodeBox is a lightweight file sharing tool developed with FastAPI + Vue3. It allows users to share text and files
+easily, where recipients only need a passcode to retrieve the files, just like picking up a package from a delivery
+locker.
 
 ## 🖼️ Preview
 
@@ -41,6 +43,7 @@ FileCodeBox is a lightweight file sharing tool developed with FastAPI + Vue3. It
 </div>
 
 ### New Interface
+
 <div align="center">
 <table>
 <tr>
@@ -63,6 +66,7 @@ FileCodeBox is a lightweight file sharing tool developed with FastAPI + Vue3. It
 </div>
 
 ### Classic Interface
+
 <div align="center">
 <table>
 <tr>
@@ -137,6 +141,7 @@ Support text and various file types
 - IP upload limits
 - Error attempt limits
 - File expiration
+
 </td>
 <td align="center">
 <h4>🎫 Passcode Sharing</h4>
@@ -181,13 +186,14 @@ Command-line download
 
 ### Docker Deployment
 
-
 #### Docker CLI
+
 ```bash
 docker run -d --restart=always -p 12345:12345 -v /opt/FileCodeBox/:/app/data --name filecodebox lanol/filecodebox:beta
 ```
 
 #### Docker Compose
+
 ```yml
 version: "3"
 services:
@@ -203,20 +209,35 @@ volumes:
     external: false
 ```
 
+### Configure reverse proxy (Nginx example)
+
+Please note that the following configurations must be added to ensure proper handling of client IP and proxy requests:
+
+```nginx
+location / {
+proxy_set_header X-Real-IP $remote_addr; #Set real client IP
+proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+proxy_pass  http://localhost:12345 ; 
+}
+```
+
 ### Manual Deployment
 
 1. Clone the repository
+
 ```bash
 git clone https://github.com/vastsa/FileCodeBox.git
 ```
 
 2. Install dependencies
+
 ```bash
 cd FileCodeBox
 pip install -r requirements.txt
 ```
 
 3. Start the service
+
 ```bash
 python main.py
 ```
@@ -224,17 +245,20 @@ python main.py
 ## 📖 Usage Guide
 
 ### Share Files
+
 1. Open the website, click "Share File"
 2. Select or drag files
 3. Set expiration time and count
 4. Get the passcode
 
 ### Retrieve Files
+
 1. Open the website, enter passcode
 2. Click retrieve
 3. Download file or view text
 
 ### Admin Panel
+
 1. Visit `/admin`
 2. Enter admin password
 3. Manage files and settings
@@ -242,6 +266,7 @@ python main.py
 ## 🛠 Development Guide
 
 ### Project Structure
+
 ```
 FileCodeBox/
 ├── apps/           # Application code
@@ -253,18 +278,22 @@ FileCodeBox/
 ```
 
 ### Development Environment
+
 - Python 3.8+
 - Node.js 14+
 - Vue 3
 - FastAPI
 
 ### Local Development
+
 1. Backend development
+
 ```bash
 python main.py
 ```
 
 2. Frontend development
+
 ```bash
 cd fcb-fronted
 npm install
@@ -282,12 +311,15 @@ npm run dev
 ## ❓ FAQ
 
 ### Q: How to modify upload size limit?
+
 A: Change `uploadSize` in admin panel
 
 ### Q: How to configure storage engine?
+
 A: Select storage engine and configure parameters in admin panel
 
 ### Q: How to backup data?
+
 A: Backup the `data` directory
 
 For more questions, visit [Wiki](https://github.com/vastsa/FileCodeBox/wiki/常见问题)
@@ -304,4 +336,5 @@ For more questions, visit [Wiki](https://github.com/vastsa/FileCodeBox/wiki/常�
 
 ## 📜 Disclaimer
 
-This project is open-source for learning purposes only. It should not be used for any illegal purposes. The author is not responsible for any consequences. Please retain the project address and copyright information when using it.
+This project is open-source for learning purposes only. It should not be used for any illegal purposes. The author is
+not responsible for any consequences. Please retain the project address and copyright information when using it.

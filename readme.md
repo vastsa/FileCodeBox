@@ -19,8 +19,8 @@
 
 </div>
 
-
 ## 🚀 更新计划
+
 - [ ] 切片上传，同文件秒传，断点续传
 - [ ] 文件收集功能
 
@@ -47,6 +47,7 @@ FileCodeBox 是一个基于 FastAPI + Vue3 开发的轻量级文件分享工具�
 </div>
 
 ### 新版界面
+
 <div align="center">
 <table>
 <tr>
@@ -69,6 +70,7 @@ FileCodeBox 是一个基于 FastAPI + Vue3 开发的轻量级文件分享工具�
 </div>
 
 ### 经典界面
+
 <div align="center">
 <table>
 <tr>
@@ -143,6 +145,7 @@ FileCodeBox 是一个基于 FastAPI + Vue3 开发的轻量级文件分享工具�
 - IP 限制上传次数
 - 错误次数限制
 - 文件过期机制
+
 </td>
 <td align="center">
 <h4>🎫 提取码分享</h4>
@@ -188,11 +191,13 @@ FileCodeBox 是一个基于 FastAPI + Vue3 开发的轻量级文件分享工具�
 ### Docker 部署
 
 #### Docker CLI
+
 ```bash
 docker run -d --restart=always -p 12345:12345 -v /opt/FileCodeBox/:/app/data --name filecodebox lanol/filecodebox:beta
 ```
 
 #### Docker Compose
+
 ```yml
 version: "3"
 services:
@@ -208,20 +213,35 @@ volumes:
     external: false
 ```
 
+### 配置反向代理（Nginx示例）
+
+请注意，必须添加以下配置来确保正确处理客户端IP和代理请求：
+
+```nginx
+location / {
+    proxy_set_header X-Real-IP $remote_addr;      # 设置真实客户端IP
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_pass http://localhost:12345; 
+}
+```
+
 ### 手动部署
 
 1. 克隆项目
+
 ```bash
 git clone https://github.com/vastsa/FileCodeBox.git
 ```
 
 2. 安装依赖
+
 ```bash
 cd FileCodeBox
 pip install -r requirements.txt
 ```
 
 3. 启动服务
+
 ```bash
 python main.py
 ```
@@ -229,17 +249,20 @@ python main.py
 ## 📖 使用说明
 
 ### 分享文件
+
 1. 打开网页，点击"分享文件"
 2. 选择或拖拽文件
 3. 设置过期时间和次数
 4. 获取提取码
 
 ### 获取文件
+
 1. 打开网页，输入提取码
 2. 点击获取
 3. 下载文件或查看文本
 
 ### 管理面板
+
 1. 访问 `/#/admin`
 2. 输入管理员密码 `FileCodeBox2023`
 3. 管理文件和配置
@@ -247,6 +270,7 @@ python main.py
 ## 🛠 开发指南
 
 ### 项目结构
+
 ```
 FileCodeBox/
 ├── apps/           # 应用代码
@@ -258,18 +282,22 @@ FileCodeBox/
 ```
 
 ### 开发环境
+
 - Python 3.8+
 - Node.js 14+
 - Vue 3
 - FastAPI
 
 ### 本地开发
+
 1. 后端开发
+
 ```bash
 python main.py
 ```
 
 2. 前端开发
+
 ```bash
 cd fcb-fronted
 npm install
@@ -287,12 +315,15 @@ npm run dev
 ## ❓ 常见问题
 
 ### Q: 如何修改上传大小限制？
+
 A: 在管理面板中修改配置项 `uploadSize`
 
 ### Q: 如何配置存储引擎？
+
 A: 在管理面板中选择存储引擎并配置相应参数
 
 ### Q: 如何备份数据？
+
 A: 备份 `data` 目录即可
 
 更多问题请访问 [Wiki](https://github.com/vastsa/FileCodeBox/wiki/常见问题)
