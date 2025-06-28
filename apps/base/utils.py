@@ -2,6 +2,7 @@ import datetime
 import hashlib
 import os
 import uuid
+from urllib.parse import unquote
 
 from fastapi import UploadFile, HTTPException
 from typing import Optional, Tuple
@@ -17,7 +18,8 @@ async def get_file_path_name(file: UploadFile) -> Tuple[str, str, str, str, str]
     today = datetime.datetime.now()
     storage_path = settings.storage_path.strip("/")  # 移除开头和结尾的斜杠
     file_uuid = uuid.uuid4().hex
-    filename = await sanitize_filename(file.filename)
+    # 一些客户端对非ASCII字符会进行编码，需要解码
+    filename = await sanitize_filename(unquote(file.filename))
     # 使用 UUID 作为子目录名
     base_path = f"share/data/{today.strftime('%Y/%m/%d')}/{file_uuid}"
 
