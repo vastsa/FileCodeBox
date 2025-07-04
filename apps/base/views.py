@@ -64,18 +64,12 @@ async def share_file(
         ip: str = Depends(ip_limit["upload"]),
 ):
     await validate_file_size(file, settings.uploadSize)
-
     if expire_style not in settings.expireStyle:
         raise HTTPException(status_code=400, detail="过期时间类型错误")
-
-    expired_at, expired_count, used_count, code = await get_expire_info(
-        expire_value, expire_style
-    )
+    expired_at, expired_count, used_count, code = await get_expire_info(expire_value, expire_style)
     path, suffix, prefix, uuid_file_name, save_path = await get_file_path_name(file)
-
     file_storage: FileStorageInterface = storages[settings.file_storage]()
     await file_storage.save_file(file, save_path)
-
     await create_file_code(
         code=code,
         prefix=prefix,

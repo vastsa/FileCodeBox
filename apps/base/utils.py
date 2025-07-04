@@ -22,10 +22,8 @@ async def get_file_path_name(file: UploadFile) -> Tuple[str, str, str, str, str]
     filename = await sanitize_filename(unquote(file.filename))
     # 使用 UUID 作为子目录名
     base_path = f"share/data/{today.strftime('%Y/%m/%d')}/{file_uuid}"
-
     # 如果设置了存储路径，将其添加到基础路径中
     path = f"{storage_path}/{base_path}" if storage_path else base_path
-
     prefix, suffix = os.path.splitext(filename)
     # 保持原始文件名
     save_path = f"{path}/{filename}"
@@ -43,9 +41,7 @@ async def get_chunk_file_path_name(file_name: str, upload_id: str) -> Tuple[str,
     return path, suffix, prefix, file_name, save_path
 
 
-async def get_expire_info(
-        expire_value: int, expire_style: str
-) -> Tuple[Optional[datetime.datetime], int, int, str]:
+async def get_expire_info(expire_value: int, expire_style: str) -> Tuple[Optional[datetime.datetime], int, int, str]:
     """获取过期信息"""
     expired_count, used_count = -1, 0
     now = datetime.datetime.now()
