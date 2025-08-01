@@ -194,9 +194,9 @@ docker run -d --restart=always -p 12345:12345 -v /opt/FileCodeBox/:/app/data --n
 
 #### Docker Compose
 
-```yml
+```ymlfix
 version: "3"
-services:
+services:s
   file-code-box:
     image: lanol/filecodebox:latest
     volumes:
