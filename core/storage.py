@@ -137,6 +137,7 @@ class SystemFileStorage(FileStorageInterface):
         content_disposition = f"attachment; filename*=UTF-8''{encoded_filename}"
         return FileResponse(
             file_path,
+            media_type="application/octet-stream",
             headers={"Content-Disposition": content_disposition},
             filename=filename  # 保留原始文件名以备某些场景使用
         )
