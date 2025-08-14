@@ -1,21 +1,23 @@
-FROM python:3.9.5-slim-buster
+FROM python:3.11-slim
 LABEL author="Lan"
 LABEL email="xzu@live.com"
-
-# 将当前目录下的文件复制到容器的 /app 目录
-COPY . /app
-
-# 设置时区为亚洲/上海
-RUN ln -sf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime && echo 'Asia/Shanghai' >/etc/timezone
 
 # 设置工作目录
 WORKDIR /app
 
+# 仅拷贝依赖文件以利用缓存
+COPY requirements.txt /app/requirements.txt
+
+# 设置时区 + 升级 pip + 安装依赖
+RUN ln -sf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime && echo 'Asia/Shanghai' >/etc/timezone && \
+    python -m pip install --upgrade pip setuptools wheel && \
+    pip install --no-cache-dir -r requirements.txt
+
+# 拷贝源码
+COPY . /app
+
 # 删除不必要的目录，减少镜像体积
 RUN rm -rf docs fcb-fronted
-
-# 安装依赖
-RUN pip install -r requirements.txt
 
 # 暴露端口
 EXPOSE 12345
