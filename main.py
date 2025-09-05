@@ -20,6 +20,7 @@ from core.database import init_db
 from core.response import APIResponse
 from core.settings import data_root, settings, BASE_DIR, DEFAULT_CONFIG
 from core.tasks import delete_expire_files
+from apps.bot.main import run_bot
 from core.logger import logger
 
 from contextlib import asynccontextmanager
@@ -41,7 +42,8 @@ async def lifespan(app: FastAPI):
     )
 
     # 启动后台任务
-    task = asyncio.create_task(delete_expire_files())
+    delete_task = asyncio.create_task(delete_expire_files())
+    bot_task = asyncio.create_task(run_bot())
     logger.info("应用初始化完成")
 
     try:
@@ -49,8 +51,9 @@ async def lifespan(app: FastAPI):
     finally:
         # 清理操作
         logger.info("正在关闭应用...")
-        task.cancel()
-        await asyncio.gather(task, return_exceptions=True)
+        delete_task.cancel()
+        bot_task.cancel()
+        await asyncio.gather(delete_task, bot_task, return_exceptions=True)
         await Tortoise.close_connections()
         logger.info("应用已关闭")
 

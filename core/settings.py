@@ -70,6 +70,9 @@ DEFAULT_CONFIG = {
     "port": 12345,
     "showAdminAddr": 0,
     "robotsText": "User-agent: *\nDisallow: /",
+    "telegram_bot_token": "",
+    "telegram_bot_enable": 0,
+    "telegram_api_url": "https://api.telegram.org",
 }
 
 

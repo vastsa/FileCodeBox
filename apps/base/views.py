@@ -8,6 +8,7 @@ from apps.admin.dependencies import share_required_login
 from apps.base.models import FileCodes, UploadChunk
 from apps.base.schemas import SelectFileModel, InitChunkUploadModel, CompleteUploadModel
 from apps.base.utils import get_expire_info, get_file_path_name, ip_limit, get_chunk_file_path_name
+from apps.base.services import create_file_code as create_file_code_service
 from core.response import APIResponse
 from core.settings import settings
 from core.storage import storages, FileStorageInterface
@@ -24,8 +25,6 @@ async def validate_file_size(file: UploadFile, max_size: int):
         )
 
 
-async def create_file_code(code, **kwargs):
-    return await FileCodes.create(code=code, **kwargs)
 
 
 @share_api.post("/text/", dependencies=[Depends(share_required_login)])
@@ -64,23 +63,19 @@ async def share_file(
         ip: str = Depends(ip_limit["upload"]),
 ):
     await validate_file_size(file, settings.uploadSize)
-    if expire_style not in settings.expireStyle:
-        raise HTTPException(status_code=400, detail="过期时间类型错误")
-    expired_at, expired_count, used_count, code = await get_expire_info(expire_value, expire_style)
-    path, suffix, prefix, uuid_file_name, save_path = await get_file_path_name(file)
-    file_storage: FileStorageInterface = storages[settings.file_storage]()
-    await file_storage.save_file(file, save_path)
-    await create_file_code(
-        code=code,
-        prefix=prefix,
-        suffix=suffix,
-        uuid_file_name=uuid_file_name,
-        file_path=path,
-        size=file.size,
-        expired_at=expired_at,
-        expired_count=expired_count,
-        used_count=used_count,
-    )
+
+    file_bytes = await file.read()
+
+    try:
+        code = await create_file_code_service(
+            file_bytes=file_bytes,
+            filename=file.filename,
+            expire_value=expire_value,
+            expire_style=expire_style
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
     ip_limit["upload"].add_ip(ip)
     return APIResponse(detail={"code": code, "name": file.filename})
 

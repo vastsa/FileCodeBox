@@ -7,3 +7,5 @@ pydantic==2.4.0
 uvicorn==0.23.2
 tortoise-orm==0.20.0
 python-multipart==0.0.20
+python-telegram-bot==21.4
+httpx==0.27.0
