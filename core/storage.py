@@ -42,6 +42,18 @@ class FileStorageInterface:
         """
         raise NotImplementedError
 
+    async def create_multipart_upload(
+        self, save_path: str, file_name: str, content_type: str
+    ) -> Optional[str]:
+        """
+        为分片上传创建会话
+        :param save_path: 文件保存路径
+        :param file_name: 文件名
+        :param content_type: 文件类型
+        :return: upload_id or None
+        """
+        return None
+
     async def delete_file(self, file_code: FileCodes):
         """
         删除文件
@@ -66,7 +78,9 @@ class FileStorageInterface:
         """
         raise NotImplementedError
 
-    async def save_chunk(self, upload_id: str, chunk_index: int, chunk_data: bytes, chunk_hash: str, save_path: str):
+    async def save_chunk(
+        self, upload_id: str, chunk_index: int, chunk_data: bytes, chunk_hash: str, save_path: str
+    ) -> Optional[str]:
         """
         保存分片文件
         :param upload_id: 上传会话ID
@@ -74,6 +88,7 @@ class FileStorageInterface:
         :param chunk_data: 分片数据
         :param chunk_hash: 分片哈希值
         :param save_path: 文件保存路径
+        :return: ETag or None
         """
         raise NotImplementedError
 
@@ -142,7 +157,9 @@ class SystemFileStorage(FileStorageInterface):
             filename=filename  # 保留原始文件名以备某些场景使用
         )
 
-    async def save_chunk(self, upload_id: str, chunk_index: int, chunk_data: bytes, chunk_hash: str, save_path: str):
+    async def save_chunk(
+        self, upload_id: str, chunk_index: int, chunk_data: bytes, chunk_hash: str, save_path: str
+    ) -> Optional[str]:
         """
         保存分片文件到本地文件系统
         :param upload_id: 上传会话ID
@@ -152,11 +169,12 @@ class SystemFileStorage(FileStorageInterface):
         :param save_path: 文件保存路径
         """
         chunk_dir = self.root_path / save_path
-        chunk_path = chunk_dir.parent / 'chunks' / f"{chunk_index}.part"
+        chunk_path = chunk_dir.parent / "chunks" / f"{chunk_index}.part"
         if not chunk_path.parent.exists():
             chunk_path.parent.mkdir(parents=True)
         async with aiofiles.open(chunk_path, "wb") as f:
             await f.write(chunk_data)
+        return None
 
     async def merge_chunks(self, upload_id: str, chunk_info: UploadChunk, save_path: str) -> tuple[str, str]:
         """
@@ -282,10 +300,10 @@ class S3FileStorage(FileStorageInterface):
             return await get_file_url(file_code.code)
         else:
             async with self.session.client(
-                    "s3",
-                    endpoint_url=self.endpoint_url,
-                    region_name=self.region_name,
-                    config=Config(signature_version=self.signature_version),
+                "s3",
+                endpoint_url=self.endpoint_url,
+                region_name=self.region_name,
+                config=Config(signature_version=self.signature_version),
             ) as s3:
                 result = await s3.generate_presigned_url(
                     "get_object",
@@ -297,98 +315,85 @@ class S3FileStorage(FileStorageInterface):
                 )
                 return result
 
-    async def save_chunk(self, upload_id: str, chunk_index: int, chunk_data: bytes, chunk_hash: str, save_path: str):
-        chunk_key = str(Path(save_path).parent / "chunks" /
-                        upload_id / f"{chunk_index}.part")
-        async with self.session.client('s3') as s3:
+    async def create_multipart_upload(
+        self, save_path: str, file_name: str, content_type: str
+    ) -> Optional[str]:
+        async with self.session.client(
+            "s3",
+            endpoint_url=self.endpoint_url,
+            aws_session_token=self.aws_session_token,
+            region_name=self.region_name,
+            config=Config(signature_version=self.signature_version),
+        ) as s3:
+            response = await s3.create_multipart_upload(
+                Bucket=self.bucket_name,
+                Key=save_path,
+                ContentType=content_type,
+            )
+            return response["UploadId"]
+
+    async def save_chunk(
+        self, upload_id: str, chunk_index: int, chunk_data: bytes, chunk_hash: str, save_path: str
+    ) -> Optional[str]:
+        async with self.session.client(
+            "s3",
+            endpoint_url=self.endpoint_url,
+            aws_session_token=self.aws_session_token,
+            region_name=self.region_name,
+            config=Config(signature_version=self.signature_version),
+        ) as s3:
             response = await s3.upload_part(
                 Bucket=self.bucket_name,
-                Key=chunk_key,
+                Key=save_path,
                 PartNumber=chunk_index + 1,
                 UploadId=upload_id,
-                Body=chunk_data
+                Body=chunk_data,
             )
-            await s3.put_object_tagging(
-                Bucket=self.bucket_name,
-                Key=chunk_key,
-                Tagging={
-                    'TagSet': [
-                        {'Key': 'ChunkHash', 'Value': chunk_hash},
-                        {'Key': 'ETag', 'Value': response['ETag']}
-                    ]
-                }
-            )
+            return response["ETag"]
 
     async def merge_chunks(self, upload_id: str, chunk_info: UploadChunk, save_path: str) -> tuple[str, str]:
-        file_sha256 = hashlib.sha256()
-        chunk_dir = str(Path(save_path).parent / "chunks" / upload_id)
-        async with self.session.client('s3') as s3:
-            # 获取所有分片
-            parts = await s3.list_parts(
-                Bucket=self.bucket_name,
-                Key=chunk_dir,
-                UploadId=upload_id
+        part_list = []
+        all_chunks = await UploadChunk.filter(upload_id=upload_id, completed=True).order_by("chunk_index")
+        for chunk in all_chunks:
+            part_list.append(
+                {"PartNumber": chunk.chunk_index + 1, "ETag": chunk.etag}
             )
-            part_list = []
-            for part in parts['Parts']:
-                part_number = part['PartNumber']
-                chunk_index = part_number - 1
-                chunk_record = await UploadChunk.get(upload_id=upload_id, chunk_index=chunk_index)
-                response = await s3.get_object(
-                    Bucket=self.bucket_name,
-                    Key=f"{chunk_dir}/{chunk_index}.part",
-                    PartNumber=part_number
-                )
-                chunk_data = await response['Body'].read()
-                current_hash = hashlib.sha256(chunk_data).hexdigest()
-                if current_hash != chunk_record.chunk_hash:
-                    raise Exception(f"分片{chunk_index}哈希不匹配")
-                file_sha256.update(chunk_data)
-                part_list.append(
-                    {'PartNumber': part_number, 'ETag': part['ETag']})
-            # 完成合并
+
+        async with self.session.client(
+            "s3",
+            endpoint_url=self.endpoint_url,
+            aws_session_token=self.aws_session_token,
+            region_name=self.region_name,
+            config=Config(signature_version=self.signature_version),
+        ) as s3:
             await s3.complete_multipart_upload(
                 Bucket=self.bucket_name,
                 Key=save_path,
                 UploadId=upload_id,
-                MultipartUpload={'Parts': part_list}
+                MultipartUpload={"Parts": part_list},
             )
-        return save_path, file_sha256.hexdigest()
+
+            # Verify the hash of the merged file
+            response = await s3.get_object(Bucket=self.bucket_name, Key=save_path)
+            file_content = await response["Body"].read()
+            calculated_hash = hashlib.sha256(file_content).hexdigest()
+
+            if calculated_hash != chunk_info.chunk_hash:
+                # If hash doesn't match, delete the object from S3 and raise an error
+                await s3.delete_object(Bucket=self.bucket_name, Key=save_path)
+                raise HTTPException(status_code=400, detail="文件哈希校验失败")
+
+        return save_path, calculated_hash
 
     async def clean_chunks(self, upload_id: str, save_path: str):
         """
-        清理 S3 上的临时分片文件
+        清理 S3 上的临时分片文件.
+        对于S3, 在成功完成分片上传后，不需要清理任何分片，因为它们已经合并到最终文件中。
+        这个方法在这里是为了接口的一致性。
         :param upload_id: 上传会话ID
         :param save_path: 文件保存路径
         """
-        chunk_dir = str(Path(save_path).parent / "chunks" / upload_id)
-        async with self.session.client('s3') as s3:
-            try:
-                # 终止未完成的分片上传会话
-                await s3.abort_multipart_upload(
-                    Bucket=self.bucket_name,
-                    Key=chunk_dir,
-                    UploadId=upload_id
-                )
-            except Exception as e:
-                # 如果上传会话不存在或其他错误，忽略
-                logger.info(f"清理 S3 分片时出错: {e}")
-
-            try:
-                # 清理已上传的分片数据
-                parts = await s3.list_parts(
-                    Bucket=self.bucket_name,
-                    Key=chunk_dir,
-                    UploadId=upload_id
-                )
-                for part in parts.get('Parts', []):
-                    await s3.delete_object(
-                        Bucket=self.bucket_name,
-                        Key=f"{chunk_dir}/{part['PartNumber'] - 1}.part"
-                    )
-            except Exception as e:
-                # 如果分片数据不存在或其他错误，忽略
-                logger.info(f"清理 S3 分片数据时出错: {e}")
+        pass
 
 
 class OneDriveFileStorage(FileStorageInterface):

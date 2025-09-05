@@ -171,8 +171,24 @@ async def init_chunk_upload(data: InitChunkUploadModel):
     #             "name": f'{existing.prefix}{existing.suffix}'
     #         })
 
-    # 创建上传会话
-    upload_id = uuid.uuid4().hex
+    # 1. Generate a temporary upload_id
+    temp_upload_id = uuid.uuid4().hex
+
+    # 2. Get the save_path
+    path, suffix, prefix, file_name, save_path = await get_chunk_file_path_name(
+        data.file_name, temp_upload_id
+    )
+
+    # 3. Create multipart upload
+    storage = storages[settings.file_storage]()
+    s3_upload_id = await storage.create_multipart_upload(
+        save_path, data.file_name, data.content_type
+    )
+
+    # 4. Determine the final upload_id
+    upload_id = s3_upload_id or temp_upload_id
+
+    # 5. Create the UploadChunk record
     total_chunks = (data.file_size + data.chunk_size - 1) // data.chunk_size
     await UploadChunk.create(
         upload_id=upload_id,
@@ -182,19 +198,22 @@ async def init_chunk_upload(data: InitChunkUploadModel):
         chunk_size=data.chunk_size,
         chunk_hash=data.file_hash,
         file_name=data.file_name,
+        uuid_file_name=f"{prefix}{suffix}",
+        file_path=path,
     )
     # 获取已上传的分片列表
     uploaded_chunks = await UploadChunk.filter(
-        upload_id=upload_id,
-        completed=True
-    ).values_list('chunk_index', flat=True)
-    return APIResponse(detail={
-        "existed": False,
-        "upload_id": upload_id,
-        "chunk_size": data.chunk_size,
-        "total_chunks": total_chunks,
-        "uploaded_chunks": uploaded_chunks
-    })
+        upload_id=upload_id, completed=True
+    ).values_list("chunk_index", flat=True)
+    return APIResponse(
+        detail={
+            "existed": False,
+            "upload_id": upload_id,
+            "chunk_size": data.chunk_size,
+            "total_chunks": total_chunks,
+            "uploaded_chunks": uploaded_chunks,
+        }
+    )
 
 
 @chunk_api.post("/upload/chunk/{upload_id}/{chunk_index}", dependencies=[Depends(share_required_login)])
@@ -216,24 +235,27 @@ async def upload_chunk(
     chunk_data = await chunk.read()
     chunk_hash = hashlib.sha256(chunk_data).hexdigest()
 
+    # 获取文件路径
+    save_path = f"{chunk_info.file_path}/{chunk_info.uuid_file_name}"
+    # 保存分片到存储
+    storage = storages[settings.file_storage]()
+    etag = await storage.save_chunk(
+        upload_id, chunk_index, chunk_data, chunk_hash, save_path
+    )
     # 更新或创建分片记录
     await UploadChunk.update_or_create(
         upload_id=upload_id,
         chunk_index=chunk_index,
         defaults={
-            'chunk_hash': chunk_hash,
-            'completed': True,
-            'file_size': chunk_info.file_size,
-            'total_chunks': chunk_info.total_chunks,
-            'chunk_size': chunk_info.chunk_size,
-            'file_name': chunk_info.file_name
-        }
+            "chunk_hash": chunk_hash,
+            "completed": True,
+            "file_size": chunk_info.file_size,
+            "total_chunks": chunk_info.total_chunks,
+            "chunk_size": chunk_info.chunk_size,
+            "file_name": chunk_info.file_name,
+            "etag": etag,
+        },
     )
-    # 获取文件路径
-    _, _, _, _, save_path = await get_chunk_file_path_name(chunk_info.file_name, upload_id)
-    # 保存分片到存储
-    storage = storages[settings.file_storage]()
-    await storage.save_chunk(upload_id, chunk_index, chunk_data, chunk_hash, save_path)
     return APIResponse(detail={"chunk_hash": chunk_hash})
 
 
@@ -253,24 +275,30 @@ async def complete_upload(upload_id: str, data: CompleteUploadModel, ip: str = D
     if completed_chunks != chunk_info.total_chunks:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, detail="分片不完整")
     # 获取文件路径
-    path, suffix, prefix, _, save_path = await get_chunk_file_path_name(chunk_info.file_name, upload_id)
+    save_path = f"{chunk_info.file_path}/{chunk_info.uuid_file_name}"
     # 合并文件并计算哈希
-    await storage.merge_chunks(upload_id, chunk_info, save_path)
+    _, file_hash = await storage.merge_chunks(upload_id, chunk_info, save_path)
     # 创建文件记录
-    expired_at, expired_count, used_count, code = await get_expire_info(data.expire_value, data.expire_style)
+    expired_at, expired_count, used_count, code = await get_expire_info(
+        data.expire_value, data.expire_style
+    )
+    # 从文件名中提取前缀和后缀
+    from pathlib import Path
+    prefix = Path(chunk_info.uuid_file_name).stem
+    suffix = Path(chunk_info.uuid_file_name).suffix
     await FileCodes.create(
         code=code,
-        file_hash=chunk_info.chunk_hash,
+        file_hash=file_hash,
         is_chunked=True,
         upload_id=upload_id,
         size=chunk_info.file_size,
         expired_at=expired_at,
         expired_count=expired_count,
         used_count=used_count,
-        file_path=path,
-        uuid_file_name=f"{prefix}{suffix}",
+        file_path=chunk_info.file_path,
+        uuid_file_name=chunk_info.uuid_file_name,
         prefix=prefix,
-        suffix=suffix
+        suffix=suffix,
     )
     # 清理临时文件
     await storage.clean_chunks(upload_id, save_path)

@@ -49,8 +49,11 @@ class UploadChunk(models.Model):
     file_size = fields.BigIntField()
     chunk_size = fields.IntField()
     file_name = fields.CharField(max_length=255)
+    uuid_file_name = fields.CharField(max_length=255, null=True)
+    file_path = fields.CharField(max_length=255, null=True)
     created_at = fields.DatetimeField(auto_now_add=True)
     completed = fields.BooleanField(default=False)
+    etag = fields.CharField(max_length=255, null=True, description="S3 ETag")
 
 
 class KeyValue(Model):
