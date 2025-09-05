@@ -373,7 +373,9 @@ class S3FileStorage(FileStorageInterface):
                 MultipartUpload={"Parts": part_list},
             )
 
-            # Verify the hash of the merged file
+            # To ensure data integrity, we verify the hash of the merged file on the server.
+            # This involves downloading the file from S3, which is a trade-off for security over performance.
+            # S3's ETag for multipart uploads is not a simple MD5 or SHA256 hash, so it cannot be used for direct comparison.
             response = await s3.get_object(Bucket=self.bucket_name, Key=save_path)
             file_content = await response["Body"].read()
             calculated_hash = hashlib.sha256(file_content).hexdigest()
