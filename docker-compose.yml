@@ -2,7 +2,6 @@ version: "3"
 services:
   file-code-box:
     image: lanol/filecodebox:latest
-    container_name: filecodebox
     volumes:
       - fcb-data:/app/data:rw
     restart: unless-stopped
