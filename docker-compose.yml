@@ -2,11 +2,17 @@ version: "3"
 services:
   file-code-box:
     image: lanol/filecodebox:latest
+    container_name: filecodebox
     volumes:
       - fcb-data:/app/data:rw
     restart: unless-stopped
     ports:
       - "12345:12345"
+    command: >
+      gunicorn -k uvicorn.workers.UvicornWorker main:app
+      --bind 0.0.0.0:12345
+      --timeout 600
+      --workers 2
 volumes:
   fcb-data:
     external: false
