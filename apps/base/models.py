@@ -51,6 +51,7 @@ class UploadChunk(models.Model):
     file_name = fields.CharField(max_length=255)
     created_at = fields.DatetimeField(auto_now_add=True)
     completed = fields.BooleanField(default=False)
+    actual_size = fields.IntField(null=True)  # 实际接收的分片大小
 
 
 class KeyValue(Model):
