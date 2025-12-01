@@ -30,8 +30,14 @@ async def delete_expire_files():
                 Q(expired_at__lt=await get_now()) | Q(expired_count=0)
             ).all()
             for exp in expire_data:
-                await file_storage.delete_file(exp)
-                await exp.delete()
+                try:
+                    await file_storage.delete_file(exp)
+                except Exception as e:
+                    logging.error(f"删除过期文件失败 code={exp.code}: {e}")
+                try:
+                    await exp.delete()
+                except Exception as e:
+                    logging.error(f"删除记录失败 code={exp.code}: {e}")
         except Exception as e:
             logging.error(e)
         finally:

@@ -16,12 +16,19 @@ from core.utils import get_select_token
 share_api = APIRouter(prefix="/share", tags=["分享"])
 
 
-async def validate_file_size(file: UploadFile, max_size: int):
-    if file.size > max_size:
+async def validate_file_size(file: UploadFile, max_size: int) -> int:
+    size = file.size
+    if size is None:
+        # 读取流计算大小，保持指针复位
+        await file.seek(0, 2)
+        size = file.file.tell()
+        await file.seek(0)
+    if size > max_size:
         max_size_mb = max_size / (1024 * 1024)
         raise HTTPException(
             status_code=403, detail=f"大小超过限制,最大为{max_size_mb:.2f} MB"
         )
+    return size
 
 
 async def create_file_code(code, **kwargs):
@@ -63,7 +70,7 @@ async def share_file(
         file: UploadFile = File(...),
         ip: str = Depends(ip_limit["upload"]),
 ):
-    await validate_file_size(file, settings.uploadSize)
+    file_size = await validate_file_size(file, settings.uploadSize)
     if expire_style not in settings.expireStyle:
         raise HTTPException(status_code=400, detail="过期时间类型错误")
     expired_at, expired_count, used_count, code = await get_expire_info(expire_value, expire_style)
@@ -76,7 +83,7 @@ async def share_file(
         suffix=suffix,
         uuid_file_name=uuid_file_name,
         file_path=path,
-        size=file.size,
+        size=file_size,
         expired_at=expired_at,
         expired_count=expired_count,
         used_count=used_count,
@@ -141,6 +148,7 @@ async def download_file(key: str, code: str, ip: str = Depends(ip_limit["error"]
     file_storage: FileStorageInterface = storages[settings.file_storage]()
     if await get_select_token(code) != key:
         ip_limit["error"].add_ip(ip)
+        raise HTTPException(status_code=403, detail="下载鉴权失败")
     has, file_code = await get_code_file_by_code(code, False)
     if not has:
         return APIResponse(code=404, detail="文件不存在")

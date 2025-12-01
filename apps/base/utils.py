@@ -109,6 +109,6 @@ async def calculate_file_hash(file: UploadFile, chunk_size=1024 * 1024) -> str:
 
 
 ip_limit = {
-    "error": IPRateLimit(count=settings.uploadCount, minutes=settings.errorMinute),
-    "upload": IPRateLimit(count=settings.errorCount, minutes=settings.errorMinute),
+    "error": IPRateLimit(count=settings.errorCount, minutes=settings.errorMinute),
+    "upload": IPRateLimit(count=settings.uploadCount, minutes=settings.uploadMinute),
 }

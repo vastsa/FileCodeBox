@@ -46,9 +46,7 @@ async def get_select_token(code: str):
     :return:
     """
     token = settings.admin_token
-    return hashlib.sha256(
-        f"{code}{int(time.time() / 1000)}000{token}".encode()
-    ).hexdigest()
+    return hashlib.sha256(f"{code}{int(time.time() / 1000)}000{token}".encode()).hexdigest()
 
 
 async def get_file_url(code: str):

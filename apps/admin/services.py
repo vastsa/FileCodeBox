@@ -123,10 +123,14 @@ class LocalFileClass:
     def __init__(self, file):
         self.file = file
         self.path = data_root / "local" / file
-        self.ctime = time.strftime(
-            "%Y-%m-%d %H:%M:%S", time.localtime(os.path.getctime(self.path))
-        )
-        self.size = os.path.getsize(self.path)
+        if os.path.exists(self.path):
+            self.ctime = time.strftime(
+                "%Y-%m-%d %H:%M:%S", time.localtime(os.path.getctime(self.path))
+            )
+            self.size = os.path.getsize(self.path)
+        else:
+            self.ctime = None
+            self.size = None
 
     async def read(self):
         return open(self.path, "rb")
