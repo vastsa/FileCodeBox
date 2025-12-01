@@ -167,7 +167,7 @@ async def update_file(
         update_data["prefix"] = data.prefix
     if data.suffix is not None and data.suffix != file_code.suffix:
         update_data["suffix"] = data.suffix
-    if data.expired_at is not None and data.expired_at != file_code.expired_at:
+    if data.expired_at is not None and data.expired_at != "" and data.expired_at != file_code.expired_at:
         update_data["expired_at"] = data.expired_at
     if data.expired_count is not None and data.expired_count != file_code.expired_count:
         update_data["expired_count"] = data.expired_count
