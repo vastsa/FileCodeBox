@@ -266,13 +266,14 @@ async def upload_chunk(
             detail=f"分片大小超过声明值: 最大 {chunk_info.chunk_size}, 实际 {chunk_size}"
         )
 
-    # 计算已上传的实际总大小（防止绕过前端限制）
-    uploaded_chunks_list = await UploadChunk.filter(
+    # 计算已上传分片数，校验累计大小不超限（用分片数 * chunk_size 估算）
+    uploaded_count = await UploadChunk.filter(
         upload_id=upload_id,
         completed=True
-    ).all()
-    uploaded_size = sum(c.actual_size for c in uploaded_chunks_list if c.actual_size)
-    if uploaded_size + chunk_size > settings.uploadSize:
+    ).count()
+    # 已上传分片的最大可能大小 + 当前分片
+    max_uploaded_size = uploaded_count * chunk_info.chunk_size + chunk_size
+    if max_uploaded_size > settings.uploadSize:
         max_size_mb = settings.uploadSize / (1024 * 1024)
         raise HTTPException(
             status_code=403,
@@ -291,7 +292,7 @@ async def upload_chunk(
     except Exception as e:
         raise HTTPException(status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"分片保存失败: {str(e)}")
     
-    # 更新或创建分片记录（保存成功后再记录，包含实际大小）
+    # 更新或创建分片记录（保存成功后再记录）
     await UploadChunk.update_or_create(
         upload_id=upload_id,
         chunk_index=chunk_index,
@@ -301,8 +302,7 @@ async def upload_chunk(
             'file_size': chunk_info.file_size,
             'total_chunks': chunk_info.total_chunks,
             'chunk_size': chunk_info.chunk_size,
-            'file_name': chunk_info.file_name,
-            'actual_size': chunk_size
+            'file_name': chunk_info.file_name
         }
     )
     return APIResponse(detail={"chunk_hash": chunk_hash})
@@ -372,9 +372,9 @@ async def complete_upload(upload_id: str, data: CompleteUploadModel, ip: str = D
     if len(completed_chunks_list) != chunk_info.total_chunks:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, detail="分片不完整")
 
-    # 计算实际上传的总大小并校验
-    actual_total_size = sum(c.actual_size for c in completed_chunks_list if c.actual_size)
-    if actual_total_size > settings.uploadSize:
+    # 用分片数 * chunk_size 校验最大可能大小
+    max_total_size = len(completed_chunks_list) * chunk_info.chunk_size
+    if max_total_size > settings.uploadSize:
         # 清理已上传的分片
         _, _, _, _, save_path = await get_chunk_file_path_name(chunk_info.file_name, upload_id)
         try:
@@ -401,7 +401,7 @@ async def complete_upload(upload_id: str, data: CompleteUploadModel, ip: str = D
             file_hash=file_hash,  # 使用合并后计算的哈希
             is_chunked=True,
             upload_id=upload_id,
-            size=actual_total_size,  # 使用实际上传大小而非前端声明值
+            size=chunk_info.file_size,
             expired_at=expired_at,
             expired_count=expired_count,
             used_count=used_count,

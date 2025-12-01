@@ -50,7 +50,6 @@ async def clean_incomplete_uploads():
     file_storage: FileStorageInterface = storages[settings.file_storage]()
     # 默认 24 小时未完成的上传视为过期
     expire_hours = getattr(settings, 'chunk_expire_hours', 24)
-
     while True:
         try:
             expire_time = datetime.datetime.now() - datetime.timedelta(hours=expire_hours)
