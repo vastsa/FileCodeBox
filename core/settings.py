@@ -35,7 +35,6 @@ DEFAULT_CONFIG = {
     "onedrive_password": "",
     "onedrive_root_path": "filebox_storage",
     "onedrive_proxy": 0,
-    "webdav_hostname": "",
     "webdav_root_path": "filebox_storage",
     "webdav_proxy": 0,
     "admin_token": "FileCodeBox2023",

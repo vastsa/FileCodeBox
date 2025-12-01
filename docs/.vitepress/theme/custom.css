@@ -1,0 +1,473 @@
+
+        :root {
+            /* --- 核心色板：清晨薄雾 (Teal -> Sky) --- */
+            --vp-c-brand-1: #14b8a6; /* Teal 500 */
+            --vp-c-brand-2: #0ea5e9; /* Sky 500 */
+            --vp-c-brand-3: #0f766e; /* Teal 700 */
+            --vp-c-brand-soft: rgba(20, 184, 166, 0.14);
+
+            /* --- 背景色：极简与通透 --- */
+            --vp-c-bg: #ffffff;
+            --vp-c-bg-alt: #f8fafc; /* Slate 50 */
+            --vp-c-bg-elv: #ffffff;
+            
+            /* --- 文字颜色：柔和的深灰，而非纯黑 --- */
+            --vp-c-text-1: #334155; /* Slate 700 */
+            --vp-c-text-2: #64748b; /* Slate 500 */
+            --vp-c-text-3: #94a3b8; /* Slate 400 */
+
+            /* --- 边框与分隔 --- */
+            --vp-c-border: #e2e8f0;
+            --vp-c-divider: #f1f5f9;
+
+            /* --- 阴影：扩散柔光 --- */
+            --vp-shadow-1: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+            --vp-shadow-2: 0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -2px rgba(0, 0, 0, 0.025);
+            --vp-shadow-brand: 0 4px 14px 0 rgba(20, 184, 166, 0.3);
+
+            /* --- 布局参数 --- */
+            --vp-nav-height: 64px;
+            --vp-sidebar-width: 280px;
+            --vp-radius-default: 12px;
+            --vp-radius-small: 6px;
+        }
+
+        /* * ==========================================
+         * 暗黑模式重构 (Deep Ocean Theme)
+         * ==========================================
+         */
+        .dark {
+            /* 背景：更深邃的蓝黑色，更有沉浸感 */
+            --vp-c-bg: #020617; /* Slate 950 */
+            --vp-c-bg-alt: #0f172a; /* Slate 900 */
+            --vp-c-bg-elv: #1e293b; /* Slate 800 */
+            
+            /* 文字：降低纯白刺眼感，提高舒适度 */
+            --vp-c-text-1: #f8fafc; /* Slate 50 */
+            --vp-c-text-2: #94a3b8; /* Slate 400 */
+            --vp-c-text-3: #64748b; /* Slate 500 */
+
+            /* 边框：更细腻的深色线条 */
+            --vp-c-border: #1e293b;
+            --vp-c-divider: #0f172a;
+
+            /* 品牌色：调亮，产生荧光感 */
+            --vp-c-brand-1: #2dd4bf; /* Teal 400 */
+            --vp-c-brand-2: #38bdf8; /* Sky 400 */
+            --vp-c-brand-3: #14b8a6; /* Teal 500 */
+            --vp-c-brand-soft: rgba(45, 212, 191, 0.15); /* 淡淡的荧光底色 */
+
+            /* 阴影：暗色环境下的微光 */
+            --vp-shadow-1: 0 4px 6px -1px rgba(0, 0, 0, 0.5);
+            --vp-shadow-2: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
+            --vp-shadow-brand: 0 0 20px rgba(45, 212, 191, 0.3); /* 品牌色发光 */
+        }
+
+        /* 全局基础设置 */
+        body {
+            font-family: 'Noto Sans SC', sans-serif;
+            background-color: var(--vp-c-bg-alt);
+            color: var(--vp-c-text-1);
+            margin: 0;
+            transition: background-color 0.3s, color 0.3s;
+            overflow-x: hidden;
+        }
+
+        a { text-decoration: none; color: inherit; transition: color 0.2s; }
+
+        /* -------------------------------------------
+           布局结构 (模拟 VitePress 布局)
+           ------------------------------------------- */
+        .app-container {
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+
+        /* 1. 导航栏：毛玻璃 + 悬浮感 */
+        .VPNavBar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: var(--vp-nav-height);
+            background-color: rgba(255, 255, 255, 0.85); /* 稍微增加不透明度 */
+            backdrop-filter: blur(20px) saturate(180%);
+            -webkit-backdrop-filter: blur(20px) saturate(180%);
+            border-bottom: 1px solid rgba(226, 232, 240, 0.6);
+            z-index: 50;
+            display: flex;
+            align-items: center;
+            padding: 0 24px;
+            justify-content: space-between;
+        }
+        .dark .VPNavBar {
+            background-color: rgba(2, 6, 23, 0.85); /* 深色背景半透 */
+            border-bottom: 1px solid rgba(30, 41, 59, 0.7);
+        }
+
+        .nav-logo {
+            font-weight: 700;
+            font-size: 1.2rem;
+            background: linear-gradient(120deg, var(--vp-c-brand-1), var(--vp-c-brand-2));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 24px;
+            font-size: 0.9rem;
+            font-weight: 500;
+            color: var(--vp-c-text-2);
+        }
+
+        .nav-link:hover {
+            color: var(--vp-c-brand-1);
+        }
+        
+        .nav-link.active {
+            color: var(--vp-c-brand-1);
+            position: relative;
+        }
+        .nav-link.active::after {
+            content: '';
+            position: absolute;
+            bottom: -22px;
+            left: 0;
+            width: 100%;
+            height: 2px;
+            background: var(--vp-c-brand-1);
+            border-radius: 2px 2px 0 0;
+            box-shadow: 0 -2px 10px var(--vp-c-brand-1); /* 激活状态发光 */
+        }
+
+        /* 2. 侧边栏：极简卡片式 */
+        .VPSidebar {
+            position: fixed;
+            top: var(--vp-nav-height);
+            left: 0;
+            bottom: 0;
+            width: var(--vp-sidebar-width);
+            background-color: var(--vp-c-bg); /* 实色背景 */
+            border-right: 1px solid var(--vp-c-border);
+            padding: 32px 24px;
+            overflow-y: auto;
+            transform: translateX(0);
+            transition: transform 0.3s ease;
+            z-index: 40;
+        }
+        .dark .VPSidebar {
+            background-color: var(--vp-c-bg-alt); /* 侧边栏比内容区稍微亮一点点/或者暗一点 */
+        }
+        
+        @media (max-width: 960px) {
+            .VPSidebar { transform: translateX(-100%); }
+            .VPSidebar.open { transform: translateX(0); }
+        }
+
+        .sidebar-group-title {
+            font-weight: 700;
+            color: var(--vp-c-text-1);
+            margin-bottom: 12px;
+            margin-top: 24px;
+            font-size: 1rem;
+        }
+        .sidebar-group-title:first-child { margin-top: 0; }
+
+        .sidebar-link {
+            display: block;
+            padding: 8px 12px;
+            margin: 4px 0;
+            border-radius: var(--vp-radius-small);
+            color: var(--vp-c-text-2);
+            font-size: 0.95rem;
+            transition: all 0.2s;
+        }
+
+        .sidebar-link:hover {
+            background-color: var(--vp-c-bg-alt);
+            color: var(--vp-c-brand-1);
+        }
+        .dark .sidebar-link:hover {
+            background-color: var(--vp-c-bg-elv);
+        }
+
+        .sidebar-link.active {
+            background-color: var(--vp-c-brand-soft);
+            color: var(--vp-c-brand-3);
+            font-weight: 600;
+        }
+        .dark .sidebar-link.active {
+            color: var(--vp-c-brand-1);
+            background-color: rgba(45, 212, 191, 0.1); /* 暗色模式下更通透 */
+            box-shadow: inset 2px 0 0 0 var(--vp-c-brand-1); /* 左侧高亮条 */
+        }
+
+        /* 3. 主内容区：居中与留白 */
+        .VPContent {
+            margin-top: var(--vp-nav-height);
+            margin-left: var(--vp-sidebar-width);
+            padding: 48px 64px;
+            min-height: calc(100vh - var(--vp-nav-height));
+            background-color: var(--vp-c-bg);
+            transition: margin-left 0.3s ease;
+        }
+        
+        @media (max-width: 960px) {
+            .VPContent { margin-left: 0; padding: 32px 24px; }
+        }
+
+        /* 内容排版 (Typography) */
+        .vp-doc h1 {
+            font-size: 2.5rem;
+            font-weight: 800;
+            margin-bottom: 1.5rem;
+            line-height: 1.2;
+            background: linear-gradient(120deg, var(--vp-c-brand-1), var(--vp-c-brand-2));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            display: inline-block;
+            /* 暗色模式下加一点文字阴影增强可读性 */
+            filter: drop-shadow(0 0 2em rgba(20, 184, 166, 0.2)); 
+        }
+        .dark .vp-doc h1 {
+             filter: drop-shadow(0 0 25px rgba(45, 212, 191, 0.2));
+        }
+
+        .vp-doc h2 {
+            font-size: 1.8rem;
+            margin-top: 3rem;
+            margin-bottom: 1rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 1px solid var(--vp-c-border);
+            color: var(--vp-c-text-1);
+        }
+        
+        .vp-doc h3 {
+            font-size: 1.4rem;
+            margin-top: 2rem;
+            margin-bottom: 0.8rem;
+            color: var(--vp-c-text-1);
+        }
+
+        .vp-doc p {
+            line-height: 1.8;
+            margin-bottom: 1.2rem;
+            color: var(--vp-c-text-2);
+            font-size: 1.05rem;
+        }
+
+        /* 代码块美化 */
+        .vp-doc pre {
+            background-color: #1e293b; /* Dark Slate */
+            border-radius: var(--vp-radius-default);
+            padding: 20px;
+            overflow-x: auto;
+            color: #f8fafc;
+            margin: 24px 0;
+            border: 1px solid rgba(0,0,0,0.1);
+            box-shadow: var(--vp-shadow-1);
+        }
+        .dark .vp-doc pre {
+            background-color: #0f172a; /* 更深一层的背景 */
+            border: 1px solid #1e293b;
+        }
+        
+        .vp-doc code {
+            font-family: 'Menlo', 'Monaco', 'Courier New', monospace;
+            font-size: 0.9em;
+        }
+        .vp-doc p code {
+            background-color: var(--vp-c-brand-soft);
+            color: var(--vp-c-brand-3);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 0.9em;
+        }
+        .dark .vp-doc p code { 
+            color: var(--vp-c-brand-1); 
+            background-color: rgba(45, 212, 191, 0.1);
+        }
+
+        /* 引用块 (Blockquote) */
+        .vp-doc blockquote {
+            margin: 1.5rem 0;
+            padding: 16px 24px;
+            background-color: var(--vp-c-bg-alt);
+            border-left: 4px solid var(--vp-c-brand-1);
+            border-radius: 0 var(--vp-radius-default) var(--vp-radius-default) 0;
+            color: var(--vp-c-text-2);
+        }
+        .dark .vp-doc blockquote {
+            background-color: rgba(30, 41, 59, 0.5);
+        }
+
+        /* 按钮与卡片 (Features) */
+        .vp-button {
+            display: inline-block;
+            padding: 0 24px;
+            height: 48px;
+            line-height: 48px;
+            border-radius: 24px; /* Pill shape */
+            font-weight: 600;
+            font-size: 1rem;
+            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+            cursor: pointer;
+            border: none;
+        }
+
+        .vp-button.brand {
+            background: linear-gradient(135deg, var(--vp-c-brand-1), var(--vp-c-brand-2));
+            color: white;
+            box-shadow: var(--vp-shadow-brand);
+        }
+        .dark .vp-button.brand {
+            color: #020617; /* 暗色模式下按钮文字用深色，因为背景亮 */
+        }
+
+        .vp-button.brand:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px -4px rgba(20, 184, 166, 0.5);
+        }
+        .dark .vp-button.brand:hover {
+             box-shadow: 0 0 30px -4px rgba(45, 212, 191, 0.6); /* 发光增强 */
+        }
+
+        .vp-button.alt {
+            background-color: var(--vp-c-bg-alt);
+            color: var(--vp-c-text-1);
+            border: 1px solid var(--vp-c-border);
+        }
+        .dark .vp-button.alt {
+            background-color: transparent;
+            border-color: var(--vp-c-text-2);
+            color: var(--vp-c-text-1);
+        }
+        
+        .vp-button.alt:hover {
+            border-color: var(--vp-c-brand-1);
+            color: var(--vp-c-brand-1);
+        }
+
+        /* 工具类 */
+        .theme-toggle {
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 1.5rem;
+            color: var(--vp-c-text-2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 8px;
+            border-radius: 50%;
+            transition: background 0.2s;
+        }
+        .theme-toggle:hover {
+            background-color: var(--vp-c-bg-alt);
+            color: var(--vp-c-brand-1);
+        }
+        .dark .theme-toggle:hover {
+            background-color: var(--vp-c-bg-elv);
+        }
+        
+        .mobile-menu-btn {
+            display: none;
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            color: var(--vp-c-text-1);
+            cursor: pointer;
+        }
+        
+        @media (max-width: 960px) {
+            .mobile-menu-btn { display: block; }
+            .nav-links { display: none; }
+        }
+        
+        /* 首页 Hero 样式模拟 */
+        .hero-section {
+            text-align: center;
+            padding: 80px 20px;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        .hero-title {
+            font-size: 3.5rem;
+            font-weight: 900;
+            line-height: 1.1;
+            margin-bottom: 24px;
+        }
+        .hero-title span {
+            background: linear-gradient(120deg, var(--vp-c-brand-1), var(--vp-c-brand-2));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .hero-desc {
+            font-size: 1.5rem;
+            color: var(--vp-c-text-2);
+            margin-bottom: 40px;
+        }
+        .hero-actions {
+            display: flex;
+            gap: 16px;
+            justify-content: center;
+        }
+        
+        /* Features Grid */
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 24px;
+            margin-top: 64px;
+        }
+        .feature-card {
+            background-color: var(--vp-c-bg-alt);
+            padding: 24px;
+            border-radius: var(--vp-radius-default);
+            transition: transform 0.3s, box-shadow 0.3s;
+            border: 1px solid transparent;
+        }
+        .dark .feature-card {
+            background-color: rgba(30, 41, 59, 0.3); /* 微微透明 */
+            border: 1px solid rgba(255,255,255,0.05);
+        }
+        
+        .feature-card:hover {
+            background-color: var(--vp-c-bg);
+            transform: translateY(-4px);
+            box-shadow: var(--vp-shadow-2);
+            border-color: var(--vp-c-brand-soft);
+        }
+        .dark .feature-card:hover {
+            background-color: var(--vp-c-bg-elv);
+            border-color: var(--vp-c-brand-1);
+            box-shadow: 0 0 15px rgba(45, 212, 191, 0.1);
+        }
+        
+        .feature-icon {
+            font-size: 2rem;
+            margin-bottom: 16px;
+            color: var(--vp-c-brand-1);
+            background-color: var(--vp-c-brand-soft);
+            width: 48px;
+            height: 48px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 12px;
+        }
+        .feature-title {
+            font-weight: 700;
+            margin-bottom: 8px;
+            color: var(--vp-c-text-1);
+        }
+        .feature-details {
+            color: var(--vp-c-text-2);
+            font-size: 0.95rem;
+            line-height: 1.6;
+        }
