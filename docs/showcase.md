@@ -48,7 +48,7 @@
 
 ### 取文件
 
-- **网址**：[quwenjian.cn](https://quwenjian.cn)
+- **网址**：[www.quwenjian.cn/fby.html](https://www.quwenjian.cn/fby.html)
 - **简介**：取文件 - 存储无界，便携无限
 - **特点**：永久免费的文件中转站
 - **运营者**：取文件&取文件网盘

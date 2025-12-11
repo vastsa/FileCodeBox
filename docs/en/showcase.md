@@ -48,7 +48,7 @@ Submission format example:
 
 ### QuWenJian
 
-- **URL**: [quwenjian.cn](https://quwenjian.cn)
+- **URL**: [www.quwenjian.cn/fby.html](https://www.quwenjian.cn/fby.html)
 - **Description**: QuWenJian - Unlimited storage, portable and limitless
 - **Highlights**: Free file transfer station
 - **Operator**: QuWenJian
