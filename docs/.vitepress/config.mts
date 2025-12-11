@@ -18,6 +18,7 @@ export default defineConfig({
           { text: '首页', link: '/' },
           { text: '指南', link: '/guide/getting-started' },
           { text: 'API', link: '/api/' },
+          { text: '优秀案例', link: '/showcase' },
           { text: 'Demo', link: 'https://share.lanol.cn' },
           {
             text: '了解更多',
@@ -68,6 +69,14 @@ export default defineConfig({
               ],
             },
           ],
+          '/showcase': [
+            {
+              text: '优秀案例',
+              items: [
+                { text: '案例展示', link: '/showcase' },
+              ],
+            },
+          ],
         },
         socialLinks: [
           { icon: 'github', link: 'https://github.com/vastsa/FileCodeBox' },
@@ -96,6 +105,7 @@ export default defineConfig({
           { text: 'Home', link: '/en/' },
           { text: 'Guide', link: '/en/guide/getting-started' },
           { text: 'API', link: '/en/api/' },
+          { text: 'Showcase', link: '/en/showcase' },
           { text: 'Demo', link: 'https://share.lanol.cn' },
           {
             text: 'More',
@@ -149,6 +159,14 @@ export default defineConfig({
                 { text: 'Admin API', link: '/en/api/#admin-api' },
                 { text: 'Error Response', link: '/en/api/#error-response' },
                 { text: 'Status Codes', link: '/en/api/#status-codes' },
+              ],
+            },
+          ],
+          '/en/showcase': [
+            {
+              text: 'Showcase',
+              items: [
+                { text: 'Case Studies', link: '/en/showcase' },
               ],
             },
           ],
