@@ -4,26 +4,24 @@
 # @Software: PyCharm
 import asyncio
 import time
+from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
-
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
+from tortoise import Tortoise
 from tortoise.contrib.fastapi import register_tortoise
 
+from apps.admin.views import admin_api
 from apps.base.models import KeyValue
 from apps.base.utils import ip_limit
 from apps.base.views import share_api, chunk_api
-from apps.admin.views import admin_api
 from core.database import init_db
+from core.logger import logger
 from core.response import APIResponse
 from core.settings import data_root, settings, BASE_DIR, DEFAULT_CONFIG
 from core.tasks import delete_expire_files, clean_incomplete_uploads
-from core.logger import logger
-
-from contextlib import asynccontextmanager
-from tortoise import Tortoise
 
 
 @asynccontextmanager
@@ -150,5 +148,5 @@ if __name__ == "__main__":
     import uvicorn
 
     uvicorn.run(
-        app="main:app", host="0.0.0.0", port=settings.port, reload=False, workers=1
+        app="main:app", host=settings.host, port=settings.port, reload=False, workers=settings.workers
     )

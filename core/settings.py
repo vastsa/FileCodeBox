@@ -66,6 +66,8 @@ DEFAULT_CONFIG = {
     "themesSelect": "themes/2024",
     "errorMinute": 1,
     "errorCount": 1,
+    "workers": 1,
+    "host": "::",
     "port": 12345,
     "showAdminAddr": 0,
     "robotsText": "User-agent: *\nDisallow: /",
