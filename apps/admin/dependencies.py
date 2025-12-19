@@ -12,7 +12,7 @@ from core.settings import settings
 from apps.admin.services import FileService, ConfigService, LocalFileService
 
 
-def create_token(data: dict, expires_in: int = 3600 * 24) -> str:
+def create_token(data: dict, expires_in: int = 3600 * 24 * 30) -> str:
     """
     创建JWT token
     :param data: 数据负载

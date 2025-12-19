@@ -148,5 +148,5 @@ if __name__ == "__main__":
     import uvicorn
 
     uvicorn.run(
-        app="main:app", host=settings.host, port=settings.port, reload=False, workers=settings.workers
+        app="main:app", host=settings.serverHost, port=settings.serverPort, reload=False, workers=settings.serverWorkers
     )
