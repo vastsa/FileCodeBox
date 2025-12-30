@@ -64,6 +64,25 @@ class KeyValue(Model):
     )
 
 
+class PresignUploadSession(models.Model):
+    """预签名上传会话模型"""
+    id = fields.IntField(pk=True)
+    upload_id = fields.CharField(max_length=36, unique=True, index=True)
+    file_name = fields.CharField(max_length=255)
+    file_size = fields.BigIntField()
+    save_path = fields.CharField(max_length=512)
+    mode = fields.CharField(max_length=10)  # "direct" 或 "proxy"
+    expire_value = fields.IntField(default=1)
+    expire_style = fields.CharField(max_length=20, default="day")
+    created_at = fields.DatetimeField(auto_now_add=True)
+    expires_at = fields.DatetimeField()  # 会话过期时间
+
+    async def is_expired(self):
+        """检查会话是否已过期"""
+        return self.expires_at < await get_now()
+
+
 file_codes_pydantic = pydantic_model_creator(FileCodes, name="FileCodes")
 upload_chunk_pydantic = pydantic_model_creator(UploadChunk, name="UploadChunk")
 key_value_pydantic = pydantic_model_creator(KeyValue, name="KeyValue")
+presign_upload_session_pydantic = pydantic_model_creator(PresignUploadSession, name="PresignUploadSession")

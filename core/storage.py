@@ -79,6 +79,23 @@ class FileStorageInterface:
         """
         raise NotImplementedError
 
+    async def generate_presigned_upload_url(self, save_path: str, expires_in: int = 900) -> Optional[str]:
+        """
+        生成预签名上传URL
+        :param save_path: 文件保存路径
+        :param expires_in: URL过期时间（秒），默认15分钟
+        :return: 预签名URL，如果不支持直传则返回None
+        """
+        return None  # 默认不支持直传，使用代理模式
+
+    async def file_exists(self, save_path: str) -> bool:
+        """
+        检查文件是否存在
+        :param save_path: 文件路径
+        :return: 文件是否存在
+        """
+        raise NotImplementedError
+
     async def clean_chunks(self, upload_id: str, save_path: str):
         """
         清理临时分片文件
@@ -218,6 +235,15 @@ class SystemFileStorage(FileStorageInterface):
                 chunks_parent.rmdir()
             except Exception as e:
                 logger.info(f"清理 chunks 父目录失败: {e}")
+
+    async def file_exists(self, save_path: str) -> bool:
+        """
+        检查文件是否存在于本地文件系统
+        :param save_path: 文件路径
+        :return: 文件是否存在
+        """
+        file_path = self.root_path / save_path
+        return file_path.exists()
 
 
 class S3FileStorage(FileStorageInterface):
@@ -424,6 +450,48 @@ class S3FileStorage(FileStorageInterface):
                         )
             except Exception as e:
                 logger.info(f"清理 S3 分片数据时出错: {e}")
+
+    async def generate_presigned_upload_url(self, save_path: str, expires_in: int = 900) -> Optional[str]:
+        """
+        生成S3预签名上传URL
+        :param save_path: 文件保存路径
+        :param expires_in: URL过期时间（秒），默认15分钟
+        :return: 预签名PUT URL
+        """
+        async with self.session.client(
+            "s3",
+            endpoint_url=self.endpoint_url,
+            aws_session_token=self.aws_session_token,
+            region_name=self.region_name,
+            config=Config(signature_version=self.signature_version),
+        ) as s3:
+            return await s3.generate_presigned_url(
+                "put_object",
+                Params={
+                    "Bucket": self.bucket_name,
+                    "Key": save_path,
+                },
+                ExpiresIn=expires_in,
+            )
+
+    async def file_exists(self, save_path: str) -> bool:
+        """
+        检查文件是否存在于S3
+        :param save_path: 文件路径
+        :return: 文件是否存在
+        """
+        async with self.session.client(
+            "s3",
+            endpoint_url=self.endpoint_url,
+            aws_session_token=self.aws_session_token,
+            region_name=self.region_name,
+            config=Config(signature_version=self.signature_version),
+        ) as s3:
+            try:
+                await s3.head_object(Bucket=self.bucket_name, Key=save_path)
+                return True
+            except Exception:
+                return False
 
 
 class OneDriveFileStorage(FileStorageInterface):
@@ -660,6 +728,25 @@ class OneDriveFileStorage(FileStorageInterface):
         except Exception as e:
             logger.info(f"清理 OneDrive 分片时出错: {e}")
 
+    def _file_exists(self, save_path: str) -> bool:
+        """同步检查文件是否存在"""
+        try:
+            path = self._get_path_str(save_path)
+            self.root_path.get_by_path(path).get().execute_query()
+            return True
+        except self._ClientRequestException as e:
+            if e.code == "itemNotFound":
+                return False
+            raise e
+
+    async def file_exists(self, save_path: str) -> bool:
+        """
+        检查文件是否存在于OneDrive
+        :param save_path: 文件路径
+        :return: 文件是否存在
+        """
+        return await asyncio.to_thread(self._file_exists, save_path)
+
 
 class OpenDALFileStorage(FileStorageInterface):
     def __init__(self):
@@ -742,6 +829,18 @@ class OpenDALFileStorage(FileStorageInterface):
             await self.operator.remove_all(chunk_dir)
         except Exception as e:
             logger.info(f"清理 OpenDAL 分片时出错: {e}")
+
+    async def file_exists(self, save_path: str) -> bool:
+        """
+        检查文件是否存在于OpenDAL存储
+        :param save_path: 文件路径
+        :return: 文件是否存在
+        """
+        try:
+            await self.operator.stat(save_path)
+            return True
+        except Exception:
+            return False
 
 
 class WebDAVFileStorage(FileStorageInterface):
@@ -996,6 +1095,17 @@ class WebDAVFileStorage(FileStorageInterface):
                         logger.info(f"分片目录不存在: {chunk_dir_url}")
             except Exception as e:
                 logger.info(f"清理 WebDAV 分片时出错: {e}")
+
+    async def file_exists(self, save_path: str) -> bool:
+        """
+        检查文件是否存在于WebDAV
+        :param save_path: 文件路径
+        :return: 文件是否存在
+        """
+        url = self._build_url(save_path)
+        async with aiohttp.ClientSession(auth=self.auth) as session:
+            async with session.head(url) as resp:
+                return resp.status == 200
 
 
 storages = {

@@ -16,7 +16,7 @@ from tortoise.contrib.fastapi import register_tortoise
 from apps.admin.views import admin_api
 from apps.base.models import KeyValue
 from apps.base.utils import ip_limit
-from apps.base.views import share_api, chunk_api
+from apps.base.views import share_api, chunk_api, presign_api
 from core.database import init_db
 from core.logger import logger
 from core.response import APIResponse
@@ -98,6 +98,7 @@ register_tortoise(
 
 app.include_router(share_api)
 app.include_router(chunk_api)
+app.include_router(presign_api)
 app.include_router(admin_api)
 
 
