@@ -46,14 +46,12 @@ async def delete_expire_files():
 
 
 async def clean_incomplete_uploads():
-    """清理超时未完成的分片上传"""
     file_storage: FileStorageInterface = storages[settings.file_storage]()
     expire_hours = getattr(settings, "chunk_expire_hours", 24)
     while True:
         try:
-            expire_time = datetime.datetime.now() - datetime.timedelta(
-                hours=expire_hours
-            )
+            now = await get_now()
+            expire_time = now - datetime.timedelta(hours=expire_hours)
             expired_sessions = await UploadChunk.filter(
                 chunk_index=-1, created_at__lt=expire_time
             ).all()

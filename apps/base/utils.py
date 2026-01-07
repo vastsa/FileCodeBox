@@ -10,30 +10,32 @@ from typing import Optional, Tuple
 from apps.base.dependencies import IPRateLimit
 from apps.base.models import FileCodes
 from core.settings import settings
-from core.utils import get_random_num, get_random_string, max_save_times_desc, sanitize_filename
+from core.utils import (
+    get_random_num,
+    get_random_string,
+    max_save_times_desc,
+    sanitize_filename,
+    get_now,
+)
 
 
 async def get_file_path_name(file: UploadFile) -> Tuple[str, str, str, str, str]:
-    """获取文件路径和文件名"""
-    today = datetime.datetime.now()
-    storage_path = settings.storage_path.strip("/")  # 移除开头和结尾的斜杠
+    today = await get_now()
+    storage_path = settings.storage_path.strip("/")
     file_uuid = uuid.uuid4().hex
-    # 一些客户端对非ASCII字符会进行编码，需要解码
-    filename = await sanitize_filename(unquote(file.filename))
-    # 使用 UUID 作为子目录名
+    filename = await sanitize_filename(unquote(file.filename or ""))
     base_path = f"share/data/{today.strftime('%Y/%m/%d')}/{file_uuid}"
-    # 如果设置了存储路径，将其添加到基础路径中
     path = f"{storage_path}/{base_path}" if storage_path else base_path
     prefix, suffix = os.path.splitext(filename)
-    # 保持原始文件名
     save_path = f"{path}/{filename}"
     return path, suffix, prefix, filename, save_path
 
 
-async def get_chunk_file_path_name(file_name: str, upload_id: str) -> Tuple[str, str, str, str, str]:
-    """获取切片文件的路径和文件名"""
-    today = datetime.datetime.now()
-    storage_path = settings.storage_path.strip("/")  # 移除开头和结尾的斜杠
+async def get_chunk_file_path_name(
+    file_name: str, upload_id: str
+) -> Tuple[str, str, str, str, str]:
+    today = await get_now()
+    storage_path = settings.storage_path.strip("/")
     base_path = f"share/data/{today.strftime('%Y/%m/%d')}/{upload_id}"
     path = f"{storage_path}/{base_path}" if storage_path else base_path
     prefix, suffix = os.path.splitext(file_name)
@@ -41,10 +43,11 @@ async def get_chunk_file_path_name(file_name: str, upload_id: str) -> Tuple[str,
     return path, suffix, prefix, file_name, save_path
 
 
-async def get_expire_info(expire_value: int, expire_style: str) -> Tuple[Optional[datetime.datetime], int, int, str]:
-    """获取过期信息"""
+async def get_expire_info(
+    expire_value: int, expire_style: str
+) -> Tuple[Optional[datetime.datetime], int, int, str]:
     expired_count, used_count = -1, 0
-    now = datetime.datetime.now()
+    now = await get_now()
     code = None
 
     max_timedelta = (
@@ -64,7 +67,7 @@ async def get_expire_info(expire_value: int, expire_style: str) -> Tuple[Optiona
         "hour": lambda: now + datetime.timedelta(hours=expire_value),
         "minute": lambda: now + datetime.timedelta(minutes=expire_value),
         "count": lambda: (now + datetime.timedelta(days=1), expire_value),
-        "forever": lambda: (None, None),  # 修改这里
+        "forever": lambda: (None, None),
     }
 
     if expire_style in expire_styles:
@@ -74,7 +77,7 @@ async def get_expire_info(expire_value: int, expire_style: str) -> Tuple[Optiona
             if expire_style == "count":
                 expired_count = extra
             elif expire_style == "forever":
-                code = await get_random_code(style="string")  # 移动到这里
+                code = await get_random_code(style="string")
         else:
             expired_at = result
         if expired_at and expired_at - now > max_timedelta:
@@ -88,12 +91,11 @@ async def get_expire_info(expire_value: int, expire_style: str) -> Tuple[Optiona
     return expired_at, expired_count, used_count, code
 
 
-async def get_random_code(style="num") -> str:
-    """获取随机字符串"""
+async def get_random_code(style: str = "num") -> str:
     while True:
         code = await get_random_num() if style == "num" else await get_random_string()
         if not await FileCodes.filter(code=code).exists():
-            return code
+            return str(code)
 
 
 async def calculate_file_hash(file: UploadFile, chunk_size=1024 * 1024) -> str:
