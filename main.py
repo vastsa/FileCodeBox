@@ -22,6 +22,7 @@ from core.logger import logger
 from core.response import APIResponse
 from core.settings import data_root, settings, BASE_DIR, DEFAULT_CONFIG
 from core.tasks import delete_expire_files, clean_incomplete_uploads
+from core.utils import hash_password, is_password_hashed
 
 
 @asynccontextmanager
@@ -63,11 +64,24 @@ async def load_config():
         key="sys_start", defaults={"value": int(time.time() * 1000)}
     )
     settings.user_config = user_config.value
-    # 更新 ip_limit 配置
+
+    await migrate_password_to_hash()
+
     ip_limit["error"].minutes = settings.errorMinute
     ip_limit["error"].count = settings.errorCount
     ip_limit["upload"].minutes = settings.uploadMinute
     ip_limit["upload"].count = settings.uploadCount
+
+
+async def migrate_password_to_hash():
+    if not is_password_hashed(settings.admin_token):
+        hashed = hash_password(settings.admin_token)
+        settings.admin_token = hashed
+        config_record = await KeyValue.filter(key="settings").first()
+        if config_record and config_record.value:
+            config_record.value["admin_token"] = hashed
+            await config_record.save()
+            logger.info("已将管理员密码迁移为哈希存储")
 
 
 app = FastAPI(lifespan=lifespan)
@@ -149,5 +163,9 @@ if __name__ == "__main__":
     import uvicorn
 
     uvicorn.run(
-        app="main:app", host=settings.serverHost, port=settings.serverPort, reload=False, workers=settings.serverWorkers
+        app="main:app",
+        host=settings.serverHost,
+        port=settings.serverPort,
+        reload=False,
+        workers=settings.serverWorkers,
     )

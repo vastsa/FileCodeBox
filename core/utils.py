@@ -47,7 +47,9 @@ async def get_select_token(code: str):
     :return:
     """
     token = settings.admin_token
-    return hashlib.sha256(f"{code}{int(time.time() / 1000)}000{token}".encode()).hexdigest()
+    return hashlib.sha256(
+        f"{code}{int(time.time() / 1000)}000{token}".encode()
+    ).hexdigest()
 
 
 async def get_file_url(code: str):
@@ -95,6 +97,44 @@ async def max_save_times_desc(max_save_seconds: int):
     return desc_zh, desc_en
 
 
+def hash_password(password: str) -> str:
+    """
+    使用 SHA256 + salt 哈希密码
+    返回格式: sha256$<salt>$<hash>
+    """
+    salt = os.urandom(16).hex()
+    password_hash = hashlib.sha256(f"{salt}{password}".encode()).hexdigest()
+    return f"sha256${salt}${password_hash}"
+
+
+def verify_password(password: str, hashed: str) -> bool:
+    """
+    验证密码是否匹配
+    支持新格式 (sha256$salt$hash) 和旧格式 (明文)
+    """
+    if not hashed:
+        return False
+
+    # 新格式: sha256$salt$hash
+    if hashed.startswith("sha256$"):
+        parts = hashed.split("$")
+        if len(parts) != 3:
+            return False
+        _, salt, stored_hash = parts
+        password_hash = hashlib.sha256(f"{salt}{password}".encode()).hexdigest()
+        return password_hash == stored_hash
+
+    # 旧格式: 明文比较 (兼容迁移前的数据)
+    return password == hashed
+
+
+def is_password_hashed(password: str) -> bool:
+    """
+    检查密码是否已经是哈希格式
+    """
+    return password.startswith("sha256$") and len(password.split("$")) == 3
+
+
 async def sanitize_filename(filename: str) -> str:
     """
     安全处理文件名：
@@ -105,15 +145,15 @@ async def sanitize_filename(filename: str) -> str:
     filename = os.path.basename(filename)
     illegal_chars = r'[\\/*?:"<>|\x00-\x1F]'  # 包含控制字符
     # 替换非法字符为下划线
-    cleaned = re.sub(illegal_chars, '_', filename)
+    cleaned = re.sub(illegal_chars, "_", filename)
     # 处理空格（可选替换为_）
-    cleaned = cleaned.replace(' ', '_')
+    cleaned = cleaned.replace(" ", "_")
     # 处理连续下划线
-    cleaned = re.sub(r'_+', '_', cleaned)
+    cleaned = re.sub(r"_+", "_", cleaned)
     # 处理首尾特殊字符
-    cleaned = cleaned.strip('._')
+    cleaned = cleaned.strip("._")
     # 处理空文件名情况
     if not cleaned:
-        cleaned = 'unnamed_file'
+        cleaned = "unnamed_file"
     # 长度限制（按需调整）
     return cleaned[:255]

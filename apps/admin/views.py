@@ -17,18 +17,16 @@ from core.response import APIResponse
 from apps.base.models import FileCodes, KeyValue
 from apps.admin.dependencies import create_token
 from core.settings import settings
-from core.utils import get_now
+from core.utils import get_now, verify_password
 
 admin_api = APIRouter(prefix="/admin", tags=["管理"])
 
 
 @admin_api.post("/login")
 async def login(data: LoginData):
-    # 验证管理员密码
-    if data.password != settings.admin_token:
+    if not verify_password(data.password, settings.admin_token):
         raise HTTPException(status_code=401, detail="密码错误")
 
-    # 生成包含管理员身份的token
     token = create_token({"is_admin": True})
     return APIResponse(detail={"token": token, "token_type": "Bearer"})
 
