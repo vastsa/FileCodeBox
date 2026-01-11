@@ -8,6 +8,7 @@ from apps.base.models import FileCodes, KeyValue
 from apps.base.utils import get_expire_info, get_file_path_name
 from fastapi import HTTPException
 from core.settings import data_root
+from core.utils import hash_password, is_password_hashed
 
 
 class FileService:
@@ -75,6 +76,9 @@ class ConfigService:
         admin_token = data.get("admin_token")
         if admin_token is None or admin_token == "":
             raise HTTPException(status_code=400, detail="管理员密码不能为空")
+
+        if not is_password_hashed(admin_token):
+            data["admin_token"] = hash_password(admin_token)
 
         for key, value in data.items():
             if key not in settings.default_config:

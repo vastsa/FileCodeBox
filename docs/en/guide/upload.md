@@ -118,11 +118,52 @@ Content-Type: `multipart/form-data`
 **cURL example:**
 
 ```bash
+# Upload file (default 1 day expiration)
+curl -X POST "http://localhost:12345/share/file/" \
+  -F "file=@/path/to/file.pdf"
+
+# Upload file with 7 days expiration
 curl -X POST "http://localhost:12345/share/file/" \
   -F "file=@/path/to/file.pdf" \
   -F "expire_value=7" \
   -F "expire_style=day"
+
+# Upload file with 10 downloads limit
+curl -X POST "http://localhost:12345/share/file/" \
+  -F "file=@/path/to/file.pdf" \
+  -F "expire_value=10" \
+  -F "expire_style=count"
+
+# Share text
+curl -X POST "http://localhost:12345/share/text/" \
+  -F "text=This is the text content to share"
+
+# Download file by extraction code
+curl -L "http://localhost:12345/share/select/?code=YOUR_CODE" -o downloaded_file
 ```
+
+::: tip When Authentication Required
+If guest upload is disabled in admin panel (`openUpload=0`), you need to login first:
+
+```bash
+# 1. Login to get token
+curl -X POST "http://localhost:12345/admin/login" \
+  -H "Content-Type: application/json" \
+  -d '{"password": "FileCodeBox2023"}'
+
+# Returns: {"code":200,"msg":"success","detail":{"token":"xxx.xxx.xxx","token_type":"Bearer"}}
+
+# 2. Upload file with token
+curl -X POST "http://localhost:12345/share/file/" \
+  -H "Authorization: Bearer xxx.xxx.xxx" \
+  -F "file=@/path/to/file.pdf"
+
+# 3. Share text with token
+curl -X POST "http://localhost:12345/share/text/" \
+  -H "Authorization: Bearer xxx.xxx.xxx" \
+  -F "text=This is the text content to share"
+```
+:::
 
 
 ## Chunked Upload API

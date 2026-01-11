@@ -267,6 +267,80 @@ python main.py
 2. 输入管理员密码 `FileCodeBox2023`
 3. 管理文件和配置
 
+### 命令行上传（curl）
+
+支持通过 curl 命令上传文件并获取取件码：
+
+```bash
+# 上传文件（默认1天有效期）
+curl -X POST "http://localhost:12345/share/file/" \
+  -F "file=@/path/to/your/file.txt"
+
+# 上传文件并指定有效期（1小时）
+curl -X POST "http://localhost:12345/share/file/" \
+  -F "file=@/path/to/your/file.txt" \
+  -F "expire_value=1" \
+  -F "expire_style=hour"
+
+# 上传文件并指定有效期（可下载10次）
+curl -X POST "http://localhost:12345/share/file/" \
+  -F "file=@/path/to/your/file.txt" \
+  -F "expire_value=10" \
+  -F "expire_style=count"
+
+# 分享文本
+curl -X POST "http://localhost:12345/share/text/" \
+  -F "text=这是要分享的文本内容"
+
+# 通过取件码下载文件
+curl -L "http://localhost:12345/share/select/?code=取件码" -o downloaded_file
+```
+
+**参数说明：**
+- `expire_value`: 有效期数值（默认1）
+- `expire_style`: 有效期类型
+  - `day` - 天数
+  - `hour` - 小时
+  - `minute` - 分钟
+  - `count` - 下载次数
+  - `forever` - 永久有效
+
+**返回示例：**
+```json
+{
+  "code": 200,
+  "msg": "success",
+  "detail": {
+    "code": "abcd1234",
+    "name": "file.txt"
+  }
+}
+```
+
+> 注意：如果管理面板关闭了游客上传（`openUpload=false`），需要先登录获取 token，然后在请求中添加 `Authorization: Bearer <token>` 头。
+
+**需要认证时的用法：**
+
+```bash
+# 1. 先登录获取 token
+curl -X POST "http://localhost:12345/admin/login" \
+  -H "Content-Type: application/json" \
+  -d '{"password": "FileCodeBox2023"}'
+
+# 返回示例：
+# {"code":200,"msg":"success","detail":{"token":"xxx.xxx.xxx","token_type":"Bearer"}}
+
+# 2. 使用 token 上传文件
+curl -X POST "http://localhost:12345/share/file/" \
+  -H "Authorization: Bearer xxx.xxx.xxx" \
+  -F "file=@/path/to/your/file.txt"
+
+# 2. 使用 token 分享文本
+curl -X POST "http://localhost:12345/share/text/" \
+  -H "Authorization: Bearer xxx.xxx.xxx" \
+  -F "text=这是要分享的文本内容"
+```
+
 ## 🛠 开发指南
 
 ### 项目结构

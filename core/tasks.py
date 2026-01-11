@@ -46,38 +46,38 @@ async def delete_expire_files():
 
 
 async def clean_incomplete_uploads():
-    """清理超时未完成的分片上传"""
     file_storage: FileStorageInterface = storages[settings.file_storage]()
-    # 默认 24 小时未完成的上传视为过期
-    expire_hours = getattr(settings, 'chunk_expire_hours', 24)
+    expire_hours = getattr(settings, "chunk_expire_hours", 24)
     while True:
         try:
-            expire_time = datetime.datetime.now() - datetime.timedelta(hours=expire_hours)
-            # 查找所有过期的上传会话（chunk_index=-1 的记录）
+            now = await get_now()
+            expire_time = now - datetime.timedelta(hours=expire_hours)
             expired_sessions = await UploadChunk.filter(
-                chunk_index=-1,
-                created_at__lt=expire_time
+                chunk_index=-1, created_at__lt=expire_time
             ).all()
 
             for session in expired_sessions:
                 try:
-                    # 获取分片存储路径
-                    _, _, _, _, save_path = await get_chunk_file_path_name(
-                        session.file_name, session.upload_id
-                    )
-                    # 清理存储中的临时文件
+                    save_path = session.save_path
+                    if not save_path:
+                        _, _, _, _, save_path = await get_chunk_file_path_name(
+                            session.file_name, session.upload_id
+                        )
                     await file_storage.clean_chunks(session.upload_id, save_path)
                 except Exception as e:
-                    logging.error(f"清理分片文件失败 upload_id={session.upload_id}: {e}")
+                    logging.error(
+                        f"清理分片文件失败 upload_id={session.upload_id}: {e}"
+                    )
 
                 try:
-                    # 删除该会话的所有数据库记录
                     await UploadChunk.filter(upload_id=session.upload_id).delete()
                     logging.info(f"已清理过期上传会话 upload_id={session.upload_id}")
                 except Exception as e:
-                    logging.error(f"删除分片记录失败 upload_id={session.upload_id}: {e}")
+                    logging.error(
+                        f"删除分片记录失败 upload_id={session.upload_id}: {e}"
+                    )
 
         except Exception as e:
             logging.error(f"清理未完成上传任务异常: {e}")
         finally:
-            await asyncio.sleep(3600)  # 每小时执行一次
+            await asyncio.sleep(3600)

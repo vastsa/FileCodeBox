@@ -259,9 +259,83 @@ python main.py
 
 ### Admin Panel
 
-1. Visit `/admin`
-2. Enter admin password
+1. Visit `/#/admin`
+2. Enter admin password `FileCodeBox2023`
 3. Manage files and settings
+
+### Command Line Upload (curl)
+
+Upload files and get extraction codes via curl:
+
+```bash
+# Upload file (default 1 day expiration)
+curl -X POST "http://localhost:12345/share/file/" \
+  -F "file=@/path/to/your/file.txt"
+
+# Upload file with expiration (1 hour)
+curl -X POST "http://localhost:12345/share/file/" \
+  -F "file=@/path/to/your/file.txt" \
+  -F "expire_value=1" \
+  -F "expire_style=hour"
+
+# Upload file with download limit (10 downloads)
+curl -X POST "http://localhost:12345/share/file/" \
+  -F "file=@/path/to/your/file.txt" \
+  -F "expire_value=10" \
+  -F "expire_style=count"
+
+# Share text
+curl -X POST "http://localhost:12345/share/text/" \
+  -F "text=This is the text content to share"
+
+# Download file by extraction code
+curl -L "http://localhost:12345/share/select/?code=YOUR_CODE" -o downloaded_file
+```
+
+**Parameters:**
+- `expire_value`: Expiration value (default 1)
+- `expire_style`: Expiration type
+  - `day` - Days
+  - `hour` - Hours
+  - `minute` - Minutes
+  - `count` - Download count
+  - `forever` - Never expire
+
+**Response Example:**
+```json
+{
+  "code": 200,
+  "msg": "success",
+  "detail": {
+    "code": "abcd1234",
+    "name": "file.txt"
+  }
+}
+```
+
+> Note: If guest upload is disabled in admin panel (`openUpload=false`), you need to login first to get a token, then add `Authorization: Bearer <token>` header to your requests.
+
+**When Authentication Required:**
+
+```bash
+# 1. Login to get token
+curl -X POST "http://localhost:12345/admin/login" \
+  -H "Content-Type: application/json" \
+  -d '{"password": "FileCodeBox2023"}'
+
+# Response:
+# {"code":200,"msg":"success","detail":{"token":"xxx.xxx.xxx","token_type":"Bearer"}}
+
+# 2. Upload file with token
+curl -X POST "http://localhost:12345/share/file/" \
+  -H "Authorization: Bearer xxx.xxx.xxx" \
+  -F "file=@/path/to/your/file.txt"
+
+# 3. Share text with token
+curl -X POST "http://localhost:12345/share/text/" \
+  -H "Authorization: Bearer xxx.xxx.xxx" \
+  -F "text=This is the text content to share"
+```
 
 ## 🛠 Development Guide
 

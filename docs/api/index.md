@@ -15,6 +15,29 @@
 Authorization: Bearer <token>
 ```
 
+### 获取 Token
+
+当管理面板关闭了游客上传（`openUpload=0`）时，需要先登录获取 token：
+
+```bash
+curl -X POST "http://localhost:12345/admin/login" \
+  -H "Content-Type: application/json" \
+  -d '{"password": "FileCodeBox2023"}'
+```
+
+**响应示例：**
+
+```json
+{
+  "code": 200,
+  "msg": "success",
+  "detail": {
+    "token": "xxx.xxx.xxx",
+    "token_type": "Bearer"
+  }
+}
+```
+
 ## 分享接口
 
 ### 分享文本
@@ -29,7 +52,22 @@ Authorization: Bearer <token>
 |-------|------|------|--------|------|
 | text | string | 是 | - | 要分享的文本内容 |
 | expire_value | integer | 否 | 1 | 过期时间值 |
-| expire_style | string | 否 | "day" | 过期时间单位(day/hour/minute) |
+| expire_style | string | 否 | "day" | 过期时间单位(day/hour/minute/count/forever) |
+
+**cURL 示例：**
+
+```bash
+# 游客上传（openUpload=1 时）
+curl -X POST "http://localhost:12345/share/text/" \
+  -F "text=这是要分享的文本内容" \
+  -F "expire_value=1" \
+  -F "expire_style=day"
+
+# 需要认证时（openUpload=0 时）
+curl -X POST "http://localhost:12345/share/text/" \
+  -H "Authorization: Bearer xxx.xxx.xxx" \
+  -F "text=这是要分享的文本内容"
+```
 
 **响应示例：**
 
@@ -38,8 +76,7 @@ Authorization: Bearer <token>
   "code": 200,
   "msg": "success",
   "detail": {
-    "code": "abc123",
-    "name": "text.txt"
+    "code": "abc123"
   }
 }
 ```
@@ -56,7 +93,32 @@ Authorization: Bearer <token>
 |-------|------|------|--------|------|
 | file | file | 是 | - | 要上传的文件 |
 | expire_value | integer | 否 | 1 | 过期时间值 |
-| expire_style | string | 否 | "day" | 过期时间单位(day/hour/minute) |
+| expire_style | string | 否 | "day" | 过期时间单位(day/hour/minute/count/forever) |
+
+**cURL 示例：**
+
+```bash
+# 上传文件（默认1天有效期）
+curl -X POST "http://localhost:12345/share/file/" \
+  -F "file=@/path/to/file.txt"
+
+# 上传文件（7天有效期）
+curl -X POST "http://localhost:12345/share/file/" \
+  -F "file=@/path/to/file.txt" \
+  -F "expire_value=7" \
+  -F "expire_style=day"
+
+# 上传文件（可下载10次）
+curl -X POST "http://localhost:12345/share/file/" \
+  -F "file=@/path/to/file.txt" \
+  -F "expire_value=10" \
+  -F "expire_style=count"
+
+# 需要认证时
+curl -X POST "http://localhost:12345/share/file/" \
+  -H "Authorization: Bearer xxx.xxx.xxx" \
+  -F "file=@/path/to/file.txt"
+```
 
 **响应示例：**
 
@@ -75,13 +137,20 @@ Authorization: Bearer <token>
 
 **GET** `/share/select/`
 
-通过分享码获取文件信息。
+通过分享码获取文件信息（直接下载文件）。
 
 **请求参数：**
 
 | 参数名 | 类型 | 必填 | 描述 |
 |-------|------|------|------|
 | code | string | 是 | 文件分享码 |
+
+**cURL 示例：**
+
+```bash
+# 通过取件码下载文件
+curl -L "http://localhost:12345/share/select/?code=abc123" -o downloaded_file
+```
 
 **响应示例：**
 

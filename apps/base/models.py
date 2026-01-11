@@ -49,6 +49,7 @@ class UploadChunk(models.Model):
     file_size = fields.BigIntField()
     chunk_size = fields.IntField()
     file_name = fields.CharField(max_length=255)
+    save_path = fields.CharField(max_length=512, null=True)
     created_at = fields.DatetimeField(auto_now_add=True)
     completed = fields.BooleanField(default=False)
 
@@ -66,6 +67,7 @@ class KeyValue(Model):
 
 class PresignUploadSession(models.Model):
     """预签名上传会话模型"""
+
     id = fields.IntField(pk=True)
     upload_id = fields.CharField(max_length=36, unique=True, index=True)
     file_name = fields.CharField(max_length=255)
@@ -85,4 +87,6 @@ class PresignUploadSession(models.Model):
 file_codes_pydantic = pydantic_model_creator(FileCodes, name="FileCodes")
 upload_chunk_pydantic = pydantic_model_creator(UploadChunk, name="UploadChunk")
 key_value_pydantic = pydantic_model_creator(KeyValue, name="KeyValue")
-presign_upload_session_pydantic = pydantic_model_creator(PresignUploadSession, name="PresignUploadSession")
+presign_upload_session_pydantic = pydantic_model_creator(
+    PresignUploadSession, name="PresignUploadSession"
+)
