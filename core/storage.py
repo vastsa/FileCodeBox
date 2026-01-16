@@ -147,7 +147,7 @@ class SystemFileStorage(FileStorageInterface):
         return FileResponse(
             file_path,
             media_type="application/octet-stream",
-            headers={"Content-Disposition": content_disposition},
+            headers={"Content-Disposition": content_disposition, "Content-Length": str(file_code.size)},
             filename=filename  # 保留原始文件名以备某些场景使用
         )
 
@@ -329,7 +329,8 @@ class S3FileStorage(FileStorageInterface):
             
             from fastapi.responses import StreamingResponse
             headers = {
-                "Content-Disposition": f'attachment; filename="{filename.encode("utf-8").decode("latin-1")}"'
+                "Content-Disposition": f'attachment; filename="{filename.encode("utf-8").decode("latin-1")}"',
+                "Content-Length": str(file_code.size)
             }
             return StreamingResponse(
                 stream_generator(),
@@ -633,7 +634,8 @@ class OneDriveFileStorage(FileStorageInterface):
                             yield chunk
             
             headers = {
-                "Content-Disposition": f'attachment; filename="{filename.encode("utf-8").decode("latin-1")}"'
+                "Content-Disposition": f'attachment; filename="{filename.encode("utf-8").decode("latin-1")}"',
+                "Content-Length": str(file_code.size)
             }
             return StreamingResponse(
                 stream_generator(),
@@ -810,7 +812,8 @@ class OpenDALFileStorage(FileStorageInterface):
                 # 如果 reader 方法不存在，回退到全量读取（兼容旧版本）
                 content = await self.operator.read(await file_code.get_file_path())
                 headers = {
-                    "Content-Disposition": f'attachment; filename="{filename}"'
+                    "Content-Disposition": f'attachment; filename="{filename}"',
+                    "Content-Length": str(file_code.size)
                 }
                 return Response(
                     content, headers=headers, media_type="application/octet-stream"
@@ -825,7 +828,8 @@ class OpenDALFileStorage(FileStorageInterface):
                     yield chunk
             
             headers = {
-                "Content-Disposition": f'attachment; filename="{filename}"'
+                "Content-Disposition": f'attachment; filename="{filename}"',
+                "Content-Length": str(file_code.size)
             }
             return StreamingResponse(
                 stream_generator(),
@@ -1038,7 +1042,8 @@ class WebDAVFileStorage(FileStorageInterface):
                             yield chunk
             
             headers = {
-                "Content-Disposition": f'attachment; filename="{filename.encode("utf-8").decode()}"'
+                "Content-Disposition": f'attachment; filename="{filename.encode("utf-8").decode()}"',
+                "Content-Length": str(file_code.size)
             }
             return StreamingResponse(
                 stream_generator(),
