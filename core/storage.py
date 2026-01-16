@@ -354,8 +354,9 @@ class S3FileStorage(FileStorageInterface):
                             yield chunk
             
             from fastapi.responses import StreamingResponse
+            encoded_filename = quote(filename, safe='')
             headers = {
-                "Content-Disposition": f'attachment; filename="{filename.encode("utf-8").decode("latin-1")}"',
+                "Content-Disposition": f"attachment; filename*=UTF-8''{encoded_filename}",
                 "Content-Length": str(content_length)
             }
             return StreamingResponse(
@@ -671,8 +672,9 @@ class OneDriveFileStorage(FileStorageInterface):
                                 break
                             yield chunk
             
+            encoded_filename = quote(filename, safe='')
             headers = {
-                "Content-Disposition": f'attachment; filename="{filename.encode("utf-8").decode("latin-1")}"',
+                "Content-Disposition": f"attachment; filename*=UTF-8''{encoded_filename}",
                 "Content-Length": str(content_length)
             }
             return StreamingResponse(
@@ -862,8 +864,9 @@ class OpenDALFileStorage(FileStorageInterface):
             except AttributeError:
                 # 如果 reader 方法不存在，回退到全量读取（兼容旧版本）
                 content = await self.operator.read(await file_code.get_file_path())
+                encoded_filename = quote(filename, safe='')
                 headers = {
-                    "Content-Disposition": f'attachment; filename="{filename}"',
+                    "Content-Disposition": f"attachment; filename*=UTF-8''{encoded_filename}",
                     "Content-Length": str(content_length)
                 }
                 return Response(
@@ -878,8 +881,9 @@ class OpenDALFileStorage(FileStorageInterface):
                         break
                     yield chunk
             
+            encoded_filename = quote(filename, safe='')
             headers = {
-                "Content-Disposition": f'attachment; filename="{filename}"',
+                "Content-Disposition": f"attachment; filename*=UTF-8''{encoded_filename}",
                 "Content-Length": str(content_length)
             }
             return StreamingResponse(
@@ -1105,8 +1109,9 @@ class WebDAVFileStorage(FileStorageInterface):
                                 break
                             yield chunk
             
+            encoded_filename = quote(filename, safe='')
             headers = {
-                "Content-Disposition": f'attachment; filename="{filename.encode("utf-8").decode()}"',
+                "Content-Disposition": f"attachment; filename*=UTF-8''{encoded_filename}",
                 "Content-Length": str(content_length)
             }
             return StreamingResponse(
