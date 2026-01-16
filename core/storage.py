@@ -144,10 +144,19 @@ class SystemFileStorage(FileStorageInterface):
         filename = f"{file_code.prefix}{file_code.suffix}"
         encoded_filename = quote(filename, safe='')
         content_disposition = f"attachment; filename*=UTF-8''{encoded_filename}"
+        
+        # 优先使用文件系统大小
+        content_length = file_code.size  # 默认使用数据库中的大小
+        try:
+            content_length = file_path.stat().st_size
+        except Exception:
+            # 如果获取文件大小失败，继续使用默认大小
+            pass
+        
         return FileResponse(
             file_path,
             media_type="application/octet-stream",
-            headers={"Content-Disposition": content_disposition, "Content-Length": str(file_code.size)},
+            headers={"Content-Disposition": content_disposition, "Content-Length": str(content_length)},
             filename=filename  # 保留原始文件名以备某些场景使用
         )
 
@@ -296,12 +305,29 @@ class S3FileStorage(FileStorageInterface):
     async def get_file_response(self, file_code: FileCodes):
         try:
             filename = file_code.prefix + file_code.suffix
+            content_length = file_code.size  # 默认使用数据库中的大小
+            
             async with self.session.client(
                     "s3",
                     endpoint_url=self.endpoint_url,
                     region_name=self.region_name,
                     config=Config(signature_version=self.signature_version),
             ) as s3:
+                # 首先尝试获取文件大小（HEAD请求）
+                try:
+                    head_response = await s3.head_object(
+                        Bucket=self.bucket_name,
+                        Key=await file_code.get_file_path()
+                    )
+                    # 从HEAD响应中获取Content-Length
+                    if 'ContentLength' in head_response:
+                        content_length = head_response['ContentLength']
+                    elif 'Content-Length' in head_response['ResponseMetadata']['HTTPHeaders']:
+                        content_length = int(head_response['ResponseMetadata']['HTTPHeaders']['Content-Length'])
+                except Exception:
+                    # 如果HEAD请求失败，继续使用默认大小
+                    pass
+                
                 link = await s3.generate_presigned_url(
                     "get_object",
                     Params={
@@ -330,7 +356,7 @@ class S3FileStorage(FileStorageInterface):
             from fastapi.responses import StreamingResponse
             headers = {
                 "Content-Disposition": f'attachment; filename="{filename.encode("utf-8").decode("latin-1")}"',
-                "Content-Length": str(file_code.size)
+                "Content-Length": str(content_length)
             }
             return StreamingResponse(
                 stream_generator(),
@@ -618,6 +644,18 @@ class OneDriveFileStorage(FileStorageInterface):
                 self._get_file_url, await file_code.get_file_path(), filename
             )
             
+            content_length = file_code.size  # 默认使用数据库中的大小
+            
+            # 尝试发送HEAD请求获取Content-Length
+            try:
+                async with aiohttp.ClientSession() as session:
+                    async with session.head(link) as resp:
+                        if resp.status == 200 and 'Content-Length' in resp.headers:
+                            content_length = int(resp.headers['Content-Length'])
+            except Exception:
+                # 如果HEAD请求失败，继续使用默认大小
+                pass
+            
             async def stream_generator():
                 async with aiohttp.ClientSession() as session:
                     async with session.get(link) as resp:
@@ -635,7 +673,7 @@ class OneDriveFileStorage(FileStorageInterface):
             
             headers = {
                 "Content-Disposition": f'attachment; filename="{filename.encode("utf-8").decode("latin-1")}"',
-                "Content-Length": str(file_code.size)
+                "Content-Length": str(content_length)
             }
             return StreamingResponse(
                 stream_generator(),
@@ -804,6 +842,19 @@ class OpenDALFileStorage(FileStorageInterface):
     async def get_file_response(self, file_code: FileCodes):
         try:
             filename = file_code.prefix + file_code.suffix
+            content_length = file_code.size  # 默认使用数据库中的大小
+            
+            # 尝试获取文件大小
+            try:
+                stat_result = await self.operator.stat(await file_code.get_file_path())
+                if hasattr(stat_result, 'content_length') and stat_result.content_length:
+                    content_length = stat_result.content_length
+                elif hasattr(stat_result, 'size') and stat_result.size:
+                    content_length = stat_result.size
+            except Exception:
+                # 如果获取大小失败，继续使用默认大小
+                pass
+            
             # 尝试使用流式读取器
             try:
                 # OpenDAL 可能提供 reader 方法返回一个异步读取器
@@ -813,7 +864,7 @@ class OpenDALFileStorage(FileStorageInterface):
                 content = await self.operator.read(await file_code.get_file_path())
                 headers = {
                     "Content-Disposition": f'attachment; filename="{filename}"',
-                    "Content-Length": str(file_code.size)
+                    "Content-Length": str(content_length)
                 }
                 return Response(
                     content, headers=headers, media_type="application/octet-stream"
@@ -829,7 +880,7 @@ class OpenDALFileStorage(FileStorageInterface):
             
             headers = {
                 "Content-Disposition": f'attachment; filename="{filename}"',
-                "Content-Length": str(file_code.size)
+                "Content-Length": str(content_length)
             }
             return StreamingResponse(
                 stream_generator(),
@@ -1023,6 +1074,19 @@ class WebDAVFileStorage(FileStorageInterface):
         try:
             filename = file_code.prefix + file_code.suffix
             url = self._build_url(await file_code.get_file_path())
+            content_length = file_code.size  # 默认使用数据库中的大小
+            
+            # 尝试发送HEAD请求获取Content-Length
+            try:
+                async with aiohttp.ClientSession(headers={
+                    "Authorization": f"Basic {base64.b64encode(f'{settings.webdav_username}:{settings.webdav_password}'.encode()).decode()}"
+                }) as session:
+                    async with session.head(url) as resp:
+                        if resp.status == 200 and 'Content-Length' in resp.headers:
+                            content_length = int(resp.headers['Content-Length'])
+            except Exception:
+                # 如果HEAD请求失败，继续使用默认大小
+                pass
             
             async def stream_generator():
                 async with aiohttp.ClientSession(headers={
@@ -1043,7 +1107,7 @@ class WebDAVFileStorage(FileStorageInterface):
             
             headers = {
                 "Content-Disposition": f'attachment; filename="{filename.encode("utf-8").decode()}"',
-                "Content-Length": str(file_code.size)
+                "Content-Length": str(content_length)
             }
             return StreamingResponse(
                 stream_generator(),
