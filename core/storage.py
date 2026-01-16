@@ -337,8 +337,11 @@ class S3FileStorage(FileStorageInterface):
                     ExpiresIn=3600,
                 )
             
+            # 创建ClientSession并传递给生成器复用
+            session = aiohttp.ClientSession()
+            
             async def stream_generator():
-                async with aiohttp.ClientSession() as session:
+                try:
                     async with session.get(link) as resp:
                         if resp.status != 200:
                             raise HTTPException(
@@ -352,6 +355,8 @@ class S3FileStorage(FileStorageInterface):
                             if not chunk:
                                 break
                             yield chunk
+                finally:
+                    await session.close()
             
             from fastapi.responses import StreamingResponse
             encoded_filename = quote(filename, safe='')
@@ -647,18 +652,20 @@ class OneDriveFileStorage(FileStorageInterface):
             
             content_length = file_code.size  # 默认使用数据库中的大小
             
+            # 创建ClientSession并复用
+            session = aiohttp.ClientSession()
+            
             # 尝试发送HEAD请求获取Content-Length
             try:
-                async with aiohttp.ClientSession() as session:
-                    async with session.head(link) as resp:
-                        if resp.status == 200 and 'Content-Length' in resp.headers:
-                            content_length = int(resp.headers['Content-Length'])
+                async with session.head(link) as resp:
+                    if resp.status == 200 and 'Content-Length' in resp.headers:
+                        content_length = int(resp.headers['Content-Length'])
             except Exception:
                 # 如果HEAD请求失败，继续使用默认大小
                 pass
             
             async def stream_generator():
-                async with aiohttp.ClientSession() as session:
+                try:
                     async with session.get(link) as resp:
                         if resp.status != 200:
                             raise HTTPException(
@@ -671,6 +678,8 @@ class OneDriveFileStorage(FileStorageInterface):
                             if not chunk:
                                 break
                             yield chunk
+                finally:
+                    await session.close()
             
             encoded_filename = quote(filename, safe='')
             headers = {
@@ -1080,22 +1089,22 @@ class WebDAVFileStorage(FileStorageInterface):
             url = self._build_url(await file_code.get_file_path())
             content_length = file_code.size  # 默认使用数据库中的大小
             
+            # 创建ClientSession并复用（包含认证头）
+            session = aiohttp.ClientSession(headers={
+                "Authorization": f"Basic {base64.b64encode(f'{settings.webdav_username}:{settings.webdav_password}'.encode()).decode()}"
+            })
+            
             # 尝试发送HEAD请求获取Content-Length
             try:
-                async with aiohttp.ClientSession(headers={
-                    "Authorization": f"Basic {base64.b64encode(f'{settings.webdav_username}:{settings.webdav_password}'.encode()).decode()}"
-                }) as session:
-                    async with session.head(url) as resp:
-                        if resp.status == 200 and 'Content-Length' in resp.headers:
-                            content_length = int(resp.headers['Content-Length'])
+                async with session.head(url) as resp:
+                    if resp.status == 200 and 'Content-Length' in resp.headers:
+                        content_length = int(resp.headers['Content-Length'])
             except Exception:
                 # 如果HEAD请求失败，继续使用默认大小
                 pass
             
             async def stream_generator():
-                async with aiohttp.ClientSession(headers={
-                    "Authorization": f"Basic {base64.b64encode(f'{settings.webdav_username}:{settings.webdav_password}'.encode()).decode()}"
-                }) as session:
+                try:
                     async with session.get(url) as resp:
                         if resp.status != 200:
                             raise HTTPException(
@@ -1108,6 +1117,8 @@ class WebDAVFileStorage(FileStorageInterface):
                             if not chunk:
                                 break
                             yield chunk
+                finally:
+                    await session.close()
             
             encoded_filename = quote(filename, safe='')
             headers = {
