@@ -196,6 +196,71 @@ class FileService:
         )
         return data
 
+    async def get_file_detail(self, file_id: int):
+        file_code = await FileCodes.filter(id=file_id).first()
+        if not file_code:
+            raise HTTPException(status_code=404, detail="文件不存在")
+
+        detail = await self._build_admin_file_item(file_code)
+        is_text = file_code.text is not None
+        has_download_limit = file_code.expired_count >= 0
+        is_permanent = file_code.expired_at is None and file_code.expired_count < 0
+        text_length = len(file_code.text) if file_code.text else 0
+
+        detail.update(
+            {
+                "filename": detail["name"],
+                "displayName": detail["name"],
+                "display_name": detail["name"],
+                "isPermanent": is_permanent,
+                "is_permanent": is_permanent,
+                "hasDownloadLimit": has_download_limit,
+                "has_download_limit": has_download_limit,
+                "hasExpirationTime": file_code.expired_at is not None,
+                "has_expiration_time": file_code.expired_at is not None,
+                "textLength": text_length,
+                "text_length": text_length,
+                "canPreviewText": is_text,
+                "can_preview_text": is_text,
+                "canDownload": not is_text,
+                "can_download": not is_text,
+                "storageBackend": settings.file_storage,
+                "storage_backend": settings.file_storage,
+                "filePath": file_code.file_path,
+                "file_path": file_code.file_path,
+                "uuidFileName": file_code.uuid_file_name,
+                "uuid_file_name": file_code.uuid_file_name,
+                "uploadId": file_code.upload_id,
+                "upload_id": file_code.upload_id,
+                "policy": {
+                    "expiredAt": file_code.expired_at,
+                    "expired_at": file_code.expired_at,
+                    "expiredCount": file_code.expired_count,
+                    "expired_count": file_code.expired_count,
+                    "remainingDownloads": detail["remainingDownloads"],
+                    "remaining_downloads": detail["remaining_downloads"],
+                    "isExpired": detail["isExpired"],
+                    "is_expired": detail["is_expired"],
+                    "isPermanent": is_permanent,
+                    "is_permanent": is_permanent,
+                },
+                "storage": {
+                    "backend": settings.file_storage,
+                    "filePath": file_code.file_path,
+                    "file_path": file_code.file_path,
+                    "uuidFileName": file_code.uuid_file_name,
+                    "uuid_file_name": file_code.uuid_file_name,
+                    "fileHash": file_code.file_hash,
+                    "file_hash": file_code.file_hash,
+                    "isChunked": file_code.is_chunked,
+                    "is_chunked": file_code.is_chunked,
+                    "uploadId": file_code.upload_id,
+                    "upload_id": file_code.upload_id,
+                },
+            }
+        )
+        return detail
+
     def _match_admin_file(
         self,
         item: dict[str, Any],

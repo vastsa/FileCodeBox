@@ -251,6 +251,24 @@ async def file_list(
     )
 
 
+@admin_api.get("/file/detail")
+async def file_detail(
+    id: int,
+    file_service: FileService = Depends(get_file_service),
+):
+    detail = await file_service.get_file_detail(id)
+    return APIResponse(detail=detail)
+
+
+@admin_api.post("/file/detail")
+async def file_detail_post(
+    data: IDData,
+    file_service: FileService = Depends(get_file_service),
+):
+    detail = await file_service.get_file_detail(data.id)
+    return APIResponse(detail=detail)
+
+
 @admin_api.get("/config/get")
 async def get_config(
     config_service: ConfigService = Depends(get_config_service),
