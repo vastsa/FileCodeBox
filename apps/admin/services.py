@@ -190,6 +190,34 @@ class FileService:
         else:
             return await self.file_storage.get_file_response(file_code)
 
+    async def preview_file(self, file_id: int, max_chars: int = 4000):
+        max_chars = min(max(max_chars, 1), 20000)
+        file_code = await FileCodes.filter(id=file_id).first()
+        if not file_code:
+            raise HTTPException(status_code=404, detail="文件不存在")
+        if file_code.text is None:
+            raise HTTPException(status_code=400, detail="仅文本分享支持预览")
+
+        content = file_code.text
+        preview = content[:max_chars]
+        return {
+            "id": file_code.id,
+            "code": file_code.code,
+            "name": f"{file_code.prefix}{file_code.suffix}",
+            "type": "text",
+            "content": preview,
+            "length": len(content),
+            "previewLength": len(preview),
+            "preview_length": len(preview),
+            "truncated": len(content) > max_chars,
+            "maxChars": max_chars,
+            "max_chars": max_chars,
+            "createdAt": file_code.created_at,
+            "created_at": file_code.created_at,
+            "expiredAt": file_code.expired_at,
+            "expired_at": file_code.expired_at,
+        }
+
     async def share_local_file(self, item):
         local_file = LocalFileClass(item.filename)
         if not await local_file.exists():

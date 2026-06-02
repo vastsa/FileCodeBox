@@ -196,6 +196,16 @@ async def file_download(
     return file_content
 
 
+@admin_api.get("/file/preview")
+async def file_preview(
+    id: int,
+    maxChars: int = 4000,
+    file_service: FileService = Depends(get_file_service),
+):
+    preview = await file_service.preview_file(id, maxChars)
+    return APIResponse(detail=preview)
+
+
 @admin_api.get("/local/lists")
 async def get_local_lists(
     local_file_service: LocalFileService = Depends(get_local_file_service),
