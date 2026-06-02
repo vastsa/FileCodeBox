@@ -7,7 +7,8 @@ from urllib.parse import unquote
 
 from typing import Optional, Tuple, Union
 
-from fastapi import APIRouter, Form, UploadFile, File, Depends, HTTPException
+from fastapi import APIRouter, Form, Request, UploadFile, File, Depends, HTTPException
+from pydantic import BaseModel, ValidationError
 from starlette import status
 
 from apps.admin.dependencies import share_required_login
@@ -233,8 +234,30 @@ async def download_file(key: str, code: str, ip: str = Depends(ip_limit["error"]
 chunk_api = APIRouter(prefix="/chunk", tags=["切片"])
 
 
+async def parse_body_model(request: Request, model_class: type[BaseModel]):
+    content_type = request.headers.get("content-type", "").lower()
+    try:
+        if "application/x-www-form-urlencoded" in content_type or "multipart/form-data" in content_type:
+            payload = dict(await request.form())
+        else:
+            payload = await request.json()
+        return model_class.model_validate(payload)
+    except ValidationError as e:
+        raise HTTPException(status_code=422, detail=e.errors())
+    except Exception:
+        raise HTTPException(status_code=400, detail="请求体格式错误")
+
+
+async def parse_init_chunk_upload(request: Request) -> InitChunkUploadModel:
+    return await parse_body_model(request, InitChunkUploadModel)
+
+
+async def parse_complete_upload(request: Request) -> CompleteUploadModel:
+    return await parse_body_model(request, CompleteUploadModel)
+
+
 @chunk_api.post("/upload/init/", dependencies=[Depends(share_required_login)])
-async def init_chunk_upload(data: InitChunkUploadModel):
+async def init_chunk_upload(data: InitChunkUploadModel = Depends(parse_init_chunk_upload)):
     # 服务端校验：根据 total_chunks * chunk_size 计算理论最大上传量
     total_chunks = (data.file_size + data.chunk_size - 1) // data.chunk_size
     max_possible_size = total_chunks * data.chunk_size
@@ -444,7 +467,9 @@ async def get_upload_status(upload_id: str):
     "/upload/complete/{upload_id}", dependencies=[Depends(share_required_login)]
 )
 async def complete_upload(
-    upload_id: str, data: CompleteUploadModel, ip: str = Depends(ip_limit["upload"])
+    upload_id: str,
+    data: CompleteUploadModel = Depends(parse_complete_upload),
+    ip: str = Depends(ip_limit["upload"]),
 ):
     # 获取上传基本信息
     chunk_info = await UploadChunk.filter(upload_id=upload_id, chunk_index=-1).first()
