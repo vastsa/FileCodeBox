@@ -3,6 +3,7 @@
 # @File    : views.py
 # @Software: PyCharm
 import datetime
+from collections import Counter
 
 from fastapi import APIRouter, Depends, HTTPException
 from apps.admin.services import FileService, ConfigService, LocalFileService
@@ -44,10 +45,27 @@ async def logout_admin():
     return APIResponse(detail={"ok": True})
 
 
+async def build_dashboard_recent_file(file_code: FileCodes) -> dict:
+    is_expired = await file_code.is_expired()
+    return {
+        "id": file_code.id,
+        "code": file_code.code,
+        "name": file_code.prefix + file_code.suffix,
+        "suffix": file_code.suffix,
+        "size": file_code.size,
+        "text": file_code.text is not None,
+        "expiredAt": file_code.expired_at,
+        "expiredCount": file_code.expired_count,
+        "usedCount": file_code.used_count,
+        "createdAt": file_code.created_at,
+        "isExpired": is_expired,
+    }
+
+
 @admin_api.get("/dashboard")
 async def dashboard():
     all_codes = await FileCodes.all()
-    all_size = str(sum([code.size for code in all_codes]))
+    all_size = sum([code.size for code in all_codes])
     sys_start = await KeyValue.filter(key="sys_start").first()
     now = await get_now()
     today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
@@ -57,15 +75,55 @@ async def dashboard():
         created_at__gte=yesterday_start, created_at__lte=yesterday_end
     )
     today_codes = FileCodes.filter(created_at__gte=today_start)
+    yesterday_file_codes = await yesterday_codes
+    today_file_codes = await today_codes
+    expired_count = 0
+    for file_code in all_codes:
+        if await file_code.is_expired():
+            expired_count += 1
+
+    text_count = sum(1 for file_code in all_codes if file_code.text is not None)
+    chunked_count = sum(1 for file_code in all_codes if file_code.is_chunked)
+    used_count = sum([file_code.used_count for file_code in all_codes])
+    suffix_counter = Counter(
+        "Text" if file_code.text is not None else (file_code.suffix or "file")
+        for file_code in all_codes
+    )
+    recent_file_codes = sorted(
+        all_codes,
+        key=lambda file_code: file_code.created_at.timestamp()
+        if file_code.created_at
+        else 0,
+        reverse=True,
+    )[:8]
     return APIResponse(
         detail={
             "totalFiles": len(all_codes),
-            "storageUsed": all_size,
-            "sysUptime": sys_start.value,
-            "yesterdayCount": await yesterday_codes.count(),
-            "yesterdaySize": str(sum([code.size for code in await yesterday_codes])),
-            "todayCount": await today_codes.count(),
-            "todaySize": str(sum([code.size for code in await today_codes])),
+            "storageUsed": str(all_size),
+            "sysUptime": sys_start.value if sys_start else None,
+            "yesterdayCount": len(yesterday_file_codes),
+            "yesterdaySize": str(sum([code.size for code in yesterday_file_codes])),
+            "todayCount": len(today_file_codes),
+            "todaySize": str(sum([code.size for code in today_file_codes])),
+            "activeCount": len(all_codes) - expired_count,
+            "expiredCount": expired_count,
+            "textCount": text_count,
+            "fileCount": len(all_codes) - text_count,
+            "chunkedCount": chunked_count,
+            "usedCount": used_count,
+            "storageBackend": settings.file_storage,
+            "uploadSizeLimit": settings.uploadSize,
+            "openUpload": settings.openUpload,
+            "enableChunk": settings.enableChunk,
+            "maxSaveSeconds": settings.max_save_seconds,
+            "topSuffixes": [
+                {"suffix": suffix, "count": count}
+                for suffix, count in suffix_counter.most_common(8)
+            ],
+            "recentFiles": [
+                await build_dashboard_recent_file(file_code)
+                for file_code in recent_file_codes
+            ],
         }
     )
 
