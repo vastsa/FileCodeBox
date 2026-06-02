@@ -159,22 +159,13 @@ class FileService:
             "textCount": 0,
             "fileCount": 0,
             "chunkedCount": 0,
-            "healthAttentionCount": 0,
-            "healthDangerCount": 0,
-            "healthWarningCount": 0,
-            "expiringSoonCount": 0,
-            "storageIssueCount": 0,
-            "neverRetrievedCount": 0,
+            **self._empty_health_summary(),
             "storageUsed": sum(file_code.size for file_code in all_files),
             "usedCount": sum(file_code.used_count for file_code in all_files),
         }
 
         for file_code in all_files:
             item = await self._build_admin_file_item(file_code, now=now)
-            status_insights = item["statusInsights"]
-            reasons = status_insights["reasons"]
-            severity = status_insights["severity"]
-
             if item["isExpired"]:
                 summary["expiredCount"] += 1
             else:
@@ -185,18 +176,7 @@ class FileService:
                 summary["fileCount"] += 1
             if item["isChunked"]:
                 summary["chunkedCount"] += 1
-            if severity in {"danger", "warning"}:
-                summary["healthAttentionCount"] += 1
-            if severity == "danger":
-                summary["healthDangerCount"] += 1
-            if severity == "warning":
-                summary["healthWarningCount"] += 1
-            if "expires_soon" in reasons:
-                summary["expiringSoonCount"] += 1
-            if "storage_metadata_incomplete" in reasons:
-                summary["storageIssueCount"] += 1
-            if "never_retrieved" in reasons:
-                summary["neverRetrievedCount"] += 1
+            self._accumulate_health_summary(summary, item)
 
             if not self._match_admin_file(item, keyword, status, file_type, health):
                 continue
@@ -208,6 +188,52 @@ class FileService:
         )
         offset = (page - 1) * size
         return enriched_files[offset : offset + size], len(enriched_files), summary
+
+    def _empty_health_summary(self) -> dict[str, int]:
+        return {
+            "healthAttentionCount": 0,
+            "healthDangerCount": 0,
+            "healthWarningCount": 0,
+            "expiringSoonCount": 0,
+            "storageIssueCount": 0,
+            "neverRetrievedCount": 0,
+            "healthyCount": 0,
+            "permanentCount": 0,
+        }
+
+    def _accumulate_health_summary(self, summary: dict[str, Any], item: dict[str, Any]) -> None:
+        status_insights = item.get("statusInsights") or {}
+        reasons = status_insights.get("reasons") or []
+        severity = status_insights.get("severity")
+        state = status_insights.get("state")
+
+        if severity in {"danger", "warning"}:
+            summary["healthAttentionCount"] += 1
+        if severity == "danger":
+            summary["healthDangerCount"] += 1
+        if severity == "warning":
+            summary["healthWarningCount"] += 1
+        if severity == "success":
+            summary["healthyCount"] += 1
+        if state == "permanent":
+            summary["permanentCount"] += 1
+        if "expires_soon" in reasons:
+            summary["expiringSoonCount"] += 1
+        if "storage_metadata_incomplete" in reasons:
+            summary["storageIssueCount"] += 1
+        if "never_retrieved" in reasons:
+            summary["neverRetrievedCount"] += 1
+
+    async def build_file_health_summary(
+        self, file_codes: list[FileCodes], now: Optional[datetime] = None
+    ) -> dict[str, int]:
+        if now is None:
+            now = await get_now()
+        summary = self._empty_health_summary()
+        for file_code in file_codes:
+            item = await self._build_admin_file_item(file_code, now=now)
+            self._accumulate_health_summary(summary, item)
+        return summary
 
     async def _build_admin_file_item(
         self, file_code: FileCodes, now: Optional[datetime] = None

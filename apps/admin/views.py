@@ -72,7 +72,7 @@ async def build_dashboard_recent_file(file_code: FileCodes) -> dict:
 
 
 @admin_api.get("/dashboard")
-async def dashboard():
+async def dashboard(file_service: FileService = Depends(get_file_service)):
     all_codes = await FileCodes.all()
     all_size = sum([code.size for code in all_codes])
     sys_start = await KeyValue.filter(key="sys_start").first()
@@ -90,6 +90,7 @@ async def dashboard():
     for file_code in all_codes:
         if await file_code.is_expired():
             expired_count += 1
+    health_summary = await file_service.build_file_health_summary(all_codes, now=now)
 
     text_count = sum(1 for file_code in all_codes if file_code.text is not None)
     chunked_count = sum(1 for file_code in all_codes if file_code.is_chunked)
@@ -125,6 +126,8 @@ async def dashboard():
             "openUpload": settings.openUpload,
             "enableChunk": settings.enableChunk,
             "maxSaveSeconds": settings.max_save_seconds,
+            **health_summary,
+            "healthSummary": health_summary,
             "topSuffixes": [
                 {"suffix": suffix, "count": count}
                 for suffix, count in suffix_counter.most_common(8)
