@@ -109,7 +109,7 @@ async def update_config(
     data: dict,
     config_service: ConfigService = Depends(get_config_service),
 ):
-    data.pop("themesChoices")
+    data.pop("themesChoices", None)
     await config_service.update_config(data)
     return APIResponse()
 

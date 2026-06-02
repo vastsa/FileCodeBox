@@ -4,6 +4,7 @@ import time
 from core.response import APIResponse
 from core.storage import FileStorageInterface, storages
 from core.settings import settings
+from core.config import refresh_settings
 from apps.base.models import FileCodes, KeyValue, file_codes_pydantic
 from apps.base.utils import get_expire_info, get_file_path_name
 from fastapi import HTTPException
@@ -72,41 +73,57 @@ class FileService:
 
 
 class ConfigService:
+    INT_FIELDS = {
+        "enableChunk",
+        "errorCount",
+        "errorMinute",
+        "max_save_seconds",
+        "onedrive_proxy",
+        "openUpload",
+        "port",
+        "s3_proxy",
+        "serverPort",
+        "serverWorkers",
+        "showAdminAddr",
+        "uploadCount",
+        "uploadMinute",
+        "uploadSize",
+        "webdav_proxy",
+    }
+    FLOAT_FIELDS = {"opacity"}
+
     def get_config(self):
         return dict(settings.items())
 
     async def update_config(self, data: dict):
-        admin_token = data.get("admin_token")
+        current_config = dict(settings.items())
+        next_config = dict(current_config)
+        update_data = {
+            key: value for key, value in data.items() if key in settings.default_config
+        }
+
+        admin_token = update_data.get("admin_token")
         if admin_token is None or admin_token == "":
-            raise HTTPException(status_code=400, detail="管理员密码不能为空")
+            update_data.pop("admin_token", None)
+        elif not is_password_hashed(admin_token):
+            update_data["admin_token"] = hash_password(admin_token)
 
-        if not is_password_hashed(admin_token):
-            data["admin_token"] = hash_password(admin_token)
-
-        for key, value in data.items():
-            if key not in settings.default_config:
+        for key, value in update_data.items():
+            if value == "" and key in self.INT_FIELDS | self.FLOAT_FIELDS:
                 continue
-            if key in [
-                "errorCount",
-                "errorMinute",
-                "max_save_seconds",
-                "onedrive_proxy",
-                "openUpload",
-                "port",
-                "s3_proxy",
-                "uploadCount",
-                "uploadMinute",
-                "uploadSize",
-            ]:
-                data[key] = int(value)
-            elif key in ["opacity"]:
-                data[key] = float(value)
-            else:
-                data[key] = value
 
-        await KeyValue.filter(key="settings").update(value=data)
-        for k, v in data.items():
-            settings.__setattr__(k, v)
+            try:
+                if key in self.INT_FIELDS:
+                    next_config[key] = int(value)
+                elif key in self.FLOAT_FIELDS:
+                    next_config[key] = float(value)
+                else:
+                    next_config[key] = value
+            except (TypeError, ValueError):
+                raise HTTPException(status_code=400, detail=f"{key} 配置值格式错误")
+
+        await KeyValue.update_or_create(key="settings", defaults={"value": next_config})
+        await refresh_settings()
 
 
 class LocalFileService:
