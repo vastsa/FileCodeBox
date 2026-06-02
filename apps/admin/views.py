@@ -142,15 +142,30 @@ async def file_list(
     page: int = 1,
     size: int = 10,
     keyword: str = "",
+    status: str = "",
+    type: str = "",
+    sortBy: str = "created_at",
+    sortOrder: str = "desc",
     file_service: FileService = Depends(get_file_service),
 ):
-    files, total = await file_service.list_files(page, size, keyword)
+    page = max(page, 1)
+    size = min(max(size, 1), 100)
+    files, total, summary = await file_service.list_files(
+        page,
+        size,
+        keyword,
+        status=status,
+        file_type=type,
+        sort_by=sortBy,
+        sort_order=sortOrder,
+    )
     return APIResponse(
         detail={
             "page": page,
             "size": size,
             "data": files,
             "total": total,
+            "summary": summary,
         }
     )
 

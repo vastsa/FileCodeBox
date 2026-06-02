@@ -1,5 +1,7 @@
 import os
 import time
+from datetime import datetime
+from typing import Any
 
 from core.response import APIResponse
 from core.storage import FileStorageInterface, storages
@@ -13,6 +15,18 @@ from core.utils import hash_password, is_password_hashed
 
 
 class FileService:
+    SORT_FIELDS = {
+        "created_at",
+        "createdat",
+        "expired_at",
+        "expiredat",
+        "name",
+        "size",
+        "used_count",
+        "usedcount",
+        "code",
+    }
+
     def __init__(self):
         self.file_storage: FileStorageInterface = storages[settings.file_storage]()
 
@@ -21,16 +35,151 @@ class FileService:
         await self.file_storage.delete_file(file_code)
         await file_code.delete()
 
-    async def list_files(self, page: int, size: int, keyword: str = ""):
-        offset = (page - 1) * size
-        files = (
-            await FileCodes.filter(prefix__icontains=keyword).limit(size).offset(offset)
+    async def list_files(
+        self,
+        page: int,
+        size: int,
+        keyword: str = "",
+        status: str = "",
+        file_type: str = "",
+        sort_by: str = "created_at",
+        sort_order: str = "desc",
+    ):
+        page = max(page, 1)
+        size = min(max(size, 1), 100)
+        keyword = keyword.strip().lower()
+        status = status.strip().lower()
+        file_type = file_type.strip().lower()
+        sort_by = self._normalize_sort_by(sort_by)
+        reverse = sort_order.strip().lower() != "asc"
+
+        all_files = await FileCodes.all()
+        enriched_files = []
+        summary = {
+            "totalFiles": len(all_files),
+            "activeCount": 0,
+            "expiredCount": 0,
+            "textCount": 0,
+            "fileCount": 0,
+            "chunkedCount": 0,
+            "storageUsed": sum(file_code.size for file_code in all_files),
+            "usedCount": sum(file_code.used_count for file_code in all_files),
+        }
+
+        for file_code in all_files:
+            item = await self._build_admin_file_item(file_code)
+            if item["isExpired"]:
+                summary["expiredCount"] += 1
+            else:
+                summary["activeCount"] += 1
+            if item["isText"]:
+                summary["textCount"] += 1
+            else:
+                summary["fileCount"] += 1
+            if item["isChunked"]:
+                summary["chunkedCount"] += 1
+
+            if not self._match_admin_file(item, keyword, status, file_type):
+                continue
+            enriched_files.append(item)
+
+        enriched_files.sort(
+            key=lambda item: self._get_sort_value(item, sort_by),
+            reverse=reverse,
         )
-        total = await FileCodes.filter(prefix__icontains=keyword).count()
-        files_pydantic = [
-            await file_codes_pydantic.from_tortoise_orm(f) for f in files
+        offset = (page - 1) * size
+        return enriched_files[offset : offset + size], len(enriched_files), summary
+
+    async def _build_admin_file_item(self, file_code: FileCodes) -> dict[str, Any]:
+        is_text = file_code.text is not None
+        is_expired = await file_code.is_expired()
+        name = f"{file_code.prefix}{file_code.suffix}"
+        remaining_downloads = (
+            max(file_code.expired_count, 0) if file_code.expired_count >= 0 else None
+        )
+        item = await file_codes_pydantic.from_tortoise_orm(file_code)
+        data = item.model_dump()
+        data.update(
+            {
+                "name": name,
+                "type": "text" if is_text else "file",
+                "status": "expired" if is_expired else "active",
+                "isText": is_text,
+                "is_text": is_text,
+                "isExpired": is_expired,
+                "is_expired": is_expired,
+                "isChunked": file_code.is_chunked,
+                "is_chunked": file_code.is_chunked,
+                "remainingDownloads": remaining_downloads,
+                "remaining_downloads": remaining_downloads,
+                "usedCount": file_code.used_count,
+                "used_count": file_code.used_count,
+                "createdAt": file_code.created_at,
+                "created_at": file_code.created_at,
+                "expiredAt": file_code.expired_at,
+                "expired_at": file_code.expired_at,
+                "fileHash": file_code.file_hash,
+                "file_hash": file_code.file_hash,
+            }
+        )
+        return data
+
+    def _match_admin_file(
+        self,
+        item: dict[str, Any],
+        keyword: str,
+        status: str,
+        file_type: str,
+    ) -> bool:
+        if status == "active" and item["isExpired"]:
+            return False
+        if status == "expired" and not item["isExpired"]:
+            return False
+        if file_type == "text" and not item["isText"]:
+            return False
+        if file_type == "file" and item["isText"]:
+            return False
+        if file_type == "chunked" and not item["isChunked"]:
+            return False
+        if not keyword:
+            return True
+
+        search_values = [
+            item.get("code"),
+            item.get("name"),
+            item.get("prefix"),
+            item.get("suffix"),
+            item.get("fileHash"),
+            item.get("text"),
         ]
-        return files_pydantic, total
+        return any(keyword in str(value).lower() for value in search_values if value)
+
+    def _normalize_sort_by(self, sort_by: str) -> str:
+        normalized = sort_by.replace("-", "_").strip().lower()
+        if normalized not in self.SORT_FIELDS:
+            return "created_at"
+        return normalized
+
+    def _get_sort_value(self, item: dict[str, Any], sort_by: str):
+        def date_value(value: Any) -> float:
+            if value is None:
+                return 0
+            if isinstance(value, datetime):
+                return value.timestamp()
+            return 0
+
+        sort_map = {
+            "created_at": date_value(item.get("createdAt")),
+            "createdat": date_value(item.get("createdAt")),
+            "expired_at": date_value(item.get("expiredAt")),
+            "expiredat": date_value(item.get("expiredAt")),
+            "name": item.get("name") or "",
+            "size": item.get("size") or 0,
+            "used_count": item.get("usedCount") or 0,
+            "usedcount": item.get("usedCount") or 0,
+            "code": item.get("code") or "",
+        }
+        return sort_map.get(sort_by)
 
     async def download_file(self, file_id: int):
         file_code = await FileCodes.filter(id=file_id).first()
