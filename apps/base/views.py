@@ -549,6 +549,14 @@ presign_api = APIRouter(prefix="/presign", tags=["预签名上传"])
 PRESIGN_SESSION_EXPIRES = 900  # 15分钟
 
 
+def build_proxy_upload_urls(upload_id: str) -> dict:
+    proxy_upload_url = f"/presign/upload/proxy/{upload_id}"
+    return {
+        "proxy_upload_url": proxy_upload_url,
+        "legacy_proxy_upload_url": f"/api{proxy_upload_url}",
+    }
+
+
 async def _get_valid_session(
     upload_id: str, expected_mode: Optional[str] = None
 ) -> PresignUploadSession:
@@ -588,7 +596,8 @@ async def presign_upload_init(
     )
 
     mode = "direct" if presigned_url else "proxy"
-    upload_url = presigned_url or f"/api/presign/upload/proxy/{upload_id}"
+    proxy_urls = build_proxy_upload_urls(upload_id)
+    upload_url = presigned_url or proxy_urls["proxy_upload_url"]
 
     await PresignUploadSession.create(
         upload_id=upload_id,
@@ -602,13 +611,17 @@ async def presign_upload_init(
     )
 
     ip_limit["upload"].add_ip(ip)
+    detail = {
+        "upload_id": upload_id,
+        "upload_url": upload_url,
+        "mode": mode,
+        "expires_in": PRESIGN_SESSION_EXPIRES,
+    }
+    if mode == "proxy":
+        detail.update(proxy_urls)
+
     return APIResponse(
-        detail={
-            "upload_id": upload_id,
-            "upload_url": upload_url,
-            "mode": mode,
-            "expires_in": PRESIGN_SESSION_EXPIRES,
-        }
+        detail=detail
     )
 
 

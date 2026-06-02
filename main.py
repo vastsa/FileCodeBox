@@ -151,6 +151,7 @@ register_tortoise(
 app.include_router(share_api)
 app.include_router(chunk_api)
 app.include_router(presign_api)
+app.include_router(presign_api, prefix="/api")
 app.include_router(admin_api)
 
 
