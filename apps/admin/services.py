@@ -1,6 +1,6 @@
 import os
 import time
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Any, Optional
 
 from core.response import APIResponse
@@ -106,6 +106,28 @@ class FileService:
             "missing": missing,
             "failed": failed,
         }
+
+    async def apply_file_policy_action(
+        self,
+        file_id: int,
+        action: str,
+        download_limit: Optional[int] = None,
+    ) -> dict[str, Any]:
+        file_code = await FileCodes.filter(id=file_id).first()
+        if not file_code:
+            raise HTTPException(status_code=404, detail="文件不存在")
+
+        action = action.strip().lower()
+        now = await get_now()
+        update_data = self._build_policy_action_update(
+            file_code=file_code,
+            action=action,
+            now=now,
+            download_limit=download_limit,
+        )
+
+        await file_code.update_from_dict(update_data).save()
+        return await self.get_file_detail(file_id)
 
     async def list_files(
         self,
@@ -448,6 +470,47 @@ class FileService:
         elif start.tzinfo is not None and end.tzinfo is None:
             start = start.replace(tzinfo=None)
         return int((end - start).total_seconds())
+
+    def _build_policy_action_update(
+        self,
+        file_code: FileCodes,
+        action: str,
+        now: datetime,
+        download_limit: Optional[int],
+    ) -> dict[str, Any]:
+        if action == "extend_24h":
+            return {"expired_at": self._extended_expiration(file_code.expired_at, now, hours=24)}
+        if action == "extend_7d":
+            return {"expired_at": self._extended_expiration(file_code.expired_at, now, days=7)}
+        if action == "make_permanent":
+            return {"expired_at": None, "expired_count": -1}
+        if action == "reset_download_limit":
+            next_limit = download_limit if download_limit is not None else 5
+            if next_limit < 1:
+                raise HTTPException(status_code=400, detail="取件次数必须大于 0")
+            return {"expired_count": next_limit}
+
+        raise HTTPException(status_code=400, detail="不支持的策略动作")
+
+    def _extended_expiration(
+        self,
+        expired_at: Optional[datetime],
+        now: datetime,
+        **duration: int,
+    ) -> datetime:
+        base_time = now
+        if expired_at is not None:
+            comparable_expired_at = self._align_datetime(expired_at, now)
+            if comparable_expired_at > now:
+                base_time = comparable_expired_at
+        return base_time + timedelta(**duration)
+
+    def _align_datetime(self, value: datetime, reference: datetime) -> datetime:
+        if value.tzinfo is None and reference.tzinfo is not None:
+            return value.replace(tzinfo=reference.tzinfo)
+        if value.tzinfo is not None and reference.tzinfo is None:
+            return value.replace(tzinfo=None)
+        return value
 
     def _match_admin_file(
         self,

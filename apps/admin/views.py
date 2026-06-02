@@ -18,6 +18,7 @@ from apps.admin.schemas import (
     IDData,
     IDsData,
     BatchUpdateFileData,
+    FilePolicyActionData,
     ShareItem,
     DeleteItem,
     LoginData,
@@ -216,6 +217,38 @@ async def file_batch_update_post(
     file_service: FileService = Depends(get_file_service),
 ):
     return await batch_update_files(data, file_service)
+
+
+async def apply_file_policy_action(
+    data: FilePolicyActionData,
+    file_service: FileService,
+):
+    download_limit = data.downloadLimit
+    if download_limit is None:
+        download_limit = data.download_limit
+
+    detail = await file_service.apply_file_policy_action(
+        file_id=data.id,
+        action=data.action,
+        download_limit=download_limit,
+    )
+    return APIResponse(detail=detail)
+
+
+@admin_api.patch("/file/policy-action")
+async def file_policy_action(
+    data: FilePolicyActionData,
+    file_service: FileService = Depends(get_file_service),
+):
+    return await apply_file_policy_action(data, file_service)
+
+
+@admin_api.post("/file/policy-action")
+async def file_policy_action_post(
+    data: FilePolicyActionData,
+    file_service: FileService = Depends(get_file_service),
+):
+    return await apply_file_policy_action(data, file_service)
 
 
 @admin_api.get("/file/list")

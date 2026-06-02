@@ -41,3 +41,10 @@ class BatchUpdateFileData(BaseModel):
     expired_count: Optional[int] = None
     clearExpiredAt: Optional[bool] = None
     clear_expired_at: Optional[bool] = None
+
+
+class FilePolicyActionData(BaseModel):
+    id: int
+    action: str
+    downloadLimit: Optional[int] = None
+    download_limit: Optional[int] = None
