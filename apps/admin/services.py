@@ -1,7 +1,7 @@
 import os
 import time
 from datetime import datetime
-from typing import Any
+from typing import Any, Optional
 
 from core.response import APIResponse
 from core.storage import FileStorageInterface, storages
@@ -11,7 +11,7 @@ from apps.base.models import FileCodes, KeyValue, file_codes_pydantic
 from apps.base.utils import get_expire_info, get_file_path_name
 from fastapi import HTTPException
 from core.settings import data_root
-from core.utils import hash_password, is_password_hashed
+from core.utils import get_now, hash_password, is_password_hashed
 
 
 class FileService:
@@ -206,6 +206,24 @@ class FileService:
         has_download_limit = file_code.expired_count >= 0
         is_permanent = file_code.expired_at is None and file_code.expired_count < 0
         text_length = len(file_code.text) if file_code.text else 0
+        can_download = is_text or bool(file_code.file_path or file_code.uuid_file_name)
+        now = await get_now()
+        status_insights = self._build_file_status_insights(
+            file_code=file_code,
+            detail=detail,
+            now=now,
+            has_download_limit=has_download_limit,
+            is_permanent=is_permanent,
+            can_download=can_download,
+        )
+        timeline = self._build_file_timeline(
+            file_code=file_code,
+            detail=detail,
+            now=now,
+            has_download_limit=has_download_limit,
+            is_permanent=is_permanent,
+            is_text=is_text,
+        )
 
         detail.update(
             {
@@ -222,8 +240,8 @@ class FileService:
                 "text_length": text_length,
                 "canPreviewText": is_text,
                 "can_preview_text": is_text,
-                "canDownload": not is_text,
-                "can_download": not is_text,
+                "canDownload": can_download,
+                "can_download": can_download,
                 "storageBackend": settings.file_storage,
                 "storage_backend": settings.file_storage,
                 "filePath": file_code.file_path,
@@ -257,9 +275,179 @@ class FileService:
                     "uploadId": file_code.upload_id,
                     "upload_id": file_code.upload_id,
                 },
+                "statusInsights": status_insights,
+                "status_insights": status_insights,
+                "timeline": timeline,
             }
         )
         return detail
+
+    def _build_file_status_insights(
+        self,
+        file_code: FileCodes,
+        detail: dict[str, Any],
+        now: datetime,
+        has_download_limit: bool,
+        is_permanent: bool,
+        can_download: bool,
+    ) -> dict[str, Any]:
+        remaining_downloads = detail["remainingDownloads"]
+        seconds_until_expiration = self._seconds_between(now, file_code.expired_at)
+        age_seconds = self._seconds_between(file_code.created_at, now)
+        reasons = []
+
+        if detail["isExpired"]:
+            reasons.append("expired")
+        if has_download_limit and remaining_downloads == 0:
+            reasons.append("download_limit_exhausted")
+        if seconds_until_expiration is not None and 0 < seconds_until_expiration <= 86400:
+            reasons.append("expires_soon")
+        if file_code.used_count == 0:
+            reasons.append("never_retrieved")
+        if not can_download:
+            reasons.append("storage_metadata_incomplete")
+        if file_code.is_chunked:
+            reasons.append("chunked_upload")
+
+        severity = "success"
+        state = "available"
+        next_action = "monitor"
+        if detail["isExpired"] or (has_download_limit and remaining_downloads == 0):
+            severity = "danger"
+            state = "expired"
+            next_action = "extend_or_delete"
+        elif not can_download:
+            severity = "danger"
+            state = "storage_incomplete"
+            next_action = "inspect_storage"
+        elif "expires_soon" in reasons:
+            severity = "warning"
+            state = "expiring_soon"
+            next_action = "extend_expiration"
+        elif is_permanent:
+            state = "permanent"
+            next_action = "monitor"
+
+        return {
+            "severity": severity,
+            "state": state,
+            "nextAction": next_action,
+            "next_action": next_action,
+            "reasons": reasons,
+            "metrics": {
+                "ageSeconds": max(age_seconds or 0, 0),
+                "age_seconds": max(age_seconds or 0, 0),
+                "secondsUntilExpiration": seconds_until_expiration,
+                "seconds_until_expiration": seconds_until_expiration,
+                "remainingDownloads": remaining_downloads,
+                "remaining_downloads": remaining_downloads,
+                "usedCount": file_code.used_count,
+                "used_count": file_code.used_count,
+            },
+        }
+
+    def _build_file_timeline(
+        self,
+        file_code: FileCodes,
+        detail: dict[str, Any],
+        now: datetime,
+        has_download_limit: bool,
+        is_permanent: bool,
+        is_text: bool,
+    ) -> list[dict[str, Any]]:
+        remaining_downloads = detail["remainingDownloads"]
+        seconds_until_expiration = self._seconds_between(now, file_code.expired_at)
+        timeline = [
+            {
+                "key": "created",
+                "status": "done",
+                "severity": "success",
+                "timestamp": file_code.created_at,
+            },
+            {
+                "key": "content_ready",
+                "status": "done",
+                "severity": "success",
+                "timestamp": file_code.created_at,
+                "detail": "text" if is_text else "file",
+            },
+        ]
+
+        if file_code.upload_id:
+            timeline.append(
+                {
+                    "key": "upload_session",
+                    "status": "done",
+                    "severity": "info",
+                    "timestamp": file_code.created_at,
+                    "detail": file_code.upload_id,
+                }
+            )
+
+        if is_permanent:
+            timeline.append(
+                {
+                    "key": "expiration_policy",
+                    "status": "unlimited",
+                    "severity": "success",
+                    "timestamp": None,
+                }
+            )
+        elif file_code.expired_at is not None:
+            expired = seconds_until_expiration is not None and seconds_until_expiration <= 0
+            timeline.append(
+                {
+                    "key": "expiration_policy",
+                    "status": "expired" if expired else "pending",
+                    "severity": "danger" if expired else "warning",
+                    "timestamp": file_code.expired_at,
+                    "value": seconds_until_expiration,
+                }
+            )
+
+        if has_download_limit:
+            exhausted = remaining_downloads == 0
+            timeline.append(
+                {
+                    "key": "download_limit",
+                    "status": "exhausted" if exhausted else "active",
+                    "severity": "danger" if exhausted else "info",
+                    "timestamp": None,
+                    "value": remaining_downloads,
+                }
+            )
+        else:
+            timeline.append(
+                {
+                    "key": "download_limit",
+                    "status": "unlimited",
+                    "severity": "success",
+                    "timestamp": None,
+                    "value": None,
+                }
+            )
+
+        timeline.append(
+            {
+                "key": "retrieved",
+                "status": "done" if file_code.used_count > 0 else "pending",
+                "severity": "success" if file_code.used_count > 0 else "neutral",
+                "timestamp": None,
+                "value": file_code.used_count,
+            }
+        )
+        return timeline
+
+    def _seconds_between(
+        self, start: Optional[datetime], end: Optional[datetime]
+    ) -> Optional[int]:
+        if start is None or end is None:
+            return None
+        if start.tzinfo is None and end.tzinfo is not None:
+            end = end.replace(tzinfo=None)
+        elif start.tzinfo is not None and end.tzinfo is None:
+            start = start.replace(tzinfo=None)
+        return int((end - start).total_seconds())
 
     def _match_admin_file(
         self,
