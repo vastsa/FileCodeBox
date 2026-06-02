@@ -177,6 +177,64 @@ async def update_file_usage(file_code: FileCodes) -> None:
     await file_code.save()
 
 
+def build_file_metadata(file_code: FileCodes) -> dict:
+    is_text = file_code.text is not None
+    remaining_downloads = (
+        file_code.expired_count if file_code.expired_count > 0 else None
+    )
+    return {
+        "code": file_code.code,
+        "name": file_code.prefix + file_code.suffix,
+        "size": file_code.size,
+        "type": "text" if is_text else "file",
+        "is_text": is_text,
+        "created_at": file_code.created_at,
+        "expired_at": file_code.expired_at,
+        "expires_at": file_code.expired_at,
+        "expired_count": file_code.expired_count,
+        "used_count": file_code.used_count,
+        "remaining_downloads": remaining_downloads,
+    }
+
+
+async def build_select_detail(
+    file_code: FileCodes, file_storage: FileStorageInterface
+) -> dict:
+    metadata = build_file_metadata(file_code)
+    download_url = (
+        None if file_code.text is not None else await file_storage.get_file_url(file_code)
+    )
+    content = file_code.text if file_code.text is not None else None
+    return {
+        **metadata,
+        "text": content if content is not None else download_url,
+        "content": content,
+        "download_url": download_url,
+    }
+
+
+@share_api.get("/metadata/")
+async def get_file_metadata(code: str, ip: str = Depends(ip_limit["error"])):
+    has, file_code = await get_code_file_by_code(code)
+    if not has:
+        ip_limit["error"].add_ip(ip)
+        return APIResponse(code=404, detail=file_code)
+
+    assert isinstance(file_code, FileCodes)
+    return APIResponse(detail=build_file_metadata(file_code))
+
+
+@share_api.post("/metadata/")
+async def post_file_metadata(data: SelectFileModel, ip: str = Depends(ip_limit["error"])):
+    has, file_code = await get_code_file_by_code(data.code)
+    if not has:
+        ip_limit["error"].add_ip(ip)
+        return APIResponse(code=404, detail=file_code)
+
+    assert isinstance(file_code, FileCodes)
+    return APIResponse(detail=build_file_metadata(file_code))
+
+
 @share_api.get("/select/")
 async def get_code_file(code: str, ip: str = Depends(ip_limit["error"])):
     file_storage: FileStorageInterface = storages[settings.file_storage]()
@@ -200,18 +258,7 @@ async def select_file(data: SelectFileModel, ip: str = Depends(ip_limit["error"]
 
     assert isinstance(file_code, FileCodes)
     await update_file_usage(file_code)
-    return APIResponse(
-        detail={
-            "code": file_code.code,
-            "name": file_code.prefix + file_code.suffix,
-            "size": file_code.size,
-            "text": (
-                file_code.text
-                if file_code.text is not None
-                else await file_storage.get_file_url(file_code)
-            ),
-        }
-    )
+    return APIResponse(detail=await build_select_detail(file_code, file_storage))
 
 
 @share_api.get("/download")
