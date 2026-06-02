@@ -4,6 +4,7 @@
 # @Software: PyCharm
 import datetime
 from collections import Counter
+from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException
 from apps.admin.services import FileService, ConfigService, LocalFileService
@@ -37,6 +38,14 @@ from core.utils import get_now, verify_password
 admin_api = APIRouter(
     prefix="/admin", tags=["管理"], dependencies=[Depends(admin_required)]
 )
+
+
+def _pick_query_text(*values: Optional[str]) -> Optional[str]:
+    for value in values:
+        normalized_value = str(value or "").strip()
+        if normalized_value:
+            return normalized_value
+    return None
 
 
 @admin_api.post("/login")
@@ -150,9 +159,18 @@ async def dashboard(file_service: FileService = Depends(get_file_service)):
 @admin_api.get("/activities")
 async def admin_activities(
     limit: int = 20,
+    action: Optional[str] = None,
+    targetType: Optional[str] = None,
+    target_type: Optional[str] = None,
+    keyword: Optional[str] = None,
     file_service: FileService = Depends(get_file_service),
 ):
-    result = await file_service.list_admin_activities(limit=limit)
+    result = await file_service.list_admin_activities(
+        limit=limit,
+        action=action,
+        target_type=_pick_query_text(targetType, target_type),
+        keyword=keyword,
+    )
     return APIResponse(detail=result)
 
 

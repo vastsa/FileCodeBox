@@ -732,14 +732,48 @@ class FileService:
             "updated_at": updated_at,
         }
 
-    async def list_admin_activities(self, limit: int = 8) -> dict[str, Any]:
-        limit = min(max(int(limit or 8), 1), self.MAX_ADMIN_ACTIVITIES)
+    async def list_admin_activities(
+        self,
+        limit: int = 8,
+        action: Optional[str] = None,
+        target_type: Optional[str] = None,
+        keyword: Optional[str] = None,
+    ) -> dict[str, Any]:
+        try:
+            normalized_limit = int(limit or 8)
+        except (TypeError, ValueError):
+            normalized_limit = 8
+        limit = min(max(normalized_limit, 1), self.MAX_ADMIN_ACTIVITIES)
         activities = await self._get_admin_activities()
-        visible_activities = activities[:limit]
+        normalized_action = self._normalize_admin_activity_text(action).lower()
+        normalized_target_type = self._normalize_admin_activity_text(target_type).lower()
+        normalized_keyword = self._normalize_admin_activity_text(keyword).lower()
+        filtered_activities = self._filter_admin_activities(
+            activities,
+            action=normalized_action,
+            target_type=normalized_target_type,
+            keyword=normalized_keyword,
+        )
+        visible_activities = filtered_activities[:limit]
+        action_options = self._build_admin_activity_options(activities, "action")
+        target_type_options = self._build_admin_activity_options(activities, "targetType")
         return {
             "activities": visible_activities,
             "items": visible_activities,
-            "total": len(activities),
+            "total": len(filtered_activities),
+            "storedTotal": len(activities),
+            "stored_total": len(activities),
+            "limit": limit,
+            "filters": {
+                "action": normalized_action,
+                "targetType": normalized_target_type,
+                "target_type": normalized_target_type,
+                "keyword": normalized_keyword,
+            },
+            "actionOptions": action_options,
+            "action_options": action_options,
+            "targetTypeOptions": target_type_options,
+            "target_type_options": target_type_options,
         }
 
     async def record_admin_activity(
@@ -882,6 +916,67 @@ class FileService:
 
     def _normalize_admin_activity_text(self, value: Any) -> str:
         return str(value or "").strip()[: self.MAX_ADMIN_ACTIVITY_TEXT_LENGTH]
+
+    def _filter_admin_activities(
+        self,
+        activities: list[dict[str, Any]],
+        action: str,
+        target_type: str,
+        keyword: str,
+    ) -> list[dict[str, Any]]:
+        filtered_activities = []
+        for activity in activities:
+            if action and str(activity.get("action") or "").lower() != action:
+                continue
+            if target_type and str(activity.get("targetType") or "").lower() != target_type:
+                continue
+            if keyword and not self._activity_matches_keyword(activity, keyword):
+                continue
+            filtered_activities.append(activity)
+        return filtered_activities
+
+    def _activity_matches_keyword(self, activity: dict[str, Any], keyword: str) -> bool:
+        searchable_values = [
+            activity.get("action"),
+            activity.get("targetType"),
+            activity.get("target_type"),
+            activity.get("targetId"),
+            activity.get("target_id"),
+            activity.get("targetName"),
+            activity.get("target_name"),
+        ]
+        meta = activity.get("meta")
+        if isinstance(meta, dict):
+            searchable_values.extend(meta.values())
+
+        return any(keyword in str(value or "").lower() for value in searchable_values)
+
+    def _build_admin_activity_options(
+        self,
+        activities: list[dict[str, Any]],
+        field: str,
+    ) -> list[dict[str, Any]]:
+        counters: dict[str, dict[str, Any]] = {}
+        for activity in activities:
+            raw_value = self._normalize_admin_activity_text(activity.get(field))
+            if not raw_value:
+                continue
+            value = raw_value.lower()
+            if value not in counters:
+                counters[value] = {"label": raw_value, "count": 0}
+            counters[value]["count"] += 1
+
+        return [
+            {
+                "value": value,
+                "label": option["label"],
+                "count": option["count"],
+            }
+            for value, option in sorted(
+                counters.items(),
+                key=lambda item: (-item[1]["count"], item[0]),
+            )
+        ]
 
     def _build_admin_activity_id(
         self,
