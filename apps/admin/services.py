@@ -18,12 +18,15 @@ from core.utils import get_now, hash_password, is_password_hashed
 class FileService:
     FILE_METADATA_KEY_PREFIX = "admin_file_metadata:"
     FILE_VIEW_PRESETS_KEY = "admin_file_view_presets"
+    ADMIN_ACTIVITY_KEY = "admin_activity_events"
     MAX_METADATA_NOTE_LENGTH = 2000
     MAX_METADATA_TAGS = 12
     MAX_METADATA_TAG_LENGTH = 24
     MAX_VIEW_PRESETS = 24
     MAX_VIEW_PRESET_NAME_LENGTH = 32
     MAX_VIEW_PRESET_KEYWORD_LENGTH = 80
+    MAX_ADMIN_ACTIVITIES = 80
+    MAX_ADMIN_ACTIVITY_TEXT_LENGTH = 120
 
     POLICY_ACTIONS = {
         "extend_24h",
@@ -67,7 +70,13 @@ class FileService:
     }
 
     def __init__(self):
-        self.file_storage: FileStorageInterface = storages[settings.file_storage]()
+        self._file_storage: Optional[FileStorageInterface] = None
+
+    @property
+    def file_storage(self) -> FileStorageInterface:
+        if self._file_storage is None:
+            self._file_storage = storages[settings.file_storage]()
+        return self._file_storage
 
     def _file_metadata_key(self, file_id: int) -> str:
         return f"{self.FILE_METADATA_KEY_PREFIX}{file_id}"
@@ -80,7 +89,15 @@ class FileService:
 
     async def delete_file(self, file_id: int):
         file_code = await FileCodes.get(id=file_id)
+        target_name = self._build_file_activity_name(file_code)
         await self._delete_file_code(file_code)
+        await self.record_admin_activity(
+            action="file.delete",
+            target_type="file",
+            target_id=file_id,
+            target_name=target_name,
+            count=1,
+        )
 
     async def delete_files(self, file_ids: list[int]):
         unique_ids = list(dict.fromkeys(file_ids))
@@ -99,6 +116,20 @@ class FileService:
                 deleted.append(file_id)
             except Exception as exc:
                 failed.append({"id": file_id, "reason": str(exc)})
+
+        if deleted:
+            await self.record_admin_activity(
+                action="files.batch_delete",
+                target_type="file",
+                count=len(deleted),
+                meta={
+                    "requestedCount": len(file_ids),
+                    "uniqueCount": len(unique_ids),
+                    "deleted": deleted,
+                    "missing": missing,
+                    "failedCount": len(failed),
+                },
+            )
 
         return {
             "requestedCount": len(file_ids),
@@ -133,6 +164,21 @@ class FileService:
                 updated.append(file_id)
             except Exception as exc:
                 failed.append({"id": file_id, "reason": str(exc)})
+
+        if updated:
+            await self.record_admin_activity(
+                action="files.batch_update",
+                target_type="file",
+                count=len(updated),
+                meta={
+                    "fields": sorted(update_data.keys()),
+                    "requestedCount": len(file_ids),
+                    "uniqueCount": len(unique_ids),
+                    "updated": updated,
+                    "missing": missing,
+                    "failedCount": len(failed),
+                },
+            )
 
         return {
             "requestedCount": len(file_ids),
@@ -170,6 +216,14 @@ class FileService:
         )
 
         await file_code.update_from_dict(update_data).save()
+        await self.record_admin_activity(
+            action="file.policy_action",
+            target_type="file",
+            target_id=file_id,
+            target_name=self._build_file_activity_name(file_code),
+            count=1,
+            meta={"policyAction": action},
+        )
         return await self.get_file_detail(file_id)
 
     async def get_file_metadata(self, file_id: int) -> dict[str, Any]:
@@ -203,6 +257,18 @@ class FileService:
             key=self._file_metadata_key(file_id),
             defaults={"value": next_metadata},
         )
+        await self.record_admin_activity(
+            action="file.metadata_update",
+            target_type="file",
+            target_id=file_id,
+            target_name=self._build_file_activity_name(file_code),
+            count=1,
+            meta={
+                "updateNote": update_note,
+                "updateTags": update_tags,
+                "tagCount": len(next_metadata["tags"]),
+            },
+        )
         return await self.get_file_detail(file_id)
 
     async def list_file_view_presets(self) -> dict[str, Any]:
@@ -229,7 +295,8 @@ class FileService:
             (index for index, preset in enumerate(presets) if preset["id"] == preset_id),
             -1,
         )
-        if target_index >= 0:
+        is_update = target_index >= 0
+        if is_update:
             preset = presets[target_index]
             next_preset = {
                 **preset,
@@ -256,6 +323,14 @@ class FileService:
             presets.append(next_preset)
 
         await self._save_file_view_presets(presets)
+        await self.record_admin_activity(
+            action="file.view_preset_update" if is_update else "file.view_preset_create",
+            target_type="view_preset",
+            target_id=next_preset["id"],
+            target_name=next_preset["name"],
+            count=1,
+            meta={"filters": normalized_filters},
+        )
         return next_preset
 
     async def delete_file_view_preset(self, preset_id: str) -> dict[str, Any]:
@@ -264,11 +339,22 @@ class FileService:
             raise HTTPException(status_code=400, detail="请选择要删除的视图预设")
 
         presets = await self._get_file_view_presets()
+        deleted_preset = next(
+            (preset for preset in presets if preset["id"] == preset_id),
+            None,
+        )
         next_presets = [preset for preset in presets if preset["id"] != preset_id]
         if len(next_presets) == len(presets):
             raise HTTPException(status_code=404, detail="视图预设不存在")
 
         await self._save_file_view_presets(next_presets)
+        await self.record_admin_activity(
+            action="file.view_preset_delete",
+            target_type="view_preset",
+            target_id=preset_id,
+            target_name=(deleted_preset or {}).get("name", ""),
+            count=1,
+        )
         return {
             "deleted": preset_id,
             "deletedPresetId": preset_id,
@@ -314,6 +400,21 @@ class FileService:
                 updated.append(file_id)
             except Exception as exc:
                 failed.append({"id": file_id, "reason": str(exc)})
+
+        if updated:
+            await self.record_admin_activity(
+                action="files.batch_policy_action",
+                target_type="file",
+                count=len(updated),
+                meta={
+                    "policyAction": action,
+                    "requestedCount": len(file_ids),
+                    "uniqueCount": len(unique_ids),
+                    "updated": updated,
+                    "missing": missing,
+                    "failedCount": len(failed),
+                },
+            )
 
         return {
             "requestedCount": len(file_ids),
@@ -630,6 +731,177 @@ class FileService:
             "updatedAt": updated_at,
             "updated_at": updated_at,
         }
+
+    async def list_admin_activities(self, limit: int = 8) -> dict[str, Any]:
+        limit = min(max(int(limit or 8), 1), self.MAX_ADMIN_ACTIVITIES)
+        activities = await self._get_admin_activities()
+        visible_activities = activities[:limit]
+        return {
+            "activities": visible_activities,
+            "items": visible_activities,
+            "total": len(activities),
+        }
+
+    async def record_admin_activity(
+        self,
+        action: str,
+        target_type: str,
+        target_id: Optional[Any] = None,
+        target_name: str = "",
+        count: int = 1,
+        meta: Optional[dict[str, Any]] = None,
+    ) -> Optional[dict[str, Any]]:
+        try:
+            now = await get_now()
+            created_at = now.isoformat()
+            activity = self._normalize_admin_activity(
+                {
+                    "id": self._build_admin_activity_id(
+                        action=action,
+                        target_type=target_type,
+                        target_id=target_id,
+                        target_name=target_name,
+                        timestamp=now,
+                    ),
+                    "action": action,
+                    "targetType": target_type,
+                    "target_type": target_type,
+                    "targetId": target_id,
+                    "target_id": target_id,
+                    "targetName": target_name,
+                    "target_name": target_name,
+                    "count": count,
+                    "meta": meta or {},
+                    "createdAt": created_at,
+                    "created_at": created_at,
+                }
+            )
+            if not activity:
+                return None
+
+            activities = await self._get_admin_activities()
+            next_activities = [
+                activity,
+                *[item for item in activities if item["id"] != activity["id"]],
+            ][: self.MAX_ADMIN_ACTIVITIES]
+            await self._save_admin_activities(next_activities)
+            return activity
+        except Exception:
+            return None
+
+    async def _get_admin_activities(self) -> list[dict[str, Any]]:
+        record = await KeyValue.filter(key=self.ADMIN_ACTIVITY_KEY).first()
+        raw_activities = record.value if record else []
+        if isinstance(raw_activities, dict):
+            raw_activities = (
+                raw_activities.get("activities") or raw_activities.get("items") or []
+            )
+        if not isinstance(raw_activities, list):
+            return []
+
+        activities = []
+        seen_ids = set()
+        for raw_activity in raw_activities:
+            activity = self._normalize_admin_activity(raw_activity)
+            if not activity or activity["id"] in seen_ids:
+                continue
+            seen_ids.add(activity["id"])
+            activities.append(activity)
+            if len(activities) >= self.MAX_ADMIN_ACTIVITIES:
+                break
+
+        activities.sort(key=lambda item: item.get("createdAt") or "", reverse=True)
+        return activities
+
+    async def _save_admin_activities(self, activities: list[dict[str, Any]]) -> None:
+        await KeyValue.update_or_create(
+            key=self.ADMIN_ACTIVITY_KEY,
+            defaults={"value": {"activities": activities}},
+        )
+
+    def _normalize_admin_activity(self, activity: Any) -> Optional[dict[str, Any]]:
+        if not isinstance(activity, dict):
+            return None
+
+        action = self._normalize_admin_activity_text(activity.get("action"))
+        target_type = self._normalize_admin_activity_text(
+            activity.get("targetType") or activity.get("target_type") or "system"
+        )
+        if not action:
+            return None
+
+        target_name = self._normalize_admin_activity_text(
+            activity.get("targetName") or activity.get("target_name")
+        )
+        created_at = activity.get("createdAt") or activity.get("created_at")
+        if isinstance(created_at, datetime):
+            created_at = created_at.isoformat()
+        created_at = str(created_at or "")
+        if not created_at:
+            return None
+
+        target_id = activity.get("targetId")
+        if target_id is None:
+            target_id = activity.get("target_id")
+
+        count = activity.get("count", 1)
+        try:
+            count = max(int(count), 1)
+        except (TypeError, ValueError):
+            count = 1
+
+        meta = activity.get("meta")
+        if not isinstance(meta, dict):
+            meta = {}
+
+        activity_id = self._normalize_admin_activity_text(activity.get("id"))
+        if not activity_id:
+            activity_id = self._build_admin_activity_id(
+                action=action,
+                target_type=target_type,
+                target_id=target_id,
+                target_name=target_name,
+                timestamp=None,
+                seed=created_at,
+            )
+
+        return {
+            "id": activity_id,
+            "action": action,
+            "targetType": target_type,
+            "target_type": target_type,
+            "targetId": target_id,
+            "target_id": target_id,
+            "targetName": target_name,
+            "target_name": target_name,
+            "count": count,
+            "meta": meta,
+            "createdAt": created_at,
+            "created_at": created_at,
+        }
+
+    def _normalize_admin_activity_text(self, value: Any) -> str:
+        return str(value or "").strip()[: self.MAX_ADMIN_ACTIVITY_TEXT_LENGTH]
+
+    def _build_admin_activity_id(
+        self,
+        action: str,
+        target_type: str,
+        target_id: Optional[Any],
+        target_name: str,
+        timestamp: Optional[datetime],
+        seed: Optional[str] = None,
+    ) -> str:
+        timestamp_seed = (
+            str(int(timestamp.timestamp() * 1000)) if timestamp else str(seed or "activity")
+        )
+        digest = hashlib.sha1(
+            f"{timestamp_seed}:{action}:{target_type}:{target_id}:{target_name}".encode("utf-8")
+        ).hexdigest()[:10]
+        return f"act_{timestamp_seed}_{digest}"
+
+    def _build_file_activity_name(self, file_code: FileCodes) -> str:
+        return (file_code.prefix + file_code.suffix) or file_code.code
 
     async def _get_file_view_presets(self) -> list[dict[str, Any]]:
         record = await KeyValue.filter(key=self.FILE_VIEW_PRESETS_KEY).first()

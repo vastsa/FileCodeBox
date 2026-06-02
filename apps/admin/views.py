@@ -110,6 +110,7 @@ async def dashboard(file_service: FileService = Depends(get_file_service)):
         else 0,
         reverse=True,
     )[:8]
+    recent_activities = await file_service.list_admin_activities(limit=8)
     return APIResponse(
         detail={
             "totalFiles": len(all_codes),
@@ -140,8 +141,19 @@ async def dashboard(file_service: FileService = Depends(get_file_service)):
                 await build_dashboard_recent_file(file_code)
                 for file_code in recent_file_codes
             ],
+            "recentActivities": recent_activities["activities"],
+            "recent_activities": recent_activities["activities"],
         }
     )
+
+
+@admin_api.get("/activities")
+async def admin_activities(
+    limit: int = 20,
+    file_service: FileService = Depends(get_file_service),
+):
+    result = await file_service.list_admin_activities(limit=limit)
+    return APIResponse(detail=result)
 
 
 @admin_api.delete("/file/delete")
@@ -454,9 +466,17 @@ async def get_config(
 async def update_config(
     data: dict,
     config_service: ConfigService = Depends(get_config_service),
+    file_service: FileService = Depends(get_file_service),
 ):
     data.pop("themesChoices", None)
     await config_service.update_config(data)
+    await file_service.record_admin_activity(
+        action="config.update",
+        target_type="config",
+        target_name="system",
+        count=1,
+        meta={"fields": sorted(data.keys())},
+    )
     return APIResponse()
 
 
@@ -491,8 +511,16 @@ async def get_local_lists(
 async def delete_local_file(
     item: DeleteItem,
     local_file_service: LocalFileService = Depends(get_local_file_service),
+    file_service: FileService = Depends(get_file_service),
 ):
     result = await local_file_service.delete_file(item.filename)
+    await file_service.record_admin_activity(
+        action="local_file.delete",
+        target_type="local_file",
+        target_name=item.filename,
+        count=1,
+        meta={"success": bool(result)},
+    )
     return APIResponse(detail=result)
 
 
@@ -502,16 +530,29 @@ async def share_local_file(
     file_service: FileService = Depends(get_file_service),
 ):
     share_info = await file_service.share_local_file(item)
+    await file_service.record_admin_activity(
+        action="local_file.share",
+        target_type="file",
+        target_id=share_info.get("id") if isinstance(share_info, dict) else None,
+        target_name=item.filename,
+        count=1,
+        meta={
+            "expireValue": item.expire_value,
+            "expireStyle": item.expire_style,
+        },
+    )
     return APIResponse(detail=share_info)
 
 
 @admin_api.patch("/file/update")
 async def update_file(
     data: UpdateFileData,
+    file_service: FileService = Depends(get_file_service),
 ):
     file_code = await FileCodes.filter(id=data.id).first()
     if not file_code:
         raise HTTPException(status_code=404, detail="文件不存在")
+    target_name = file_service._build_file_activity_name(file_code)
     update_data = {}
 
     if data.code is not None and data.code != file_code.code:
@@ -533,4 +574,13 @@ async def update_file(
         update_data["expired_count"] = data.expired_count
 
     await file_code.update_from_dict(update_data).save()
+    if update_data:
+        await file_service.record_admin_activity(
+            action="file.update",
+            target_type="file",
+            target_id=data.id,
+            target_name=target_name,
+            count=1,
+            meta={"fields": sorted(update_data.keys())},
+        )
     return APIResponse(detail="更新成功")
