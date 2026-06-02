@@ -136,6 +136,7 @@ class FileService:
         keyword: str = "",
         status: str = "",
         file_type: str = "",
+        health: str = "",
         sort_by: str = "created_at",
         sort_order: str = "desc",
     ):
@@ -144,10 +145,12 @@ class FileService:
         keyword = keyword.strip().lower()
         status = status.strip().lower()
         file_type = file_type.strip().lower()
+        health = health.strip().lower()
         sort_by = self._normalize_sort_by(sort_by)
         reverse = sort_order.strip().lower() != "asc"
 
         all_files = await FileCodes.all()
+        now = await get_now()
         enriched_files = []
         summary = {
             "totalFiles": len(all_files),
@@ -156,12 +159,22 @@ class FileService:
             "textCount": 0,
             "fileCount": 0,
             "chunkedCount": 0,
+            "healthAttentionCount": 0,
+            "healthDangerCount": 0,
+            "healthWarningCount": 0,
+            "expiringSoonCount": 0,
+            "storageIssueCount": 0,
+            "neverRetrievedCount": 0,
             "storageUsed": sum(file_code.size for file_code in all_files),
             "usedCount": sum(file_code.used_count for file_code in all_files),
         }
 
         for file_code in all_files:
-            item = await self._build_admin_file_item(file_code)
+            item = await self._build_admin_file_item(file_code, now=now)
+            status_insights = item["statusInsights"]
+            reasons = status_insights["reasons"]
+            severity = status_insights["severity"]
+
             if item["isExpired"]:
                 summary["expiredCount"] += 1
             else:
@@ -172,8 +185,20 @@ class FileService:
                 summary["fileCount"] += 1
             if item["isChunked"]:
                 summary["chunkedCount"] += 1
+            if severity in {"danger", "warning"}:
+                summary["healthAttentionCount"] += 1
+            if severity == "danger":
+                summary["healthDangerCount"] += 1
+            if severity == "warning":
+                summary["healthWarningCount"] += 1
+            if "expires_soon" in reasons:
+                summary["expiringSoonCount"] += 1
+            if "storage_metadata_incomplete" in reasons:
+                summary["storageIssueCount"] += 1
+            if "never_retrieved" in reasons:
+                summary["neverRetrievedCount"] += 1
 
-            if not self._match_admin_file(item, keyword, status, file_type):
+            if not self._match_admin_file(item, keyword, status, file_type, health):
                 continue
             enriched_files.append(item)
 
@@ -184,10 +209,17 @@ class FileService:
         offset = (page - 1) * size
         return enriched_files[offset : offset + size], len(enriched_files), summary
 
-    async def _build_admin_file_item(self, file_code: FileCodes) -> dict[str, Any]:
+    async def _build_admin_file_item(
+        self, file_code: FileCodes, now: Optional[datetime] = None
+    ) -> dict[str, Any]:
+        if now is None:
+            now = await get_now()
         is_text = file_code.text is not None
         is_expired = await file_code.is_expired()
         name = f"{file_code.prefix}{file_code.suffix}"
+        has_download_limit = file_code.expired_count >= 0
+        is_permanent = file_code.expired_at is None and file_code.expired_count < 0
+        can_download = is_text or bool(file_code.file_path or file_code.uuid_file_name)
         remaining_downloads = (
             max(file_code.expired_count, 0) if file_code.expired_count >= 0 else None
         )
@@ -216,6 +248,20 @@ class FileService:
                 "file_hash": file_code.file_hash,
             }
         )
+        status_insights = self._build_file_status_insights(
+            file_code=file_code,
+            detail=data,
+            now=now,
+            has_download_limit=has_download_limit,
+            is_permanent=is_permanent,
+            can_download=can_download,
+        )
+        data.update(
+            {
+                "statusInsights": status_insights,
+                "status_insights": status_insights,
+            }
+        )
         return data
 
     async def get_file_detail(self, file_id: int):
@@ -223,13 +269,13 @@ class FileService:
         if not file_code:
             raise HTTPException(status_code=404, detail="文件不存在")
 
-        detail = await self._build_admin_file_item(file_code)
+        now = await get_now()
+        detail = await self._build_admin_file_item(file_code, now=now)
         is_text = file_code.text is not None
         has_download_limit = file_code.expired_count >= 0
         is_permanent = file_code.expired_at is None and file_code.expired_count < 0
         text_length = len(file_code.text) if file_code.text else 0
         can_download = is_text or bool(file_code.file_path or file_code.uuid_file_name)
-        now = await get_now()
         status_insights = self._build_file_status_insights(
             file_code=file_code,
             detail=detail,
@@ -518,6 +564,7 @@ class FileService:
         keyword: str,
         status: str,
         file_type: str,
+        health: str,
     ) -> bool:
         if status == "active" and item["isExpired"]:
             return False
@@ -528,6 +575,8 @@ class FileService:
         if file_type == "file" and item["isText"]:
             return False
         if file_type == "chunked" and not item["isChunked"]:
+            return False
+        if not self._match_admin_file_health(item, health):
             return False
         if not keyword:
             return True
@@ -541,6 +590,36 @@ class FileService:
             item.get("text"),
         ]
         return any(keyword in str(value).lower() for value in search_values if value)
+
+    def _match_admin_file_health(self, item: dict[str, Any], health: str) -> bool:
+        if not health or health == "all":
+            return True
+
+        status_insights = item.get("statusInsights") or {}
+        severity = status_insights.get("severity")
+        state = status_insights.get("state")
+        reasons = set(status_insights.get("reasons") or [])
+
+        if health == "attention":
+            return severity in {"danger", "warning"}
+        if health == "danger":
+            return severity == "danger"
+        if health == "warning":
+            return severity == "warning"
+        if health == "expired":
+            return state == "expired" or item.get("isExpired") is True
+        if health == "expiring_soon":
+            return "expires_soon" in reasons
+        if health == "storage_issue":
+            return state == "storage_incomplete" or "storage_metadata_incomplete" in reasons
+        if health == "never_retrieved":
+            return "never_retrieved" in reasons
+        if health == "healthy":
+            return severity == "success"
+        if health == "permanent":
+            return state == "permanent"
+
+        return True
 
     def _normalize_sort_by(self, sort_by: str) -> str:
         normalized = sort_by.replace("-", "_").strip().lower()

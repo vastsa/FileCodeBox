@@ -258,6 +258,7 @@ async def file_list(
     keyword: str = "",
     status: str = "",
     type: str = "",
+    health: str = "",
     sortBy: str = "created_at",
     sortOrder: str = "desc",
     file_service: FileService = Depends(get_file_service),
@@ -270,6 +271,7 @@ async def file_list(
         keyword,
         status=status,
         file_type=type,
+        health=health,
         sort_by=sortBy,
         sort_order=sortOrder,
     )
