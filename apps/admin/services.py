@@ -73,6 +73,40 @@ class FileService:
             "failed": failed,
         }
 
+    async def update_files(self, file_ids: list[int], update_data: dict[str, Any]):
+        unique_ids = list(dict.fromkeys(file_ids))
+        updated = []
+        failed = []
+        missing = []
+
+        for file_id in unique_ids:
+            file_code = await FileCodes.filter(id=file_id).first()
+            if not file_code:
+                missing.append(file_id)
+                continue
+
+            try:
+                await file_code.update_from_dict(update_data).save()
+                updated.append(file_id)
+            except Exception as exc:
+                failed.append({"id": file_id, "reason": str(exc)})
+
+        return {
+            "requestedCount": len(file_ids),
+            "requested_count": len(file_ids),
+            "uniqueCount": len(unique_ids),
+            "unique_count": len(unique_ids),
+            "updatedCount": len(updated),
+            "updated_count": len(updated),
+            "missingCount": len(missing),
+            "missing_count": len(missing),
+            "failedCount": len(failed),
+            "failed_count": len(failed),
+            "updated": updated,
+            "missing": missing,
+            "failed": failed,
+        }
+
     async def list_files(
         self,
         page: int,

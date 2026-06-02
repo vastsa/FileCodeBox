@@ -33,3 +33,11 @@ class UpdateFileData(BaseModel):
     suffix: Optional[str] = None
     expired_at: Optional[Union[datetime.datetime, str]] = None
     expired_count: Optional[int] = None
+
+
+class BatchUpdateFileData(BaseModel):
+    ids: list[int]
+    expired_at: Optional[Union[datetime.datetime, str]] = None
+    expired_count: Optional[int] = None
+    clearExpiredAt: Optional[bool] = None
+    clear_expired_at: Optional[bool] = None

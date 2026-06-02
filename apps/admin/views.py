@@ -14,7 +14,15 @@ from apps.admin.dependencies import (
     get_config_service,
     get_local_file_service,
 )
-from apps.admin.schemas import IDData, IDsData, ShareItem, DeleteItem, LoginData, UpdateFileData
+from apps.admin.schemas import (
+    IDData,
+    IDsData,
+    BatchUpdateFileData,
+    ShareItem,
+    DeleteItem,
+    LoginData,
+    UpdateFileData,
+)
 from core.response import APIResponse
 from apps.base.models import FileCodes, KeyValue
 from apps.admin.dependencies import create_token
@@ -161,6 +169,53 @@ async def file_batch_delete_post(
     file_service: FileService = Depends(get_file_service),
 ):
     return await batch_delete_files(data, file_service)
+
+
+async def batch_update_files(
+    data: BatchUpdateFileData,
+    file_service: FileService,
+):
+    if not data.ids:
+        raise HTTPException(status_code=400, detail="请选择要更新的文件")
+
+    update_data = {}
+    fields_set = data.model_fields_set
+    should_clear_expired_at = bool(data.clearExpiredAt or data.clear_expired_at)
+
+    if should_clear_expired_at:
+        update_data["expired_at"] = None
+        update_data["expired_count"] = -1
+    elif "expired_at" in fields_set and data.expired_at != "":
+        update_data["expired_at"] = data.expired_at
+
+    if (
+        not should_clear_expired_at
+        and "expired_count" in fields_set
+        and data.expired_count is not None
+    ):
+        update_data["expired_count"] = data.expired_count
+
+    if not update_data:
+        raise HTTPException(status_code=400, detail="请选择要更新的字段")
+
+    result = await file_service.update_files(data.ids, update_data)
+    return APIResponse(detail=result)
+
+
+@admin_api.patch("/file/batch-update")
+async def file_batch_update(
+    data: BatchUpdateFileData,
+    file_service: FileService = Depends(get_file_service),
+):
+    return await batch_update_files(data, file_service)
+
+
+@admin_api.post("/file/batch-update")
+async def file_batch_update_post(
+    data: BatchUpdateFileData,
+    file_service: FileService = Depends(get_file_service),
+):
+    return await batch_update_files(data, file_service)
 
 
 @admin_api.get("/file/list")
