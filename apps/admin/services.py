@@ -1,3 +1,4 @@
+import hashlib
 import os
 import time
 from datetime import datetime, timedelta
@@ -16,9 +17,13 @@ from core.utils import get_now, hash_password, is_password_hashed
 
 class FileService:
     FILE_METADATA_KEY_PREFIX = "admin_file_metadata:"
+    FILE_VIEW_PRESETS_KEY = "admin_file_view_presets"
     MAX_METADATA_NOTE_LENGTH = 2000
     MAX_METADATA_TAGS = 12
     MAX_METADATA_TAG_LENGTH = 24
+    MAX_VIEW_PRESETS = 24
+    MAX_VIEW_PRESET_NAME_LENGTH = 32
+    MAX_VIEW_PRESET_KEYWORD_LENGTH = 80
 
     POLICY_ACTIONS = {
         "extend_24h",
@@ -36,6 +41,28 @@ class FileService:
         "size",
         "used_count",
         "usedcount",
+        "code",
+    }
+    VIEW_PRESET_STATUS_VALUES = {"all", "active", "expired"}
+    VIEW_PRESET_TYPE_VALUES = {"all", "file", "text", "chunked"}
+    VIEW_PRESET_HEALTH_VALUES = {
+        "all",
+        "attention",
+        "danger",
+        "warning",
+        "healthy",
+        "expired",
+        "expiring_soon",
+        "storage_issue",
+        "never_retrieved",
+        "permanent",
+    }
+    VIEW_PRESET_SORT_FIELDS = {
+        "created_at",
+        "expired_at",
+        "name",
+        "size",
+        "used_count",
         "code",
     }
 
@@ -177,6 +204,77 @@ class FileService:
             defaults={"value": next_metadata},
         )
         return await self.get_file_detail(file_id)
+
+    async def list_file_view_presets(self) -> dict[str, Any]:
+        presets = await self._get_file_view_presets()
+        return {
+            "presets": presets,
+            "items": presets,
+            "total": len(presets),
+        }
+
+    async def save_file_view_preset(
+        self,
+        preset_id: Optional[str],
+        name: str,
+        filters: dict[str, Any],
+    ) -> dict[str, Any]:
+        presets = await self._get_file_view_presets()
+        normalized_name = self._normalize_file_view_preset_name(name)
+        normalized_filters = self._normalize_file_view_preset_filters(filters)
+        now = await get_now()
+        updated_at = now.isoformat()
+
+        target_index = next(
+            (index for index, preset in enumerate(presets) if preset["id"] == preset_id),
+            -1,
+        )
+        if target_index >= 0:
+            preset = presets[target_index]
+            next_preset = {
+                **preset,
+                "name": normalized_name,
+                "filters": normalized_filters,
+                "params": normalized_filters,
+                "updatedAt": updated_at,
+                "updated_at": updated_at,
+            }
+            presets[target_index] = next_preset
+        else:
+            if len(presets) >= self.MAX_VIEW_PRESETS:
+                raise HTTPException(status_code=400, detail="视图预设数量已达上限")
+            next_preset = {
+                "id": preset_id or self._build_file_view_preset_id(normalized_name, now),
+                "name": normalized_name,
+                "filters": normalized_filters,
+                "params": normalized_filters,
+                "createdAt": updated_at,
+                "created_at": updated_at,
+                "updatedAt": updated_at,
+                "updated_at": updated_at,
+            }
+            presets.append(next_preset)
+
+        await self._save_file_view_presets(presets)
+        return next_preset
+
+    async def delete_file_view_preset(self, preset_id: str) -> dict[str, Any]:
+        preset_id = str(preset_id).strip()
+        if not preset_id:
+            raise HTTPException(status_code=400, detail="请选择要删除的视图预设")
+
+        presets = await self._get_file_view_presets()
+        next_presets = [preset for preset in presets if preset["id"] != preset_id]
+        if len(next_presets) == len(presets):
+            raise HTTPException(status_code=404, detail="视图预设不存在")
+
+        await self._save_file_view_presets(next_presets)
+        return {
+            "deleted": preset_id,
+            "deletedPresetId": preset_id,
+            "deleted_preset_id": preset_id,
+            "total": len(next_presets),
+        }
 
     async def apply_files_policy_action(
         self,
@@ -532,6 +630,120 @@ class FileService:
             "updatedAt": updated_at,
             "updated_at": updated_at,
         }
+
+    async def _get_file_view_presets(self) -> list[dict[str, Any]]:
+        record = await KeyValue.filter(key=self.FILE_VIEW_PRESETS_KEY).first()
+        raw_presets = record.value if record else []
+        if isinstance(raw_presets, dict):
+            raw_presets = raw_presets.get("presets") or raw_presets.get("items") or []
+        if not isinstance(raw_presets, list):
+            return []
+
+        presets = []
+        seen_ids = set()
+        for raw_preset in raw_presets:
+            try:
+                preset = self._normalize_file_view_preset(raw_preset)
+            except HTTPException:
+                continue
+            if not preset or preset["id"] in seen_ids:
+                continue
+            seen_ids.add(preset["id"])
+            presets.append(preset)
+            if len(presets) >= self.MAX_VIEW_PRESETS:
+                break
+        return presets
+
+    async def _save_file_view_presets(self, presets: list[dict[str, Any]]) -> None:
+        await KeyValue.update_or_create(
+            key=self.FILE_VIEW_PRESETS_KEY,
+            defaults={"value": {"presets": presets}},
+        )
+
+    def _normalize_file_view_preset(self, preset: Any) -> Optional[dict[str, Any]]:
+        if not isinstance(preset, dict):
+            return None
+
+        preset_id = str(preset.get("id") or "").strip()
+        raw_name = str(preset.get("name") or "").strip()
+        if not raw_name:
+            return None
+        name = self._normalize_file_view_preset_name(raw_name)
+        if not preset_id:
+            preset_id = self._build_file_view_preset_id(name)
+
+        filters = preset.get("filters") or preset.get("params") or {}
+        normalized_filters = self._normalize_file_view_preset_filters(filters)
+        created_at = preset.get("createdAt") or preset.get("created_at")
+        updated_at = preset.get("updatedAt") or preset.get("updated_at")
+
+        return {
+            "id": preset_id,
+            "name": name,
+            "filters": normalized_filters,
+            "params": normalized_filters,
+            "createdAt": created_at,
+            "created_at": created_at,
+            "updatedAt": updated_at,
+            "updated_at": updated_at,
+        }
+
+    def _normalize_file_view_preset_name(self, name: Any) -> str:
+        normalized_name = str(name or "").strip()
+        if not normalized_name:
+            raise HTTPException(status_code=400, detail="请输入视图名称")
+        return normalized_name[: self.MAX_VIEW_PRESET_NAME_LENGTH]
+
+    def _normalize_file_view_preset_filters(self, filters: Any) -> dict[str, Any]:
+        if not isinstance(filters, dict):
+            filters = {}
+
+        sort_by = str(filters.get("sortBy") or filters.get("sort_by") or "created_at")
+        sort_by = sort_by.replace("-", "_").strip().lower()
+        if sort_by not in self.VIEW_PRESET_SORT_FIELDS:
+            sort_by = "created_at"
+
+        sort_order = str(filters.get("sortOrder") or filters.get("sort_order") or "desc")
+        sort_order = sort_order.strip().lower()
+        if sort_order not in {"asc", "desc"}:
+            sort_order = "desc"
+
+        size = filters.get("size", 10)
+        try:
+            size = int(size)
+        except (TypeError, ValueError):
+            size = 10
+
+        return {
+            "keyword": str(filters.get("keyword") or "").strip()[
+                : self.MAX_VIEW_PRESET_KEYWORD_LENGTH
+            ],
+            "status": self._normalize_file_view_preset_choice(
+                filters.get("status"), self.VIEW_PRESET_STATUS_VALUES
+            ),
+            "type": self._normalize_file_view_preset_choice(
+                filters.get("type"), self.VIEW_PRESET_TYPE_VALUES
+            ),
+            "health": self._normalize_file_view_preset_choice(
+                filters.get("health"), self.VIEW_PRESET_HEALTH_VALUES
+            ),
+            "sortBy": sort_by,
+            "sortOrder": sort_order,
+            "size": min(max(size, 1), 100),
+        }
+
+    def _normalize_file_view_preset_choice(self, value: Any, allowed_values: set[str]) -> str:
+        normalized_value = str(value or "all").strip().lower()
+        if normalized_value not in allowed_values:
+            return "all"
+        return normalized_value
+
+    def _build_file_view_preset_id(
+        self, name: str, timestamp: Optional[datetime] = None
+    ) -> str:
+        seed = int(timestamp.timestamp() * 1000) if timestamp else "saved"
+        digest = hashlib.sha1(name.encode("utf-8")).hexdigest()[:8]
+        return f"view_{seed}_{digest}"
 
     def _build_file_status_insights(
         self,

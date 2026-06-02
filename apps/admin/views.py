@@ -21,6 +21,8 @@ from apps.admin.schemas import (
     BatchFilePolicyActionData,
     FilePolicyActionData,
     FileMetadataData,
+    FileViewPresetData,
+    FileViewPresetDeleteData,
     ShareItem,
     DeleteItem,
     LoginData,
@@ -378,6 +380,67 @@ async def file_metadata_post(
     file_service: FileService = Depends(get_file_service),
 ):
     return await update_file_metadata(data, file_service)
+
+
+@admin_api.get("/file/view-presets")
+async def file_view_presets(
+    file_service: FileService = Depends(get_file_service),
+):
+    result = await file_service.list_file_view_presets()
+    return APIResponse(detail=result)
+
+
+async def save_file_view_preset(
+    data: FileViewPresetData,
+    file_service: FileService,
+):
+    filters = data.filters if data.filters is not None else data.params
+    preset = await file_service.save_file_view_preset(
+        preset_id=data.id,
+        name=data.name,
+        filters=filters or {},
+    )
+    return APIResponse(detail=preset)
+
+
+@admin_api.post("/file/view-presets")
+async def file_view_presets_save(
+    data: FileViewPresetData,
+    file_service: FileService = Depends(get_file_service),
+):
+    return await save_file_view_preset(data, file_service)
+
+
+@admin_api.patch("/file/view-presets")
+async def file_view_presets_patch(
+    data: FileViewPresetData,
+    file_service: FileService = Depends(get_file_service),
+):
+    return await save_file_view_preset(data, file_service)
+
+
+async def delete_file_view_preset(
+    data: FileViewPresetDeleteData,
+    file_service: FileService,
+):
+    result = await file_service.delete_file_view_preset(data.id)
+    return APIResponse(detail=result)
+
+
+@admin_api.delete("/file/view-presets")
+async def file_view_presets_delete(
+    data: FileViewPresetDeleteData,
+    file_service: FileService = Depends(get_file_service),
+):
+    return await delete_file_view_preset(data, file_service)
+
+
+@admin_api.post("/file/view-presets/delete")
+async def file_view_presets_delete_post(
+    data: FileViewPresetDeleteData,
+    file_service: FileService = Depends(get_file_service),
+):
+    return await delete_file_view_preset(data, file_service)
 
 
 @admin_api.get("/config/get")

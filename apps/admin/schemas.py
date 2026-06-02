@@ -1,5 +1,5 @@
 import datetime
-from typing import Optional, Union
+from typing import Any, Optional, Union
 
 from pydantic import BaseModel
 
@@ -61,3 +61,14 @@ class FileMetadataData(BaseModel):
     id: int
     note: Optional[str] = None
     tags: Optional[list[str]] = None
+
+
+class FileViewPresetData(BaseModel):
+    id: Optional[str] = None
+    name: str
+    filters: Optional[dict[str, Any]] = None
+    params: Optional[dict[str, Any]] = None
+
+
+class FileViewPresetDeleteData(BaseModel):
+    id: str
