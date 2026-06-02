@@ -8,6 +8,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from apps.admin.services import FileService, ConfigService, LocalFileService
 from apps.admin.dependencies import (
     admin_required,
+    get_admin_session,
     get_file_service,
     get_config_service,
     get_local_file_service,
@@ -31,6 +32,16 @@ async def login(data: LoginData):
 
     token = create_token({"is_admin": True})
     return APIResponse(detail={"token": token, "token_type": "Bearer"})
+
+
+@admin_api.get("/verify")
+async def verify_admin(session: dict = Depends(get_admin_session)):
+    return APIResponse(detail=session)
+
+
+@admin_api.post("/logout")
+async def logout_admin():
+    return APIResponse(detail={"ok": True})
 
 
 @admin_api.get("/dashboard")
