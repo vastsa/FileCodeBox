@@ -48,3 +48,10 @@ class FilePolicyActionData(BaseModel):
     action: str
     downloadLimit: Optional[int] = None
     download_limit: Optional[int] = None
+
+
+class BatchFilePolicyActionData(BaseModel):
+    ids: list[int]
+    action: str
+    downloadLimit: Optional[int] = None
+    download_limit: Optional[int] = None

@@ -15,6 +15,13 @@ from core.utils import get_now, hash_password, is_password_hashed
 
 
 class FileService:
+    POLICY_ACTIONS = {
+        "extend_24h",
+        "extend_7d",
+        "make_permanent",
+        "reset_download_limit",
+    }
+
     SORT_FIELDS = {
         "created_at",
         "createdat",
@@ -128,6 +135,62 @@ class FileService:
 
         await file_code.update_from_dict(update_data).save()
         return await self.get_file_detail(file_id)
+
+    async def apply_files_policy_action(
+        self,
+        file_ids: list[int],
+        action: str,
+        download_limit: Optional[int] = None,
+    ) -> dict[str, Any]:
+        unique_ids = list(dict.fromkeys(file_ids))
+        updated = []
+        failed = []
+        missing = []
+        action = action.strip().lower()
+
+        if action not in self.POLICY_ACTIONS:
+            raise HTTPException(status_code=400, detail="不支持的策略动作")
+
+        if action == "reset_download_limit":
+            next_limit = download_limit if download_limit is not None else 5
+            if next_limit < 1:
+                raise HTTPException(status_code=400, detail="取件次数必须大于 0")
+
+        now = await get_now()
+        for file_id in unique_ids:
+            file_code = await FileCodes.filter(id=file_id).first()
+            if not file_code:
+                missing.append(file_id)
+                continue
+
+            try:
+                update_data = self._build_policy_action_update(
+                    file_code=file_code,
+                    action=action,
+                    now=now,
+                    download_limit=download_limit,
+                )
+                await file_code.update_from_dict(update_data).save()
+                updated.append(file_id)
+            except Exception as exc:
+                failed.append({"id": file_id, "reason": str(exc)})
+
+        return {
+            "requestedCount": len(file_ids),
+            "requested_count": len(file_ids),
+            "uniqueCount": len(unique_ids),
+            "unique_count": len(unique_ids),
+            "updatedCount": len(updated),
+            "updated_count": len(updated),
+            "missingCount": len(missing),
+            "missing_count": len(missing),
+            "failedCount": len(failed),
+            "failed_count": len(failed),
+            "action": action,
+            "updated": updated,
+            "missing": missing,
+            "failed": failed,
+        }
 
     async def list_files(
         self,

@@ -18,6 +18,7 @@ from apps.admin.schemas import (
     IDData,
     IDsData,
     BatchUpdateFileData,
+    BatchFilePolicyActionData,
     FilePolicyActionData,
     ShareItem,
     DeleteItem,
@@ -252,6 +253,41 @@ async def file_policy_action_post(
     file_service: FileService = Depends(get_file_service),
 ):
     return await apply_file_policy_action(data, file_service)
+
+
+async def apply_batch_file_policy_action(
+    data: BatchFilePolicyActionData,
+    file_service: FileService,
+):
+    if not data.ids:
+        raise HTTPException(status_code=400, detail="请选择要更新的文件")
+
+    download_limit = data.downloadLimit
+    if download_limit is None:
+        download_limit = data.download_limit
+
+    result = await file_service.apply_files_policy_action(
+        file_ids=data.ids,
+        action=data.action,
+        download_limit=download_limit,
+    )
+    return APIResponse(detail=result)
+
+
+@admin_api.patch("/file/batch-policy-action")
+async def file_batch_policy_action(
+    data: BatchFilePolicyActionData,
+    file_service: FileService = Depends(get_file_service),
+):
+    return await apply_batch_file_policy_action(data, file_service)
+
+
+@admin_api.post("/file/batch-policy-action")
+async def file_batch_policy_action_post(
+    data: BatchFilePolicyActionData,
+    file_service: FileService = Depends(get_file_service),
+):
+    return await apply_batch_file_policy_action(data, file_service)
 
 
 @admin_api.get("/file/list")
