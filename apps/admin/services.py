@@ -30,10 +30,48 @@ class FileService:
     def __init__(self):
         self.file_storage: FileStorageInterface = storages[settings.file_storage]()
 
+    async def _delete_file_code(self, file_code: FileCodes):
+        if file_code.text is None:
+            await self.file_storage.delete_file(file_code)
+        await file_code.delete()
+
     async def delete_file(self, file_id: int):
         file_code = await FileCodes.get(id=file_id)
-        await self.file_storage.delete_file(file_code)
-        await file_code.delete()
+        await self._delete_file_code(file_code)
+
+    async def delete_files(self, file_ids: list[int]):
+        unique_ids = list(dict.fromkeys(file_ids))
+        deleted = []
+        failed = []
+        missing = []
+
+        for file_id in unique_ids:
+            file_code = await FileCodes.filter(id=file_id).first()
+            if not file_code:
+                missing.append(file_id)
+                continue
+
+            try:
+                await self._delete_file_code(file_code)
+                deleted.append(file_id)
+            except Exception as exc:
+                failed.append({"id": file_id, "reason": str(exc)})
+
+        return {
+            "requestedCount": len(file_ids),
+            "requested_count": len(file_ids),
+            "uniqueCount": len(unique_ids),
+            "unique_count": len(unique_ids),
+            "deletedCount": len(deleted),
+            "deleted_count": len(deleted),
+            "missingCount": len(missing),
+            "missing_count": len(missing),
+            "failedCount": len(failed),
+            "failed_count": len(failed),
+            "deleted": deleted,
+            "missing": missing,
+            "failed": failed,
+        }
 
     async def list_files(
         self,

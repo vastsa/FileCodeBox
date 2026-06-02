@@ -8,6 +8,10 @@ class IDData(BaseModel):
     id: int
 
 
+class IDsData(BaseModel):
+    ids: list[int]
+
+
 class ShareItem(BaseModel):
     expire_value: int
     expire_style: str = "day"

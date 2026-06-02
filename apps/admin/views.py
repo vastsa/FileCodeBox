@@ -14,7 +14,7 @@ from apps.admin.dependencies import (
     get_config_service,
     get_local_file_service,
 )
-from apps.admin.schemas import IDData, ShareItem, DeleteItem, LoginData, UpdateFileData
+from apps.admin.schemas import IDData, IDsData, ShareItem, DeleteItem, LoginData, UpdateFileData
 from core.response import APIResponse
 from apps.base.models import FileCodes, KeyValue
 from apps.admin.dependencies import create_token
@@ -135,6 +135,32 @@ async def file_delete(
 ):
     await file_service.delete_file(data.id)
     return APIResponse()
+
+
+async def batch_delete_files(
+    data: IDsData,
+    file_service: FileService,
+):
+    if not data.ids:
+        raise HTTPException(status_code=400, detail="请选择要删除的文件")
+    result = await file_service.delete_files(data.ids)
+    return APIResponse(detail=result)
+
+
+@admin_api.delete("/file/batch-delete")
+async def file_batch_delete(
+    data: IDsData,
+    file_service: FileService = Depends(get_file_service),
+):
+    return await batch_delete_files(data, file_service)
+
+
+@admin_api.post("/file/batch-delete")
+async def file_batch_delete_post(
+    data: IDsData,
+    file_service: FileService = Depends(get_file_service),
+):
+    return await batch_delete_files(data, file_service)
 
 
 @admin_api.get("/file/list")
