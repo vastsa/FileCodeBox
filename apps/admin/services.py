@@ -15,6 +15,11 @@ from core.utils import get_now, hash_password, is_password_hashed
 
 
 class FileService:
+    FILE_METADATA_KEY_PREFIX = "admin_file_metadata:"
+    MAX_METADATA_NOTE_LENGTH = 2000
+    MAX_METADATA_TAGS = 12
+    MAX_METADATA_TAG_LENGTH = 24
+
     POLICY_ACTIONS = {
         "extend_24h",
         "extend_7d",
@@ -37,9 +42,13 @@ class FileService:
     def __init__(self):
         self.file_storage: FileStorageInterface = storages[settings.file_storage]()
 
+    def _file_metadata_key(self, file_id: int) -> str:
+        return f"{self.FILE_METADATA_KEY_PREFIX}{file_id}"
+
     async def _delete_file_code(self, file_code: FileCodes):
         if file_code.text is None:
             await self.file_storage.delete_file(file_code)
+        await KeyValue.filter(key=self._file_metadata_key(file_code.id)).delete()
         await file_code.delete()
 
     async def delete_file(self, file_id: int):
@@ -134,6 +143,39 @@ class FileService:
         )
 
         await file_code.update_from_dict(update_data).save()
+        return await self.get_file_detail(file_id)
+
+    async def get_file_metadata(self, file_id: int) -> dict[str, Any]:
+        record = await KeyValue.filter(key=self._file_metadata_key(file_id)).first()
+        return self._normalize_file_metadata(record.value if record else None)
+
+    async def update_file_metadata(
+        self,
+        file_id: int,
+        note: Optional[str],
+        tags: Optional[list[str]],
+        update_note: bool,
+        update_tags: bool,
+    ) -> dict[str, Any]:
+        file_code = await FileCodes.filter(id=file_id).first()
+        if not file_code:
+            raise HTTPException(status_code=404, detail="文件不存在")
+
+        current_metadata = await self.get_file_metadata(file_id)
+        next_metadata = dict(current_metadata)
+        if update_note:
+            next_metadata["note"] = self._normalize_metadata_note(note)
+        if update_tags:
+            next_metadata["tags"] = self._normalize_metadata_tags(tags)
+
+        now = await get_now()
+        updated_at = now.isoformat()
+        next_metadata["updatedAt"] = updated_at
+        next_metadata["updated_at"] = updated_at
+        await KeyValue.update_or_create(
+            key=self._file_metadata_key(file_id),
+            defaults={"value": next_metadata},
+        )
         return await self.get_file_detail(file_id)
 
     async def apply_files_policy_action(
@@ -437,7 +479,59 @@ class FileService:
                 "timeline": timeline,
             }
         )
+        metadata = await self.get_file_metadata(file_id)
+        detail.update(
+            {
+                "metadata": metadata,
+                "meta": metadata,
+                "note": metadata["note"],
+                "tags": metadata["tags"],
+                "metadataUpdatedAt": metadata["updatedAt"],
+                "metadata_updated_at": metadata["updated_at"],
+            }
+        )
         return detail
+
+    def _normalize_metadata_note(self, note: Optional[str]) -> str:
+        if note is None:
+            return ""
+        return str(note).strip()[: self.MAX_METADATA_NOTE_LENGTH]
+
+    def _normalize_metadata_tags(self, tags: Any) -> list[str]:
+        if not tags:
+            return []
+        if isinstance(tags, str):
+            tags = [tags]
+        elif not isinstance(tags, list):
+            return []
+
+        normalized_tags = []
+        seen_tags = set()
+        for raw_tag in tags:
+            tag = str(raw_tag).strip()
+            if not tag:
+                continue
+            tag = tag[: self.MAX_METADATA_TAG_LENGTH]
+            dedupe_key = tag.lower()
+            if dedupe_key in seen_tags:
+                continue
+            seen_tags.add(dedupe_key)
+            normalized_tags.append(tag)
+            if len(normalized_tags) >= self.MAX_METADATA_TAGS:
+                break
+        return normalized_tags
+
+    def _normalize_file_metadata(self, metadata: Any) -> dict[str, Any]:
+        if not isinstance(metadata, dict):
+            metadata = {}
+
+        updated_at = metadata.get("updatedAt") or metadata.get("updated_at")
+        return {
+            "note": self._normalize_metadata_note(metadata.get("note")),
+            "tags": self._normalize_metadata_tags(metadata.get("tags")),
+            "updatedAt": updated_at,
+            "updated_at": updated_at,
+        }
 
     def _build_file_status_insights(
         self,

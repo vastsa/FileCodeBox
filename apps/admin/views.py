@@ -20,6 +20,7 @@ from apps.admin.schemas import (
     BatchUpdateFileData,
     BatchFilePolicyActionData,
     FilePolicyActionData,
+    FileMetadataData,
     ShareItem,
     DeleteItem,
     LoginData,
@@ -341,6 +342,42 @@ async def file_detail_post(
 ):
     detail = await file_service.get_file_detail(data.id)
     return APIResponse(detail=detail)
+
+
+async def update_file_metadata(
+    data: FileMetadataData,
+    file_service: FileService,
+):
+    fields_set = data.model_fields_set
+    update_note = "note" in fields_set
+    update_tags = "tags" in fields_set
+    if not update_note and not update_tags:
+        raise HTTPException(status_code=400, detail="请选择要更新的元数据")
+
+    detail = await file_service.update_file_metadata(
+        file_id=data.id,
+        note=data.note,
+        tags=data.tags,
+        update_note=update_note,
+        update_tags=update_tags,
+    )
+    return APIResponse(detail=detail)
+
+
+@admin_api.patch("/file/metadata")
+async def file_metadata(
+    data: FileMetadataData,
+    file_service: FileService = Depends(get_file_service),
+):
+    return await update_file_metadata(data, file_service)
+
+
+@admin_api.post("/file/metadata")
+async def file_metadata_post(
+    data: FileMetadataData,
+    file_service: FileService = Depends(get_file_service),
+):
+    return await update_file_metadata(data, file_service)
 
 
 @admin_api.get("/config/get")
