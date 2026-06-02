@@ -99,11 +99,22 @@ async def dashboard(file_service: FileService = Depends(get_file_service)):
     today_codes = FileCodes.filter(created_at__gte=today_start)
     yesterday_file_codes = await yesterday_codes
     today_file_codes = await today_codes
+    today_size = sum([code.size for code in today_file_codes])
     expired_count = 0
     for file_code in all_codes:
         if await file_code.is_expired():
             expired_count += 1
     health_summary = await file_service.build_file_health_summary(all_codes, now=now)
+    operational_insights = file_service.build_dashboard_operational_insights(
+        health_summary=health_summary,
+        total_files=len(all_codes),
+        expired_count=expired_count,
+        today_size=today_size,
+        upload_size_limit=settings.uploadSize,
+        open_upload=settings.openUpload,
+        enable_chunk=settings.enableChunk,
+        max_save_seconds=settings.max_save_seconds,
+    )
 
     text_count = sum(1 for file_code in all_codes if file_code.text is not None)
     chunked_count = sum(1 for file_code in all_codes if file_code.is_chunked)
@@ -128,7 +139,7 @@ async def dashboard(file_service: FileService = Depends(get_file_service)):
             "yesterdayCount": len(yesterday_file_codes),
             "yesterdaySize": str(sum([code.size for code in yesterday_file_codes])),
             "todayCount": len(today_file_codes),
-            "todaySize": str(sum([code.size for code in today_file_codes])),
+            "todaySize": str(today_size),
             "activeCount": len(all_codes) - expired_count,
             "expiredCount": expired_count,
             "textCount": text_count,
@@ -142,6 +153,9 @@ async def dashboard(file_service: FileService = Depends(get_file_service)):
             "maxSaveSeconds": settings.max_save_seconds,
             **health_summary,
             "healthSummary": health_summary,
+            "operationalInsights": operational_insights,
+            "operational_insights": operational_insights,
+            "insights": operational_insights,
             "topSuffixes": [
                 {"suffix": suffix, "count": count}
                 for suffix, count in suffix_counter.most_common(8)

@@ -539,6 +539,157 @@ class FileService:
             self._accumulate_health_summary(summary, item)
         return summary
 
+    def build_dashboard_operational_insights(
+        self,
+        health_summary: dict[str, int],
+        total_files: int,
+        expired_count: int,
+        today_size: int,
+        upload_size_limit: int,
+        open_upload: int,
+        enable_chunk: int,
+        max_save_seconds: int,
+    ) -> list[dict[str, Any]]:
+        def to_int(value: Any) -> int:
+            try:
+                return int(value or 0)
+            except (TypeError, ValueError):
+                return 0
+
+        total_files = to_int(total_files)
+        expired_count = to_int(expired_count)
+        today_size = to_int(today_size)
+        upload_size_limit = to_int(upload_size_limit)
+        open_upload = to_int(open_upload)
+        enable_chunk = to_int(enable_chunk)
+        max_save_seconds = to_int(max_save_seconds)
+        insights = []
+
+        if health_summary.get("storageIssueCount", 0) > 0:
+            insights.append(
+                self._build_dashboard_operational_insight(
+                    key="storage_issue",
+                    severity="danger",
+                    priority=100,
+                    count=health_summary["storageIssueCount"],
+                    action_type="file_queue",
+                    health="storage_issue",
+                )
+            )
+
+        if expired_count > 0:
+            insights.append(
+                self._build_dashboard_operational_insight(
+                    key="expired_cleanup",
+                    severity="danger" if expired_count >= 10 else "warning",
+                    priority=90,
+                    count=expired_count,
+                    action_type="file_queue",
+                    health="expired",
+                )
+            )
+
+        if health_summary.get("expiringSoonCount", 0) > 0:
+            insights.append(
+                self._build_dashboard_operational_insight(
+                    key="expiring_soon",
+                    severity="warning",
+                    priority=80,
+                    count=health_summary["expiringSoonCount"],
+                    action_type="file_queue",
+                    health="expiring_soon",
+                )
+            )
+
+        never_retrieved_count = health_summary.get("neverRetrievedCount", 0)
+        if total_files > 0 and never_retrieved_count >= max(3, total_files // 5):
+            insights.append(
+                self._build_dashboard_operational_insight(
+                    key="never_retrieved",
+                    severity="neutral",
+                    priority=60,
+                    count=never_retrieved_count,
+                    action_type="file_queue",
+                    health="never_retrieved",
+                )
+            )
+
+        if open_upload and max_save_seconds <= 0:
+            insights.append(
+                self._build_dashboard_operational_insight(
+                    key="guest_upload_retention",
+                    severity="warning",
+                    priority=50,
+                    count=1,
+                    action_type="settings",
+                )
+            )
+
+        if (
+            upload_size_limit > 0
+            and today_size >= upload_size_limit
+            and not enable_chunk
+        ):
+            insights.append(
+                self._build_dashboard_operational_insight(
+                    key="chunking_disabled",
+                    severity="neutral",
+                    priority=40,
+                    count=1,
+                    action_type="settings",
+                )
+            )
+
+        if not insights:
+            insights.append(
+                self._build_dashboard_operational_insight(
+                    key="healthy",
+                    severity="success",
+                    priority=10,
+                    count=total_files,
+                    action_type="file_queue",
+                    health="healthy",
+                )
+            )
+
+        insights.sort(key=lambda item: (-item["priority"], item["key"]))
+        return insights[:4]
+
+    def _build_dashboard_operational_insight(
+        self,
+        key: str,
+        severity: str,
+        priority: int,
+        count: int,
+        action_type: str,
+        health: Optional[str] = None,
+    ) -> dict[str, Any]:
+        action = {
+            "type": action_type,
+            "actionType": action_type,
+            "action_type": action_type,
+        }
+        if health:
+            action.update(
+                {
+                    "health": health,
+                    "targetHealth": health,
+                    "target_health": health,
+                }
+            )
+
+        return {
+            "key": key,
+            "severity": severity,
+            "priority": priority,
+            "count": max(int(count or 0), 0),
+            "action": action,
+            "actionType": action_type,
+            "action_type": action_type,
+            "targetHealth": health,
+            "target_health": health,
+        }
+
     async def _build_admin_file_item(
         self, file_code: FileCodes, now: Optional[datetime] = None
     ) -> dict[str, Any]:
