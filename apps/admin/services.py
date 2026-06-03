@@ -447,9 +447,15 @@ class FileService:
         page = max(page, 1)
         size = min(max(size, 1), 100)
         keyword = keyword.strip().lower()
-        status = status.strip().lower()
-        file_type = file_type.strip().lower()
-        health = health.strip().lower()
+        status = self._normalize_file_view_preset_choice(
+            status, self.VIEW_PRESET_STATUS_VALUES
+        )
+        file_type = self._normalize_file_view_preset_choice(
+            file_type, self.VIEW_PRESET_TYPE_VALUES
+        )
+        health = self._normalize_file_view_preset_choice(
+            health, self.VIEW_PRESET_HEALTH_VALUES
+        )
         sort_by = self._normalize_sort_by(sort_by)
         reverse = sort_order.strip().lower() != "asc"
 
@@ -490,8 +496,27 @@ class FileService:
             key=lambda item: self._get_sort_value(item, sort_by),
             reverse=reverse,
         )
+        view_summary = self._build_file_view_summary(
+            files=enriched_files,
+            all_file_count=len(all_files),
+            filters={
+                "keyword": keyword,
+                "status": status or "all",
+                "type": file_type or "all",
+                "health": health or "all",
+                "sortBy": sort_by,
+                "sort_by": sort_by,
+                "sortOrder": "desc" if reverse else "asc",
+                "sort_order": "desc" if reverse else "asc",
+            },
+        )
         offset = (page - 1) * size
-        return enriched_files[offset : offset + size], len(enriched_files), summary
+        return (
+            enriched_files[offset : offset + size],
+            len(enriched_files),
+            summary,
+            view_summary,
+        )
 
     def _empty_health_summary(self) -> dict[str, int]:
         return {
@@ -527,6 +552,189 @@ class FileService:
             summary["storageIssueCount"] += 1
         if "never_retrieved" in reasons:
             summary["neverRetrievedCount"] += 1
+
+    def _build_file_view_summary(
+        self,
+        files: list[dict[str, Any]],
+        all_file_count: int,
+        filters: dict[str, Any],
+    ) -> dict[str, Any]:
+        view_counts = {
+            "totalFiles": len(files),
+            "activeCount": 0,
+            "expiredCount": 0,
+            "textCount": 0,
+            "fileCount": 0,
+            "chunkedCount": 0,
+            **self._empty_health_summary(),
+            "storageUsed": sum(item.get("size") or 0 for item in files),
+            "usedCount": sum(item.get("usedCount") or 0 for item in files),
+        }
+
+        for item in files:
+            if item.get("isExpired"):
+                view_counts["expiredCount"] += 1
+            else:
+                view_counts["activeCount"] += 1
+            if item.get("isText"):
+                view_counts["textCount"] += 1
+            else:
+                view_counts["fileCount"] += 1
+            if item.get("isChunked"):
+                view_counts["chunkedCount"] += 1
+            self._accumulate_health_summary(view_counts, item)
+
+        cards = self._build_file_view_summary_cards(view_counts)
+        actions = self._build_file_view_summary_actions(cards)
+        strongest_severity = self._get_strongest_summary_severity(cards)
+        active_filter_count = sum(
+            [
+                1 if str(filters.get("keyword") or "").strip() else 0,
+                1 if str(filters.get("status") or "all").strip() != "all" else 0,
+                1 if str(filters.get("type") or "all").strip() != "all" else 0,
+                1 if str(filters.get("health") or "all").strip() != "all" else 0,
+            ]
+        )
+
+        return {
+            "total": len(files),
+            "filteredTotal": len(files),
+            "filtered_total": len(files),
+            "allTotal": max(int(all_file_count or 0), 0),
+            "all_total": max(int(all_file_count or 0), 0),
+            "activeFilterCount": active_filter_count,
+            "active_filter_count": active_filter_count,
+            "hasFilters": active_filter_count > 0,
+            "has_filters": active_filter_count > 0,
+            "strongestSeverity": strongest_severity,
+            "strongest_severity": strongest_severity,
+            "filters": filters,
+            "summary": view_counts,
+            "healthSummary": view_counts,
+            "health_summary": view_counts,
+            "cards": cards,
+            "items": cards,
+            "actions": actions,
+        }
+
+    def _build_file_view_summary_cards(
+        self, summary: dict[str, Any]
+    ) -> list[dict[str, Any]]:
+        candidates = [
+            {
+                "key": "storage_issue",
+                "severity": "danger",
+                "priority": 100,
+                "count": summary["storageIssueCount"],
+                "health": "storage_issue",
+            },
+            {
+                "key": "expired",
+                "severity": "danger" if summary["expiredCount"] >= 10 else "warning",
+                "priority": 90,
+                "count": summary["expiredCount"],
+                "health": "expired",
+            },
+            {
+                "key": "expiring_soon",
+                "severity": "warning",
+                "priority": 80,
+                "count": summary["expiringSoonCount"],
+                "health": "expiring_soon",
+            },
+            {
+                "key": "never_retrieved",
+                "severity": "neutral",
+                "priority": 60,
+                "count": summary["neverRetrievedCount"],
+                "health": "never_retrieved",
+            },
+            {
+                "key": "permanent",
+                "severity": "neutral",
+                "priority": 40,
+                "count": summary["permanentCount"],
+                "health": "permanent",
+            },
+        ]
+        cards = [
+            self._build_file_view_summary_item(
+                key=item["key"],
+                severity=item["severity"],
+                priority=item["priority"],
+                count=item["count"],
+                health=item["health"],
+            )
+            for item in candidates
+            if item["count"] > 0
+        ]
+
+        if not cards:
+            key = "empty" if summary["totalFiles"] == 0 else "healthy"
+            cards.append(
+                self._build_file_view_summary_item(
+                    key=key,
+                    severity="success" if summary["totalFiles"] > 0 else "neutral",
+                    priority=10,
+                    count=summary["totalFiles"],
+                    health="healthy" if summary["totalFiles"] > 0 else "all",
+                )
+            )
+
+        cards.sort(key=lambda item: (-item["priority"], item["key"]))
+        return cards[:4]
+
+    def _build_file_view_summary_actions(
+        self, cards: list[dict[str, Any]]
+    ) -> list[dict[str, Any]]:
+        action_key_map = {
+            "storage_issue": "inspect_storage",
+            "expired": "cleanup_expired",
+            "expiring_soon": "extend_expiring",
+            "never_retrieved": "review_never_retrieved",
+            "permanent": "review_permanent",
+            "healthy": "monitor",
+            "empty": "clear_filters",
+        }
+        return [
+            {
+                **item,
+                "sourceKey": item["key"],
+                "source_key": item["key"],
+                "suggestedAction": action_key_map.get(item["key"], "review"),
+                "suggested_action": action_key_map.get(item["key"], "review"),
+            }
+            for item in cards
+            if item["severity"] != "success"
+        ]
+
+    def _build_file_view_summary_item(
+        self,
+        key: str,
+        severity: str,
+        priority: int,
+        count: int,
+        health: str,
+    ) -> dict[str, Any]:
+        return {
+            "key": key,
+            "severity": severity,
+            "priority": priority,
+            "count": max(int(count or 0), 0),
+            "actionType": "filter",
+            "action_type": "filter",
+            "health": health,
+            "targetHealth": health,
+            "target_health": health,
+        }
+
+    def _get_strongest_summary_severity(self, items: list[dict[str, Any]]) -> str:
+        severity_order = {"danger": 3, "warning": 2, "neutral": 1, "success": 0}
+        return max(
+            (item["severity"] for item in items),
+            key=lambda severity: severity_order.get(severity, 0),
+            default="success",
+        )
 
     async def build_file_health_summary(
         self, file_codes: list[FileCodes], now: Optional[datetime] = None

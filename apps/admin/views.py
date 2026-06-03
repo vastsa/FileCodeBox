@@ -374,7 +374,7 @@ async def file_list(
 ):
     page = max(page, 1)
     size = min(max(size, 1), 100)
-    files, total, summary = await file_service.list_files(
+    files, total, summary, view_summary = await file_service.list_files(
         page,
         size,
         keyword,
@@ -391,6 +391,12 @@ async def file_list(
             "data": files,
             "total": total,
             "summary": summary,
+            "viewSummary": view_summary,
+            "view_summary": view_summary,
+            "currentViewSummary": view_summary,
+            "current_view_summary": view_summary,
+            "actionSummary": view_summary,
+            "action_summary": view_summary,
         }
     )
 
