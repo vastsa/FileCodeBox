@@ -3,13 +3,16 @@ FROM node:20-alpine AS frontend-builder
 
 RUN apk add --no-cache git python3 make g++
 
+RUN corepack enable && \
+    corepack prepare pnpm@9.15.9 --activate
+
 WORKDIR /build
 
 # 克隆并构建 2024 主题
 RUN git clone --depth 1 https://github.com/vastsa/FileCodeBoxFronted.git /build/fronted-2024 && \
     cd /build/fronted-2024 && \
-    npm install && \
-    npm run build
+    pnpm install --frozen-lockfile --prod=false && \
+    pnpm run build
 
 # 克隆并构建 2023 主题
 RUN git clone --depth 1 https://github.com/vastsa/FileCodeBoxFronted2023.git /build/fronted-2023 && \
@@ -47,10 +50,4 @@ ENV HOST="0.0.0.0" \
 EXPOSE 12345
 
 # 生产环境启动命令
-CMD uvicorn main:app \
-    --host $HOST \
-    --port $PORT \
-    --workers $WORKERS \
-    --log-level $LOG_LEVEL \
-    --proxy-headers \
-    --forwarded-allow-ips "*"
+CMD ["sh", "-c", "exec uvicorn main:app --host \"$HOST\" --port \"$PORT\" --workers \"$WORKERS\" --log-level \"$LOG_LEVEL\" --proxy-headers --forwarded-allow-ips '*'"]
