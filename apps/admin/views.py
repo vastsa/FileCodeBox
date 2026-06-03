@@ -480,28 +480,13 @@ async def get_config(
     return APIResponse(detail=config_service.get_config())
 
 
-@admin_api.get("/config/diagnostics")
-async def get_config_diagnostics(
-    config_service: ConfigService = Depends(get_config_service),
-):
-    return APIResponse(detail=config_service.build_config_diagnostics())
-
-
 @admin_api.patch("/config/update")
 async def update_config(
     data: dict,
     config_service: ConfigService = Depends(get_config_service),
     file_service: FileService = Depends(get_file_service),
 ):
-    for field in (
-        "themesChoices",
-        "diagnostics",
-        "diagnosticItems",
-        "diagnostic_items",
-        "diagnosticSummary",
-        "diagnostic_summary",
-    ):
-        data.pop(field, None)
+    data.pop("themesChoices", None)
     await config_service.update_config(data)
     await file_service.record_admin_activity(
         action="config.update",
