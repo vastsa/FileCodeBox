@@ -99,32 +99,11 @@ async def dashboard(file_service: FileService = Depends(get_file_service)):
     today_codes = FileCodes.filter(created_at__gte=today_start)
     yesterday_file_codes = await yesterday_codes
     today_file_codes = await today_codes
-    today_size = sum([code.size for code in today_file_codes])
     expired_count = 0
     for file_code in all_codes:
         if await file_code.is_expired():
             expired_count += 1
     health_summary = await file_service.build_file_health_summary(all_codes, now=now)
-    operational_insights = file_service.build_dashboard_operational_insights(
-        health_summary=health_summary,
-        total_files=len(all_codes),
-        expired_count=expired_count,
-        today_size=today_size,
-        upload_size_limit=settings.uploadSize,
-        open_upload=settings.openUpload,
-        enable_chunk=settings.enableChunk,
-        max_save_seconds=settings.max_save_seconds,
-    )
-    maintenance_queue = file_service.build_dashboard_maintenance_queue(
-        health_summary=health_summary,
-        total_files=len(all_codes),
-        expired_count=expired_count,
-        today_size=today_size,
-        upload_size_limit=settings.uploadSize,
-        open_upload=settings.openUpload,
-        enable_chunk=settings.enableChunk,
-        max_save_seconds=settings.max_save_seconds,
-    )
 
     text_count = sum(1 for file_code in all_codes if file_code.text is not None)
     chunked_count = sum(1 for file_code in all_codes if file_code.is_chunked)
@@ -149,7 +128,7 @@ async def dashboard(file_service: FileService = Depends(get_file_service)):
             "yesterdayCount": len(yesterday_file_codes),
             "yesterdaySize": str(sum([code.size for code in yesterday_file_codes])),
             "todayCount": len(today_file_codes),
-            "todaySize": str(today_size),
+            "todaySize": str(sum([code.size for code in today_file_codes])),
             "activeCount": len(all_codes) - expired_count,
             "expiredCount": expired_count,
             "textCount": text_count,
@@ -163,15 +142,6 @@ async def dashboard(file_service: FileService = Depends(get_file_service)):
             "maxSaveSeconds": settings.max_save_seconds,
             **health_summary,
             "healthSummary": health_summary,
-            "operationalInsights": operational_insights,
-            "operational_insights": operational_insights,
-            "insights": operational_insights,
-            "maintenanceQueue": maintenance_queue,
-            "maintenance_queue": maintenance_queue,
-            "maintenanceItems": maintenance_queue["items"],
-            "maintenance_items": maintenance_queue["items"],
-            "maintenanceSummary": maintenance_queue["summary"],
-            "maintenance_summary": maintenance_queue["summary"],
             "topSuffixes": [
                 {"suffix": suffix, "count": count}
                 for suffix, count in suffix_counter.most_common(8)
@@ -184,13 +154,6 @@ async def dashboard(file_service: FileService = Depends(get_file_service)):
             "recent_activities": recent_activities["activities"],
         }
     )
-
-
-@admin_api.get("/dashboard/maintenance-queue")
-async def dashboard_maintenance_queue(
-    file_service: FileService = Depends(get_file_service),
-):
-    return APIResponse(detail=await file_service.get_dashboard_maintenance_queue())
 
 
 @admin_api.get("/activities")
@@ -374,7 +337,7 @@ async def file_list(
 ):
     page = max(page, 1)
     size = min(max(size, 1), 100)
-    files, total, summary, view_summary = await file_service.list_files(
+    files, total, summary = await file_service.list_files(
         page,
         size,
         keyword,
@@ -391,12 +354,6 @@ async def file_list(
             "data": files,
             "total": total,
             "summary": summary,
-            "viewSummary": view_summary,
-            "view_summary": view_summary,
-            "currentViewSummary": view_summary,
-            "current_view_summary": view_summary,
-            "actionSummary": view_summary,
-            "action_summary": view_summary,
         }
     )
 
