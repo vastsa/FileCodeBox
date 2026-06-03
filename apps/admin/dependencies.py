@@ -85,6 +85,18 @@ def _require_admin_payload(authorization: str) -> dict:
     return payload
 
 
+def get_admin_session(authorization: str = Header(default=None)) -> dict:
+    token = _extract_bearer_token(authorization)
+    payload = _require_admin_payload(authorization)
+    return {
+        "id": "admin",
+        "username": "admin",
+        "token": token,
+        "token_type": "Bearer",
+        "expires_at": payload.get("exp"),
+    }
+
+
 ADMIN_PUBLIC_ENDPOINTS = {("POST", "/admin/login")}
 
 

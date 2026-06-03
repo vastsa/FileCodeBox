@@ -24,6 +24,46 @@ from core.response import APIResponse
 from core.settings import settings, BASE_DIR, DEFAULT_CONFIG
 from core.tasks import delete_expire_files, clean_incomplete_uploads
 from core.utils import hash_password, is_password_hashed
+from core.version import APP_VERSION
+
+
+def build_public_config() -> dict:
+    return {
+        "name": settings.name,
+        "description": settings.description,
+        "explain": settings.page_explain,
+        "uploadSize": settings.uploadSize,
+        "expireStyle": settings.expireStyle,
+        "enableChunk": settings.enableChunk,
+        "openUpload": settings.openUpload,
+        "notify_title": settings.notify_title,
+        "notify_content": settings.notify_content,
+        "show_admin_address": settings.showAdminAddr,
+        "max_save_seconds": settings.max_save_seconds,
+    }
+
+
+def build_public_meta() -> dict:
+    return {
+        "version": APP_VERSION,
+        "api": {
+            "legacyConfig": "/",
+            "publicConfig": "/api/v1/config",
+            "health": "/health",
+        },
+        "features": {
+            "chunkUpload": bool(settings.enableChunk),
+            "guestUpload": bool(settings.openUpload),
+            "adminAddressVisible": bool(settings.showAdminAddr),
+            "expirationModes": settings.expireStyle,
+        },
+        "limits": {
+            "uploadSize": settings.uploadSize,
+            "maxSaveSeconds": settings.max_save_seconds,
+            "uploadWindowMinutes": settings.uploadMinute,
+            "uploadWindowCount": settings.uploadCount,
+        },
+    }
 
 
 @asynccontextmanager
@@ -110,6 +150,7 @@ register_tortoise(
 app.include_router(share_api)
 app.include_router(chunk_api)
 app.include_router(presign_api)
+app.include_router(presign_api, prefix="/api")
 app.include_router(admin_api)
 
 
@@ -139,19 +180,27 @@ async def robots():
 
 @app.post("/")
 async def get_config():
+    return APIResponse(detail=build_public_config())
+
+
+@app.get("/api/v1/config")
+async def get_public_config():
     return APIResponse(
         detail={
-            "name": settings.name,
-            "description": settings.description,
-            "explain": settings.page_explain,
-            "uploadSize": settings.uploadSize,
-            "expireStyle": settings.expireStyle,
-            "enableChunk": settings.enableChunk,
-            "openUpload": settings.openUpload,
-            "notify_title": settings.notify_title,
-            "notify_content": settings.notify_content,
-            "show_admin_address": settings.showAdminAddr,
-            "max_save_seconds": settings.max_save_seconds,
+            "config": build_public_config(),
+            "meta": build_public_meta(),
+        }
+    )
+
+
+@app.get("/health")
+async def health_check():
+    return APIResponse(
+        detail={
+            "status": "ok",
+            "version": APP_VERSION,
+            "storage": settings.file_storage,
+            "theme": settings.themesSelect,
         }
     )
 
