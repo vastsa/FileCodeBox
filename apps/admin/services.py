@@ -539,6 +539,32 @@ class FileService:
             self._accumulate_health_summary(summary, item)
         return summary
 
+    async def get_dashboard_maintenance_queue(self) -> dict[str, Any]:
+        file_codes = await FileCodes.all()
+        now = await get_now()
+        today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+        today_size = sum(
+            file_code.size
+            for file_code in file_codes
+            if file_code.created_at and file_code.created_at >= today_start
+        )
+        expired_count = 0
+        for file_code in file_codes:
+            if await file_code.is_expired():
+                expired_count += 1
+
+        health_summary = await self.build_file_health_summary(file_codes, now=now)
+        return self.build_dashboard_maintenance_queue(
+            health_summary=health_summary,
+            total_files=len(file_codes),
+            expired_count=expired_count,
+            today_size=today_size,
+            upload_size_limit=settings.uploadSize,
+            open_upload=settings.openUpload,
+            enable_chunk=settings.enableChunk,
+            max_save_seconds=settings.max_save_seconds,
+        )
+
     def build_dashboard_operational_insights(
         self,
         health_summary: dict[str, int],
@@ -654,6 +680,241 @@ class FileService:
 
         insights.sort(key=lambda item: (-item["priority"], item["key"]))
         return insights[:4]
+
+    def build_dashboard_maintenance_queue(
+        self,
+        health_summary: dict[str, int],
+        total_files: int,
+        expired_count: int,
+        today_size: int,
+        upload_size_limit: int,
+        open_upload: int,
+        enable_chunk: int,
+        max_save_seconds: int,
+    ) -> dict[str, Any]:
+        def to_int(value: Any) -> int:
+            try:
+                return int(value or 0)
+            except (TypeError, ValueError):
+                return 0
+
+        total_files = to_int(total_files)
+        expired_count = to_int(expired_count)
+        today_size = to_int(today_size)
+        upload_size_limit = to_int(upload_size_limit)
+        open_upload = to_int(open_upload)
+        enable_chunk = to_int(enable_chunk)
+        max_save_seconds = to_int(max_save_seconds)
+        items = []
+
+        if health_summary.get("storageIssueCount", 0) > 0:
+            items.append(
+                self._build_dashboard_maintenance_item(
+                    key="storage_issue",
+                    severity="danger",
+                    category="storage",
+                    priority=100,
+                    count=health_summary["storageIssueCount"],
+                    action_type="file_queue",
+                    health="storage_issue",
+                    suggested_action="inspect_storage",
+                )
+            )
+
+        if expired_count > 0:
+            items.append(
+                self._build_dashboard_maintenance_item(
+                    key="expired_cleanup",
+                    severity="danger" if expired_count >= 10 else "warning",
+                    category="retention",
+                    priority=90,
+                    count=expired_count,
+                    action_type="file_queue",
+                    health="expired",
+                    suggested_action="cleanup_or_extend",
+                )
+            )
+
+        if health_summary.get("expiringSoonCount", 0) > 0:
+            items.append(
+                self._build_dashboard_maintenance_item(
+                    key="expiring_soon",
+                    severity="warning",
+                    category="retention",
+                    priority=80,
+                    count=health_summary["expiringSoonCount"],
+                    action_type="file_queue",
+                    health="expiring_soon",
+                    suggested_action="extend_expiration",
+                )
+            )
+
+        never_retrieved_count = health_summary.get("neverRetrievedCount", 0)
+        if never_retrieved_count > 0:
+            items.append(
+                self._build_dashboard_maintenance_item(
+                    key="never_retrieved",
+                    severity="neutral",
+                    category="adoption",
+                    priority=60,
+                    count=never_retrieved_count,
+                    action_type="file_queue",
+                    health="never_retrieved",
+                    suggested_action="review_usage",
+                )
+            )
+
+        permanent_count = health_summary.get("permanentCount", 0)
+        if permanent_count > 0:
+            items.append(
+                self._build_dashboard_maintenance_item(
+                    key="permanent_review",
+                    severity="neutral",
+                    category="retention",
+                    priority=45,
+                    count=permanent_count,
+                    action_type="file_queue",
+                    health="permanent",
+                    suggested_action="review_retention",
+                )
+            )
+
+        if open_upload and max_save_seconds <= 0:
+            items.append(
+                self._build_dashboard_maintenance_item(
+                    key="guest_upload_retention",
+                    severity="warning",
+                    category="settings",
+                    priority=70,
+                    count=1,
+                    action_type="settings",
+                    suggested_action="set_retention_limit",
+                )
+            )
+
+        if (
+            upload_size_limit > 0
+            and today_size >= upload_size_limit
+            and not enable_chunk
+        ):
+            items.append(
+                self._build_dashboard_maintenance_item(
+                    key="chunking_disabled",
+                    severity="neutral",
+                    category="settings",
+                    priority=40,
+                    count=1,
+                    action_type="settings",
+                    suggested_action="enable_chunking",
+                )
+            )
+
+        if not items:
+            items.append(
+                self._build_dashboard_maintenance_item(
+                    key="healthy",
+                    severity="success",
+                    category="system",
+                    priority=10,
+                    count=total_files,
+                    action_type="file_queue",
+                    health="healthy",
+                    suggested_action="monitor",
+                )
+            )
+
+        items.sort(key=lambda item: (-item["priority"], item["key"]))
+        summary = self._build_dashboard_maintenance_summary(items)
+        return {
+            "items": items,
+            "maintenanceItems": items,
+            "maintenance_items": items,
+            "summary": summary,
+            "maintenanceSummary": summary,
+            "maintenance_summary": summary,
+        }
+
+    def _build_dashboard_maintenance_item(
+        self,
+        key: str,
+        severity: str,
+        category: str,
+        priority: int,
+        count: int,
+        action_type: str,
+        suggested_action: str,
+        health: Optional[str] = None,
+    ) -> dict[str, Any]:
+        action = {
+            "type": action_type,
+            "actionType": action_type,
+            "action_type": action_type,
+            "suggestedAction": suggested_action,
+            "suggested_action": suggested_action,
+        }
+        if health:
+            action.update(
+                {
+                    "health": health,
+                    "targetHealth": health,
+                    "target_health": health,
+                }
+            )
+
+        return {
+            "key": key,
+            "severity": severity,
+            "category": category,
+            "priority": priority,
+            "count": max(int(count or 0), 0),
+            "action": action,
+            "actionType": action_type,
+            "action_type": action_type,
+            "suggestedAction": suggested_action,
+            "suggested_action": suggested_action,
+            "targetHealth": health,
+            "target_health": health,
+        }
+
+    def _build_dashboard_maintenance_summary(
+        self, items: list[dict[str, Any]]
+    ) -> dict[str, Any]:
+        severity_order = {"danger": 3, "warning": 2, "neutral": 1, "success": 0}
+        strongest_severity = max(
+            (item["severity"] for item in items),
+            key=lambda severity: severity_order.get(severity, 0),
+            default="success",
+        )
+        actionable_items = [item for item in items if item["severity"] != "success"]
+        file_queue_count = sum(
+            item["count"]
+            for item in actionable_items
+            if item.get("actionType") == "file_queue"
+        )
+        settings_count = sum(
+            item["count"]
+            for item in actionable_items
+            if item.get("actionType") == "settings"
+        )
+        return {
+            "total": len(items),
+            "actionableCount": len(actionable_items),
+            "actionable_count": len(actionable_items),
+            "dangerCount": sum(1 for item in items if item["severity"] == "danger"),
+            "danger_count": sum(1 for item in items if item["severity"] == "danger"),
+            "warningCount": sum(1 for item in items if item["severity"] == "warning"),
+            "warning_count": sum(1 for item in items if item["severity"] == "warning"),
+            "successCount": sum(1 for item in items if item["severity"] == "success"),
+            "success_count": sum(1 for item in items if item["severity"] == "success"),
+            "neutralCount": sum(1 for item in items if item["severity"] == "neutral"),
+            "neutral_count": sum(1 for item in items if item["severity"] == "neutral"),
+            "fileQueueCount": file_queue_count,
+            "file_queue_count": file_queue_count,
+            "settingsCount": settings_count,
+            "settings_count": settings_count,
+            "strongestSeverity": strongest_severity,
+            "strongest_severity": strongest_severity,
+        }
 
     def _build_dashboard_operational_insight(
         self,

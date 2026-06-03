@@ -115,6 +115,16 @@ async def dashboard(file_service: FileService = Depends(get_file_service)):
         enable_chunk=settings.enableChunk,
         max_save_seconds=settings.max_save_seconds,
     )
+    maintenance_queue = file_service.build_dashboard_maintenance_queue(
+        health_summary=health_summary,
+        total_files=len(all_codes),
+        expired_count=expired_count,
+        today_size=today_size,
+        upload_size_limit=settings.uploadSize,
+        open_upload=settings.openUpload,
+        enable_chunk=settings.enableChunk,
+        max_save_seconds=settings.max_save_seconds,
+    )
 
     text_count = sum(1 for file_code in all_codes if file_code.text is not None)
     chunked_count = sum(1 for file_code in all_codes if file_code.is_chunked)
@@ -156,6 +166,12 @@ async def dashboard(file_service: FileService = Depends(get_file_service)):
             "operationalInsights": operational_insights,
             "operational_insights": operational_insights,
             "insights": operational_insights,
+            "maintenanceQueue": maintenance_queue,
+            "maintenance_queue": maintenance_queue,
+            "maintenanceItems": maintenance_queue["items"],
+            "maintenance_items": maintenance_queue["items"],
+            "maintenanceSummary": maintenance_queue["summary"],
+            "maintenance_summary": maintenance_queue["summary"],
             "topSuffixes": [
                 {"suffix": suffix, "count": count}
                 for suffix, count in suffix_counter.most_common(8)
@@ -168,6 +184,13 @@ async def dashboard(file_service: FileService = Depends(get_file_service)):
             "recent_activities": recent_activities["activities"],
         }
     )
+
+
+@admin_api.get("/dashboard/maintenance-queue")
+async def dashboard_maintenance_queue(
+    file_service: FileService = Depends(get_file_service),
+):
+    return APIResponse(detail=await file_service.get_dashboard_maintenance_queue())
 
 
 @admin_api.get("/activities")
