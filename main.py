@@ -24,8 +24,7 @@ from core.response import APIResponse
 from core.settings import settings, BASE_DIR, DEFAULT_CONFIG
 from core.tasks import delete_expire_files, clean_incomplete_uploads
 from core.utils import hash_password, is_password_hashed
-
-APP_VERSION = "2.0.0-dev"
+from core.version import APP_VERSION
 
 
 def build_public_config() -> dict:
