@@ -267,6 +267,7 @@ class S3FileStorage(FileStorageInterface):
         self.signature_version = settings.s3_signature_version
         self.endpoint_url = settings.s3_endpoint_url or f"https://{self.s3_hostname}"
         self.aws_session_token = settings.aws_session_token
+        self.addressing_style = str(settings.s3_addressing_style or "auto").lower()
         self.proxy = settings.s3_proxy
         self.session = aioboto3.Session(
             aws_access_key_id=self.access_key_id,
@@ -278,14 +279,26 @@ class S3FileStorage(FileStorageInterface):
             # 如果提供了 s3_endpoint_url，则优先使用它
             self.endpoint_url = settings.s3_endpoint_url
 
+    def _client_config(self) -> Config:
+        config = {"signature_version": self.signature_version}
+        s3_config = {}
+        if self.addressing_style in {"path", "virtual", "auto"}:
+            s3_config["addressing_style"] = self.addressing_style
+        if s3_config:
+            config["s3"] = s3_config
+        return Config(**config)
+
+    def _client(self):
+        return self.session.client(
+            "s3",
+            endpoint_url=self.endpoint_url,
+            aws_session_token=self.aws_session_token,
+            region_name=self.region_name,
+            config=self._client_config(),
+        )
+
     async def save_file(self, file: UploadFile, save_path: str):
-        async with self.session.client(
-                "s3",
-                endpoint_url=self.endpoint_url,
-                aws_session_token=self.aws_session_token,
-                region_name=self.region_name,
-                config=Config(signature_version=self.signature_version),
-        ) as s3:
+        async with self._client() as s3:
             # 使用 upload_fileobj 流式上传，避免将整个文件加载到内存
             await s3.upload_fileobj(
                 file.file,
@@ -295,12 +308,7 @@ class S3FileStorage(FileStorageInterface):
             )
 
     async def delete_file(self, file_code: FileCodes):
-        async with self.session.client(
-                "s3",
-                endpoint_url=self.endpoint_url,
-                region_name=self.region_name,
-                config=Config(signature_version=self.signature_version),
-        ) as s3:
+        async with self._client() as s3:
             await s3.delete_object(
                 Bucket=self.bucket_name, Key=await file_code.get_file_path()
             )
@@ -310,12 +318,7 @@ class S3FileStorage(FileStorageInterface):
             filename = file_code.prefix + file_code.suffix
             content_length = None  # 初始化为 None，表示未知大小
             
-            async with self.session.client(
-                    "s3",
-                    endpoint_url=self.endpoint_url,
-                    region_name=self.region_name,
-                    config=Config(signature_version=self.signature_version),
-            ) as s3:
+            async with self._client() as s3:
                 # 尝试获取文件大小（HEAD请求）
                 try:
                     head_response = await s3.head_object(
@@ -384,12 +387,7 @@ class S3FileStorage(FileStorageInterface):
         if self.proxy:
             return await get_file_url(file_code.code)
         else:
-            async with self.session.client(
-                    "s3",
-                    endpoint_url=self.endpoint_url,
-                    region_name=self.region_name,
-                    config=Config(signature_version=self.signature_version),
-            ) as s3:
+            async with self._client() as s3:
                 result = await s3.generate_presigned_url(
                     "get_object",
                     Params={
@@ -406,13 +404,7 @@ class S3FileStorage(FileStorageInterface):
         注意：这里不使用 S3 原生的 multipart upload，而是将每个分片作为独立对象存储
         """
         chunk_key = str(Path(save_path).parent / "chunks" / upload_id / f"{chunk_index}.part")
-        async with self.session.client(
-            's3',
-            endpoint_url=self.endpoint_url,
-            aws_session_token=self.aws_session_token,
-            region_name=self.region_name,
-            config=Config(signature_version=self.signature_version),
-        ) as s3:
+        async with self._client() as s3:
             # 将分片作为独立对象上传
             await s3.put_object(
                 Bucket=self.bucket_name,
@@ -432,13 +424,7 @@ class S3FileStorage(FileStorageInterface):
         file_sha256 = hashlib.sha256()
         chunk_dir = str(Path(save_path).parent / "chunks" / upload_id)
 
-        async with self.session.client(
-            's3',
-            endpoint_url=self.endpoint_url,
-            aws_session_token=self.aws_session_token,
-            region_name=self.region_name,
-            config=Config(signature_version=self.signature_version),
-        ) as s3:
+        async with self._client() as s3:
             # 创建 multipart upload
             mpu = await s3.create_multipart_upload(
                 Bucket=self.bucket_name,
@@ -512,13 +498,7 @@ class S3FileStorage(FileStorageInterface):
         :param save_path: 文件保存路径
         """
         chunk_dir = str(Path(save_path).parent / "chunks" / upload_id)
-        async with self.session.client(
-            's3',
-            endpoint_url=self.endpoint_url,
-            aws_session_token=self.aws_session_token,
-            region_name=self.region_name,
-            config=Config(signature_version=self.signature_version),
-        ) as s3:
+        async with self._client() as s3:
             try:
                 # 列出并删除所有分片对象
                 paginator = s3.get_paginator('list_objects_v2')
@@ -540,13 +520,7 @@ class S3FileStorage(FileStorageInterface):
         :param expires_in: URL过期时间（秒），默认15分钟
         :return: 预签名PUT URL
         """
-        async with self.session.client(
-            "s3",
-            endpoint_url=self.endpoint_url,
-            aws_session_token=self.aws_session_token,
-            region_name=self.region_name,
-            config=Config(signature_version=self.signature_version),
-        ) as s3:
+        async with self._client() as s3:
             return await s3.generate_presigned_url(
                 "put_object",
                 Params={
