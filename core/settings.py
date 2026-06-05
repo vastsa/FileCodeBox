@@ -40,6 +40,7 @@ DEFAULT_CONFIG = {
     "admin_token": "FileCodeBox2023",
     "openUpload": 1,
     "uploadSize": 1024 * 1024 * 10,
+    "allowed_file_types": ["*"],
     "expireStyle": ["day", "hour", "minute", "forever", "count"],
     "uploadMinute": 1,
     "enableChunk": 0,

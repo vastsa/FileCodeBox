@@ -1,4 +1,5 @@
 import datetime
+from fnmatch import fnmatchcase
 import hashlib
 import os
 import uuid
@@ -96,6 +97,38 @@ async def validate_file_size(file: UploadFile, max_size: int) -> int:
     return size
 
 
+def normalize_allowed_file_types() -> list[str]:
+    raw_value = settings.allowed_file_types
+    if isinstance(raw_value, str):
+        values = raw_value.replace(";", ",").split(",")
+    elif isinstance(raw_value, (list, tuple, set)):
+        values = raw_value
+    else:
+        values = []
+
+    allowed = [str(item).strip().lower() for item in values if str(item).strip()]
+    return allowed or ["*"]
+
+
+def validate_file_type(file_name: str, content_type: Optional[str] = None) -> None:
+    allowed = normalize_allowed_file_types()
+    if "*" in allowed or "*/*" in allowed:
+        return
+
+    normalized_name = file_name.strip().lower()
+    normalized_content_type = (content_type or "").strip().lower()
+
+    for rule in allowed:
+        if "/" in rule and fnmatchcase(normalized_content_type, rule):
+            return
+
+        extension = rule if rule.startswith(".") else f".{rule}"
+        if normalized_name.endswith(extension):
+            return
+
+    raise HTTPException(status_code=403, detail="不允许上传该类型文件")
+
+
 async def create_file_code(code, **kwargs):
     return await FileCodes.create(code=code, **kwargs)
 
@@ -136,6 +169,7 @@ async def share_file(
     ip: str = Depends(ip_limit["upload"]),
 ):
     file_size = await validate_file_size(file, settings.uploadSize)
+    validate_file_type(file.filename or "", file.content_type)
     if expire_style not in settings.expireStyle:
         raise HTTPException(status_code=400, detail="过期时间类型错误")
     expired_at, expired_count, used_count, code = await get_expire_info(
@@ -305,6 +339,7 @@ async def parse_complete_upload(request: Request) -> CompleteUploadModel:
 
 @chunk_api.post("/upload/init/", dependencies=[Depends(share_required_login)])
 async def init_chunk_upload(data: InitChunkUploadModel = Depends(parse_init_chunk_upload)):
+    validate_file_type(data.file_name)
     # 服务端校验：根据 total_chunks * chunk_size 计算理论最大上传量
     total_chunks = (data.file_size + data.chunk_size - 1) // data.chunk_size
     max_possible_size = total_chunks * data.chunk_size
@@ -624,6 +659,7 @@ async def presign_upload_init(
     data: PresignUploadInitRequest, ip: str = Depends(ip_limit["upload"])
 ):
     """初始化预签名上传，S3返回直传URL，其他存储返回代理URL"""
+    validate_file_type(data.file_name)
     if data.file_size > settings.uploadSize:
         raise HTTPException(
             403,

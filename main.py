@@ -33,6 +33,7 @@ def build_public_config() -> dict:
         "description": settings.description,
         "explain": settings.page_explain,
         "uploadSize": settings.uploadSize,
+        "allowedFileTypes": settings.allowed_file_types,
         "expireStyle": settings.expireStyle,
         "enableChunk": settings.enableChunk,
         "openUpload": settings.openUpload,
@@ -59,6 +60,7 @@ def build_public_meta() -> dict:
         },
         "limits": {
             "uploadSize": settings.uploadSize,
+            "allowedFileTypes": settings.allowed_file_types,
             "maxSaveSeconds": settings.max_save_seconds,
             "uploadWindowMinutes": settings.uploadMinute,
             "uploadWindowCount": settings.uploadCount,
