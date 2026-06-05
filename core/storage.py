@@ -536,18 +536,31 @@ class S3FileStorage(FileStorageInterface):
         :param save_path: 文件路径
         :return: 文件是否存在
         """
-        async with self.session.client(
-            "s3",
-            endpoint_url=self.endpoint_url,
-            aws_session_token=self.aws_session_token,
-            region_name=self.region_name,
-            config=Config(signature_version=self.signature_version),
-        ) as s3:
+        async with self._client() as s3:
+            last_error = None
+            for attempt in range(3):
+                try:
+                    await s3.head_object(Bucket=self.bucket_name, Key=save_path)
+                    return True
+                except Exception as e:
+                    last_error = e
+                    if attempt < 2:
+                        await asyncio.sleep(0.2 * (attempt + 1))
+
             try:
-                await s3.head_object(Bucket=self.bucket_name, Key=save_path)
-                return True
-            except Exception:
-                return False
+                result = await s3.list_objects_v2(
+                    Bucket=self.bucket_name,
+                    Prefix=save_path,
+                    MaxKeys=1,
+                )
+                for item in result.get("Contents", []):
+                    if item.get("Key") == save_path:
+                        return True
+            except Exception as e:
+                last_error = e
+
+            logger.warning(f"S3文件确认失败 key={save_path}: {last_error}")
+            return False
 
 
 class OneDriveFileStorage(FileStorageInterface):
