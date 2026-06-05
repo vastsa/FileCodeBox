@@ -6,10 +6,9 @@ import asyncio
 import time
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import HTMLResponse
-from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse, HTMLResponse
 from tortoise import Tortoise
 from tortoise.contrib.fastapi import register_tortoise
 
@@ -77,12 +76,6 @@ async def lifespan(app: FastAPI):
     # 加载配置（多进程下串行化启动写操作）
     async with db_startup_lock():
         await load_config()
-    app.mount(
-        "/assets",
-        StaticFiles(directory=f"./{settings.themesSelect}/assets"),
-        name="assets",
-    )
-
     # 启动后台任务
     task = asyncio.create_task(delete_expire_files())
     chunk_cleanup_task = asyncio.create_task(clean_incomplete_uploads())
@@ -156,19 +149,46 @@ app.include_router(presign_api, prefix="/api")
 app.include_router(admin_api)
 
 
+def resolve_theme_root():
+    themes_root = (BASE_DIR / "themes").resolve()
+    theme_root = (BASE_DIR / str(settings.themesSelect)).resolve()
+    try:
+        theme_root.relative_to(themes_root)
+    except ValueError:
+        theme_root = (BASE_DIR / DEFAULT_CONFIG["themesSelect"]).resolve()
+    if not theme_root.exists():
+        theme_root = (BASE_DIR / DEFAULT_CONFIG["themesSelect"]).resolve()
+    return theme_root
+
+
+def resolve_theme_file(*parts: str):
+    theme_root = resolve_theme_root()
+    file_path = theme_root.joinpath(*parts).resolve()
+    # 防止通过 /assets/../ 读取主题目录外的文件。
+    try:
+        file_path.relative_to(theme_root)
+    except ValueError:
+        raise HTTPException(status_code=404, detail="资源不存在")
+    if not file_path.is_file():
+        raise HTTPException(status_code=404, detail="资源不存在")
+    return file_path
+
+
+@app.get("/assets/{asset_path:path}", include_in_schema=False)
+async def theme_asset(asset_path: str):
+    return FileResponse(resolve_theme_file("assets", asset_path))
+
+
 @app.exception_handler(404)
 @app.get("/")
 async def index(request=None, exc=None):
     return HTMLResponse(
-        content=open(
-            BASE_DIR / f"{settings.themesSelect}/index.html", "r", encoding="utf-8"
-        )
-        .read()
+        content=resolve_theme_file("index.html")
+        .read_text(encoding="utf-8")
         .replace("{{title}}", str(settings.name))
         .replace("{{description}}", str(settings.description))
         .replace("{{keywords}}", str(settings.keywords))
         .replace("{{opacity}}", str(settings.opacity))
-        .replace('"/assets/', '"assets/')
         .replace("{{background}}", str(settings.background)),
         media_type="text/html",
         headers={"Cache-Control": "no-cache"},
