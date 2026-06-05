@@ -8,7 +8,7 @@ from core.response import APIResponse
 from core.storage import FileStorageInterface, storages
 from core.settings import settings
 from core.config import refresh_settings
-from apps.base.models import FileCodes, KeyValue, file_codes_pydantic
+from apps.base.models import FileCodes, KeyValue
 from apps.base.utils import get_expire_info, get_file_path_name
 from fastapi import HTTPException
 from core.settings import data_root
@@ -553,8 +553,23 @@ class FileService:
         remaining_downloads = (
             max(file_code.expired_count, 0) if file_code.expired_count >= 0 else None
         )
-        item = await file_codes_pydantic.from_tortoise_orm(file_code)
-        data = item.model_dump()
+        data = {
+            "id": file_code.id,
+            "code": file_code.code,
+            "prefix": file_code.prefix,
+            "suffix": file_code.suffix,
+            "uuid_file_name": file_code.uuid_file_name,
+            "file_path": file_code.file_path,
+            "size": file_code.size or 0,
+            "text": file_code.text,
+            "expired_at": file_code.expired_at,
+            "expired_count": file_code.expired_count,
+            "used_count": file_code.used_count,
+            "created_at": file_code.created_at,
+            "file_hash": file_code.file_hash,
+            "is_chunked": file_code.is_chunked,
+            "upload_id": file_code.upload_id,
+        }
         data.update(
             {
                 "name": name,
