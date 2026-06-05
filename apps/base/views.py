@@ -133,6 +133,10 @@ async def create_file_code(code, **kwargs):
     return await FileCodes.create(code=code, **kwargs)
 
 
+def normalize_share_code(code: str) -> str:
+    return str(code or "").strip()
+
+
 @share_api.post("/text/", dependencies=[Depends(share_required_login)])
 async def share_text(
     text: str = Form(...),
@@ -196,7 +200,10 @@ async def share_file(
 async def get_code_file_by_code(
     code: str, check: bool = True
 ) -> Tuple[bool, Union[FileCodes, str]]:
-    file_code = await FileCodes.filter(code=code).first()
+    normalized_code = normalize_share_code(code)
+    if not normalized_code:
+        return False, "文件不存在"
+    file_code = await FileCodes.filter(code=normalized_code).first()
     if not file_code:
         return False, "文件不存在"
     if await file_code.is_expired() and check:
@@ -298,10 +305,11 @@ async def select_file(data: SelectFileModel, ip: str = Depends(ip_limit["error"]
 @share_api.get("/download")
 async def download_file(key: str, code: str, ip: str = Depends(ip_limit["error"])):
     file_storage: FileStorageInterface = storages[settings.file_storage]()
-    if await get_select_token(code) != key:
+    normalized_code = normalize_share_code(code)
+    if await get_select_token(normalized_code) != key:
         ip_limit["error"].add_ip(ip)
         raise HTTPException(status_code=403, detail="下载鉴权失败")
-    has, file_code = await get_code_file_by_code(code, False)
+    has, file_code = await get_code_file_by_code(normalized_code, False)
     if not has:
         return APIResponse(code=404, detail="文件不存在")
     assert isinstance(file_code, FileCodes)
