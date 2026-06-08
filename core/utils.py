@@ -5,8 +5,8 @@
 import datetime
 import hashlib
 import os
-import random
 import re
+import secrets
 import string
 import time
 
@@ -18,7 +18,7 @@ async def get_random_num():
     获取随机数
     :return:
     """
-    return random.randint(10000, 99999)
+    return secrets.randbelow(90000) + 10000
 
 
 r_s = string.ascii_uppercase + string.digits
@@ -29,7 +29,7 @@ async def get_random_string():
     获取随机字符串
     :return:
     """
-    return "".join(random.choice(r_s) for _ in range(5))
+    return "".join(secrets.choice(r_s) for _ in range(5))
 
 
 async def get_now():

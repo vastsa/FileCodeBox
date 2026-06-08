@@ -76,8 +76,6 @@ async def get_expire_info(
             expired_at, extra = result
             if expire_style == "count":
                 expired_count = extra
-            elif expire_style == "forever":
-                code = await get_random_code(style="string")
         else:
             expired_at = result
         if expired_at and expired_at - now > max_timedelta:
@@ -91,9 +89,26 @@ async def get_expire_info(
     return expired_at, expired_count, used_count, code
 
 
-async def get_random_code(style: str = "num") -> str:
+def get_code_generate_type() -> str:
+    code_generate_type = getattr(settings, "code_generate_type", "number")
+    if code_generate_type in {"secret", "string"}:
+        return "secret"
+    return "number"
+
+
+async def get_random_code(style: str | None = None) -> str:
+    code_style = style or get_code_generate_type()
+    if code_style == "num":
+        code_style = "number"
+    if code_style == "string":
+        code_style = "secret"
+
     while True:
-        code = await get_random_num() if style == "num" else await get_random_string()
+        code = (
+            await get_random_num()
+            if code_style == "number"
+            else await get_random_string()
+        )
         if not await FileCodes.filter(code=code).exists():
             return str(code)
 

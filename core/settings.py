@@ -43,6 +43,7 @@ DEFAULT_CONFIG = {
     "uploadSize": 1024 * 1024 * 10,
     "allowed_file_types": ["*"],
     "expireStyle": ["day", "hour", "minute", "forever", "count"],
+    "code_generate_type": "number",
     "uploadMinute": 1,
     "enableChunk": 0,
     "webdav_url": "",
@@ -73,6 +74,7 @@ DEFAULT_CONFIG = {
     "serverPort": 12345,
     "showAdminAddr": 0,
     "robotsText": "User-agent: *\nDisallow: /",
+    "trustedProxies": [],
 }
 
 
