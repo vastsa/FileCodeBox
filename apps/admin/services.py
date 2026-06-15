@@ -8,6 +8,7 @@ from core.response import APIResponse
 from core.storage import FileStorageInterface, storages
 from core.settings import settings
 from core.config import refresh_settings
+from core.security import INTERNAL_CONFIG_KEYS, generate_jwt_secret
 from apps.base.models import FileCodes, KeyValue
 from apps.base.utils import get_expire_info, get_file_path_name
 from fastapi import HTTPException
@@ -1514,20 +1515,30 @@ class ConfigService:
     FLOAT_FIELDS = {"opacity"}
 
     def get_config(self):
-        return dict(settings.items())
+        config = dict(settings.items())
+        config["admin_token"] = ""
+        for key in INTERNAL_CONFIG_KEYS:
+            config.pop(key, None)
+        return config
 
     async def update_config(self, data: dict):
         current_config = dict(settings.items())
         next_config = dict(current_config)
         update_data = {
-            key: value for key, value in data.items() if key in settings.default_config
+            key: value
+            for key, value in data.items()
+            if key in settings.default_config and key not in INTERNAL_CONFIG_KEYS
         }
 
         admin_token = update_data.get("admin_token")
+        admin_password_changed = False
         if admin_token is None or admin_token == "":
             update_data.pop("admin_token", None)
         elif not is_password_hashed(admin_token):
             update_data["admin_token"] = hash_password(admin_token)
+            admin_password_changed = True
+        else:
+            admin_password_changed = True
 
         for key, value in update_data.items():
             if value == "" and key in self.INT_FIELDS | self.FLOAT_FIELDS:
@@ -1542,6 +1553,9 @@ class ConfigService:
                     next_config[key] = value
             except (TypeError, ValueError):
                 raise HTTPException(status_code=400, detail=f"{key} 配置值格式错误")
+
+        if admin_password_changed:
+            next_config["jwt_secret"] = generate_jwt_secret()
 
         await KeyValue.update_or_create(key="settings", defaults={"value": next_config})
         await refresh_settings()

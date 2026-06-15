@@ -22,7 +22,7 @@ When guest upload is disabled in admin panel (`openUpload=0`), you need to login
 ```bash
 curl -X POST "http://localhost:12345/admin/login" \
   -H "Content-Type: application/json" \
-  -d '{"password": "FileCodeBox2023"}'
+  -d '{"password": "<admin-password-set-during-setup>"}'
 ```
 
 **Response Example:**
@@ -329,4 +329,4 @@ When an error occurs, the API will return corresponding error message:
 - 403: Forbidden
 - 404: Not Found
 - 422: Validation Error
-- 500: Internal Server Error 
+- 500: Internal Server Error

@@ -109,8 +109,9 @@ python main.py
    - 下载文件
 
 4. 后台管理
+   - 首次访问 `http://localhost:12345` 完成初始化
    - 访问 `http://localhost:12345/#/admin`
-   - 输入管理员密码：`FileCodeBox2023`
+   - 输入初始化时设置的管理员密码
    - 进入后台管理页面
    - 查看系统信息、文件列表、用户管理等
 
@@ -118,4 +119,4 @@ python main.py
 
 - [存储配置](/guide/storage) - 了解如何配置不同的存储方式
 - [安全设置](/guide/security) - 了解如何增强系统安全性
-- [API 文档](/api/) - 了解如何通过 API 集成 
+- [API 文档](/api/) - 了解如何通过 API 集成

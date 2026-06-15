@@ -46,7 +46,9 @@ async def get_select_token(code: str):
     :param code:
     :return:
     """
-    token = settings.admin_token
+    token = getattr(settings, "jwt_secret", "")
+    if not token:
+        raise RuntimeError("应用签名密钥未初始化")
     return hashlib.sha256(
         f"{code}{int(time.time() / 1000)}000{token}".encode()
     ).hexdigest()

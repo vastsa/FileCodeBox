@@ -4,10 +4,10 @@ FileCodeBox provides multiple layers of security mechanisms to protect your file
 
 ## Admin Password
 
-### Change Default Password
+### First-Run Setup
 
 ::: danger Important Security Warning
-FileCodeBox's default admin password is `FileCodeBox2023`. **You must change this password immediately in production environments!** Using the default password allows anyone to access your admin panel.
+FileCodeBox does not ship with a default admin password. Open the site in your browser on first run and set the admin password on the setup page.
 :::
 
 There are two ways to change the admin password:
@@ -272,7 +272,7 @@ your-domain.com {
 
 Before deploying FileCodeBox, confirm the following security configurations:
 
-- [ ] Changed default admin password `admin_token`
+- [ ] Completed first-run setup and set the admin password `admin_token`
 - [ ] Hidden admin entry `showAdminAddr: 0`
 - [ ] Configured appropriate upload rate limiting
 - [ ] Configured error rate limiting to prevent brute-force attacks

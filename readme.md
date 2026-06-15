@@ -254,7 +254,7 @@ python main.py
 |------|------|
 | **分享文件** | 打开网页 → 选择/拖拽文件 → 设置有效期 → 获取提取码 |
 | **获取文件** | 打开网页 → 输入提取码 → 下载文件或查看文本 |
-| **管理后台** | 访问 `/#/admin` → 输入密码 `FileCodeBox2023` |
+| **管理后台** | 首次访问站点完成初始化 → 访问 `/#/admin` → 输入初始化时设置的密码 |
 
 ### 命令行使用（curl）
 
@@ -323,7 +323,7 @@ curl -L "http://localhost:12345/share/select/?code=提取码" -o filename
 # 1. 获取 token
 curl -X POST "http://localhost:12345/admin/login" \
   -H "Content-Type: application/json" \
-  -d '{"password": "FileCodeBox2023"}'
+  -d '{"password": "<初始化时设置的管理员密码>"}'
 
 # 2. 携带 token 上传
 curl -X POST "http://localhost:12345/share/file/" \

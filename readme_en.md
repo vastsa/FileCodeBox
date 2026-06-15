@@ -254,7 +254,7 @@ python main.py
 |-----------|-------|
 | **Share File** | Open website → Select/drag files → Set expiration → Get passcode |
 | **Retrieve File** | Open website → Enter passcode → Download file or view text |
-| **Admin Panel** | Visit `/#/admin` → Enter password `FileCodeBox2023` |
+| **Admin Panel** | Complete first-run setup → Visit `/#/admin` → Enter the password set during setup |
 
 ### Command Line Usage (curl)
 
@@ -323,7 +323,7 @@ curl -L "http://localhost:12345/share/select/?code=PASSCODE" -o filename
 # 1. Get token
 curl -X POST "http://localhost:12345/admin/login" \
   -H "Content-Type: application/json" \
-  -d '{"password": "FileCodeBox2023"}'
+  -d '{"password": "<admin-password-set-during-setup>"}'
 
 # 2. Upload with token
 curl -X POST "http://localhost:12345/share/file/" \

@@ -149,7 +149,7 @@ curl -L "http://localhost:12345/share/select/?code=取件码" -o downloaded_file
 # 1. 登录获取 token
 curl -X POST "http://localhost:12345/admin/login" \
   -H "Content-Type: application/json" \
-  -d '{"password": "FileCodeBox2023"}'
+  -d '{"password": "<初始化时设置的管理员密码>"}'
 
 # 返回: {"code":200,"msg":"success","detail":{"token":"xxx.xxx.xxx","token_type":"Bearer"}}
 

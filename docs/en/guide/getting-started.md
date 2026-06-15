@@ -55,8 +55,9 @@ python main.py
    - Download file
 
 4. Admin Panel
+   - Open `http://localhost:12345` on first run and complete setup
    - Visit `http://localhost:12345/#/admin`
-   - Enter admin password: `FileCodeBox2023`
+   - Enter the admin password set during setup
    - Enter admin panel
    - View system information, file list, user management, etc.
 
@@ -64,4 +65,4 @@ python main.py
 
 - [Storage Configuration](/en/guide/storage) - Learn how to configure different storage methods
 - [Security Settings](/en/guide/security) - Learn how to enhance system security
-- [API Documentation](/en/api/) - Learn how to integrate through API 
+- [API Documentation](/en/api/) - Learn how to integrate through API

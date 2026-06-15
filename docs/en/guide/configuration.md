@@ -109,11 +109,11 @@ Default available themes:
 
 | Setting | Type | Default | Description |
 |---------|------|---------|-------------|
-| `admin_token` | string | `FileCodeBox2023` | Admin login password |
+| `admin_token` | string | Set during setup | Admin login password |
 | `showAdminAddr` | int | `0` | Show admin panel entry on homepage (1=show, 0=hide) |
 
 ::: danger Security Warning
-Always change the default `admin_token` in production environments! Using the default password poses serious security risks.
+The setup page is shown automatically while the system is uninitialized. Complete setup before exposing a production service to the public internet.
 :::
 
 ## Security Settings

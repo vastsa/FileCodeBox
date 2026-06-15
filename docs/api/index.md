@@ -22,7 +22,7 @@ Authorization: Bearer <token>
 ```bash
 curl -X POST "http://localhost:12345/admin/login" \
   -H "Content-Type: application/json" \
-  -d '{"password": "FileCodeBox2023"}'
+  -d '{"password": "<初始化时设置的管理员密码>"}'
 ```
 
 **响应示例：**
@@ -329,4 +329,4 @@ curl -L "http://localhost:12345/share/select/?code=abc123" -o downloaded_file
 - 403: 禁止访问
 - 404: 资源不存在
 - 422: 请求参数验证错误
-- 500: 服务器内部错误 
+- 500: 服务器内部错误

@@ -8,12 +8,13 @@ FileCodeBox provides a fully-featured admin panel that allows administrators to 
 
 The admin panel is located at the `/admin` path. Access method:
 
-1. Visit `http://your-domain.com/admin` in your browser
-2. Enter the admin password (the value of the `admin_token` configuration)
-3. Click the login button
+1. On first run, set the admin password on the setup page
+2. Visit `http://your-domain.com/admin` in your browser
+3. Enter the admin password (the value of the `admin_token` configuration)
+4. Click the login button
 
 ::: tip Tip
-The default admin password is `FileCodeBox2023`. Be sure to change this password in production environments. See [Security Settings](/en/guide/security) for details.
+The setup page is shown automatically while the system is uninitialized. Complete setup before exposing a production service to the public internet.
 :::
 
 ### Show Admin Entry

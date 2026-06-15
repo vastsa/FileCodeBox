@@ -149,7 +149,7 @@ If guest upload is disabled in admin panel (`openUpload=0`), you need to login f
 # 1. Login to get token
 curl -X POST "http://localhost:12345/admin/login" \
   -H "Content-Type: application/json" \
-  -d '{"password": "FileCodeBox2023"}'
+  -d '{"password": "<admin-password-set-during-setup>"}'
 
 # Returns: {"code":200,"msg":"success","detail":{"token":"xxx.xxx.xxx","token_type":"Bearer"}}
 

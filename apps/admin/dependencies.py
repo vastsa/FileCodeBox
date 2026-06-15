@@ -12,6 +12,13 @@ from core.settings import settings
 from apps.admin.services import FileService, ConfigService, LocalFileService
 
 
+def _get_jwt_secret() -> bytes:
+    secret = getattr(settings, "jwt_secret", "")
+    if not secret:
+        raise RuntimeError("JWT签名密钥未初始化")
+    return secret.encode()
+
+
 def create_token(data: dict, expires_in: int = 3600 * 24 * 30) -> str:
     """
     创建JWT token
@@ -25,9 +32,7 @@ def create_token(data: dict, expires_in: int = 3600 * 24 * 30) -> str:
         json.dumps({**data, "exp": int(time.time()) + expires_in}).encode()
     ).decode()
 
-    signature = hmac.new(
-        settings.admin_token.encode(), f"{header}.{payload}".encode(), "sha256"
-    ).digest()
+    signature = hmac.new(_get_jwt_secret(), f"{header}.{payload}".encode(), "sha256").digest()
     signature = base64.b64encode(signature).decode()
 
     return f"{header}.{payload}.{signature}"
@@ -44,7 +49,7 @@ def verify_token(token: str) -> dict:
 
         # 验证签名
         expected_signature = hmac.new(
-            settings.admin_token.encode(),
+            _get_jwt_secret(),
             f"{header_b64}.{payload_b64}".encode(),
             "sha256",
         ).digest()
