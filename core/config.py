@@ -64,6 +64,8 @@ async def ensure_security_settings() -> None:
 def _sync_ip_limits() -> None:
     ip_limit["error"].minutes = settings.errorMinute
     ip_limit["error"].count = settings.errorCount
+    ip_limit["metadata"].minutes = settings.errorMinute
+    ip_limit["metadata"].count = settings.errorCount
     ip_limit["upload"].minutes = settings.uploadMinute
     ip_limit["upload"].count = settings.uploadCount
 

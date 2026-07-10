@@ -28,6 +28,7 @@ async def delete_expire_files():
                     if not dirs and not files:
                         os.rmdir(root)
             await ip_limit["error"].remove_expired_ip()
+            await ip_limit["metadata"].remove_expired_ip()
             await ip_limit["upload"].remove_expired_ip()
             expire_data = await FileCodes.filter(
                 Q(expired_at__lt=await get_now()) | Q(expired_count=0)

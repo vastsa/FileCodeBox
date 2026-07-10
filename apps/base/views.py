@@ -11,6 +11,7 @@ from typing import Optional, Tuple, Union
 from fastapi import APIRouter, Form, Request, UploadFile, File, Depends, HTTPException
 from pydantic import BaseModel, ValidationError
 from starlette import status
+from tortoise.expressions import Case, F, Q, When
 
 from apps.admin.dependencies import share_required_login
 from apps.base.models import FileCodes, UploadChunk, PresignUploadSession
@@ -29,7 +30,12 @@ from apps.base.utils import (
 from core.response import APIResponse
 from core.settings import settings
 from core.storage import storages, FileStorageInterface
-from core.utils import get_select_token, get_now, sanitize_filename
+from core.utils import (
+    get_file_url as get_proxy_file_url,
+    get_select_token,
+    get_now,
+    sanitize_filename,
+)
 
 share_api = APIRouter(prefix="/share", tags=["分享"])
 
@@ -211,11 +217,25 @@ async def get_code_file_by_code(
     return True, file_code
 
 
-async def update_file_usage(file_code: FileCodes) -> None:
-    file_code.used_count += 1
-    if file_code.expired_count > 0:
-        file_code.expired_count -= 1
-    await file_code.save()
+async def consume_file_usage(file_code: FileCodes) -> bool:
+    """原子校验分享状态并记录一次实际领取。"""
+    now = await get_now()
+    eligible = (
+        Q(expired_count__gt=0)
+        | Q(expired_count__lt=0, expired_at__gt=now)
+        | Q(expired_count__lt=0, expired_at=None)
+    )
+    updated = await FileCodes.filter(Q(id=file_code.id) & eligible).update(
+        expired_count=Case(
+            When(expired_count__gt=0, then=F("expired_count") - 1),
+            default=F("expired_count"),
+        ),
+        used_count=F("used_count") + 1,
+    )
+    if not updated:
+        return False
+    await file_code.refresh_from_db()
+    return True
 
 
 def build_file_metadata(file_code: FileCodes) -> dict:
@@ -242,9 +262,13 @@ async def build_select_detail(
     file_code: FileCodes, file_storage: FileStorageInterface
 ) -> dict:
     metadata = build_file_metadata(file_code)
-    download_url = (
-        None if file_code.text is not None else await file_storage.get_file_url(file_code)
-    )
+    if file_code.text is not None:
+        download_url = None
+    elif file_code.expired_count >= 0:
+        # 有次数限制的文件必须经过下载接口，第三方直链无法阻止重复使用。
+        download_url = await get_proxy_file_url(file_code.code)
+    else:
+        download_url = await file_storage.get_file_url(file_code)
     content = file_code.text if file_code.text is not None else None
     return {
         **metadata,
@@ -255,24 +279,28 @@ async def build_select_detail(
 
 
 @share_api.get("/metadata/")
-async def get_file_metadata(code: str, ip: str = Depends(ip_limit["error"])):
+async def get_file_metadata(code: str, ip: str = Depends(ip_limit["metadata"])):
     has, file_code = await get_code_file_by_code(code)
     if not has:
-        ip_limit["error"].add_ip(ip)
+        ip_limit["metadata"].add_ip(ip)
         return APIResponse(code=404, detail=file_code)
 
     assert isinstance(file_code, FileCodes)
+    ip_limit["metadata"].add_ip(ip)
     return APIResponse(detail=build_file_metadata(file_code))
 
 
 @share_api.post("/metadata/")
-async def post_file_metadata(data: SelectFileModel, ip: str = Depends(ip_limit["error"])):
+async def post_file_metadata(
+    data: SelectFileModel, ip: str = Depends(ip_limit["metadata"])
+):
     has, file_code = await get_code_file_by_code(data.code)
     if not has:
-        ip_limit["error"].add_ip(ip)
+        ip_limit["metadata"].add_ip(ip)
         return APIResponse(code=404, detail=file_code)
 
     assert isinstance(file_code, FileCodes)
+    ip_limit["metadata"].add_ip(ip)
     return APIResponse(detail=build_file_metadata(file_code))
 
 
@@ -285,7 +313,8 @@ async def get_code_file(code: str, ip: str = Depends(ip_limit["error"])):
         return APIResponse(code=404, detail=file_code)
 
     assert isinstance(file_code, FileCodes)
-    await update_file_usage(file_code)
+    if not await consume_file_usage(file_code):
+        return APIResponse(code=404, detail="文件已过期")
     return await file_storage.get_file_response(file_code)
 
 
@@ -298,8 +327,16 @@ async def select_file(data: SelectFileModel, ip: str = Depends(ip_limit["error"]
         return APIResponse(code=404, detail=file_code)
 
     assert isinstance(file_code, FileCodes)
-    await update_file_usage(file_code)
-    return APIResponse(detail=await build_select_detail(file_code, file_storage))
+    detail = await build_select_detail(file_code, file_storage)
+    download_url = detail.get("download_url")
+    consumes_on_download = isinstance(download_url, str) and download_url.startswith(
+        "/share/download?"
+    )
+    if not consumes_on_download and not await consume_file_usage(file_code):
+        return APIResponse(code=404, detail="文件已过期")
+    if not consumes_on_download:
+        detail.update(build_file_metadata(file_code))
+    return APIResponse(detail=detail)
 
 
 @share_api.get("/download")
@@ -309,10 +346,12 @@ async def download_file(key: str, code: str, ip: str = Depends(ip_limit["error"]
     if await get_select_token(normalized_code) != key:
         ip_limit["error"].add_ip(ip)
         raise HTTPException(status_code=403, detail="下载鉴权失败")
-    has, file_code = await get_code_file_by_code(normalized_code, False)
+    has, file_code = await get_code_file_by_code(normalized_code)
     if not has:
-        return APIResponse(code=404, detail="文件不存在")
+        return APIResponse(code=404, detail=file_code)
     assert isinstance(file_code, FileCodes)
+    if not await consume_file_usage(file_code):
+        return APIResponse(code=404, detail="文件已过期")
     return (
         APIResponse(detail=file_code.text)
         if file_code.text

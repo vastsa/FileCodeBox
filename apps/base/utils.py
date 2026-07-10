@@ -90,7 +90,7 @@ async def get_expire_info(
 
 
 def get_code_generate_type() -> str:
-    code_generate_type = getattr(settings, "code_generate_type", "number")
+    code_generate_type = getattr(settings, "code_generate_type", "secret")
     if code_generate_type in {"secret", "string"}:
         return "secret"
     return "number"
@@ -127,5 +127,6 @@ async def calculate_file_hash(file: UploadFile, chunk_size=1024 * 1024) -> str:
 
 ip_limit = {
     "error": IPRateLimit(count=settings.errorCount, minutes=settings.errorMinute),
+    "metadata": IPRateLimit(count=settings.errorCount, minutes=settings.errorMinute),
     "upload": IPRateLimit(count=settings.uploadCount, minutes=settings.uploadMinute),
 }

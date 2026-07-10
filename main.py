@@ -33,6 +33,12 @@ from core.tasks import delete_expire_files, clean_incomplete_uploads
 from core.version import APP_VERSION
 
 
+def normalize_public_flag(value) -> int:
+    if isinstance(value, str):
+        return int(value.strip().lower() in {"1", "true", "on", "yes"})
+    return int(bool(value))
+
+
 def build_public_config() -> dict:
     return {
         "name": settings.name,
@@ -45,7 +51,7 @@ def build_public_config() -> dict:
         "openUpload": settings.openUpload,
         "notify_title": settings.notify_title,
         "notify_content": settings.notify_content,
-        "show_admin_address": settings.showAdminAddr,
+        "show_admin_address": normalize_public_flag(settings.showAdminAddr),
         "max_save_seconds": settings.max_save_seconds,
     }
 
@@ -61,7 +67,7 @@ def build_public_meta() -> dict:
         "features": {
             "chunkUpload": bool(settings.enableChunk),
             "guestUpload": bool(settings.openUpload),
-            "adminAddressVisible": bool(settings.showAdminAddr),
+            "adminAddressVisible": bool(normalize_public_flag(settings.showAdminAddr)),
             "expirationModes": settings.expireStyle,
         },
         "limits": {
@@ -153,7 +159,9 @@ def parse_setup_options(data: dict) -> dict:
     if not expire_styles:
         raise ValueError("至少需要选择一种过期方式")
 
-    code_generate_type = get_form_value(data, "code_generate_type", "number")
+    code_generate_type = get_form_value(
+        data, "code_generate_type", DEFAULT_CONFIG["code_generate_type"]
+    )
     if code_generate_type not in {"number", "secret"}:
         raise ValueError("提取码类型不正确")
 
@@ -222,7 +230,9 @@ def build_setup_page(error: str = "", form: dict | None = None) -> str:
     chunk_checked = (
         " checked" if normalize_bool_field(form, "enableChunk", False) else ""
     )
-    code_generate_type = get_form_value(form, "code_generate_type", "number")
+    code_generate_type = get_form_value(
+        form, "code_generate_type", DEFAULT_CONFIG["code_generate_type"]
+    )
     selected_expire_styles = get_form_list(form, "expireStyle") or list(
         DEFAULT_CONFIG["expireStyle"]
     )
