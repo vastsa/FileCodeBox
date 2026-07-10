@@ -1,5 +1,6 @@
 # 第一阶段：构建前端主题
-FROM node:20-alpine AS frontend-builder
+# 前端产物与 CPU 架构无关，使用原生构建平台避免在 QEMU 中运行 Node/pnpm。
+FROM --platform=$BUILDPLATFORM node:20-alpine AS frontend-builder
 
 RUN apk add --no-cache git python3 make g++
 
