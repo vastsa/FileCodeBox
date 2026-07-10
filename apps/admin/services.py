@@ -6,7 +6,11 @@ from typing import Any, Optional
 
 from core.response import APIResponse
 from core.storage import FileStorageInterface, storages
-from core.settings import settings
+from core.settings import (
+    ADMIN_SESSION_EXPIRE_MAX,
+    ADMIN_SESSION_EXPIRE_MIN,
+    settings,
+)
 from core.config import refresh_settings
 from core.security import INTERNAL_CONFIG_KEYS, generate_jwt_secret
 from apps.base.models import FileCodes, KeyValue
@@ -1496,6 +1500,7 @@ class FileService:
 
 class ConfigService:
     INT_FIELDS = {
+        "adminSessionExpire",
         "enableChunk",
         "errorCount",
         "errorMinute",
@@ -1553,6 +1558,23 @@ class ConfigService:
                     next_config[key] = value
             except (TypeError, ValueError):
                 raise HTTPException(status_code=400, detail=f"{key} 配置值格式错误")
+
+        try:
+            session_expire = int(next_config.get("adminSessionExpire"))
+        except (TypeError, ValueError):
+            raise HTTPException(
+                status_code=400,
+                detail="adminSessionExpire 配置值格式错误",
+            )
+        if (
+            not ADMIN_SESSION_EXPIRE_MIN <= session_expire <= ADMIN_SESSION_EXPIRE_MAX
+            or session_expire % ADMIN_SESSION_EXPIRE_MIN != 0
+        ):
+            raise HTTPException(
+                status_code=400,
+                detail="adminSessionExpire 必须是 1 到 365 个整天",
+            )
+        next_config["adminSessionExpire"] = session_expire
 
         if admin_password_changed:
             next_config["jwt_secret"] = generate_jwt_secret()

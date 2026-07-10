@@ -4,6 +4,10 @@
 # @Software: PyCharm
 from pathlib import Path
 
+ADMIN_SESSION_EXPIRE_DEFAULT = 30 * 24 * 60 * 60
+ADMIN_SESSION_EXPIRE_MIN = 24 * 60 * 60
+ADMIN_SESSION_EXPIRE_MAX = 365 * 24 * 60 * 60
+
 BASE_DIR = Path(__file__).resolve().parent.parent
 data_root = BASE_DIR / "data"
 
@@ -40,6 +44,7 @@ DEFAULT_CONFIG = {
     "webdav_proxy": 0,
     "admin_token": "",
     "jwt_secret": "",
+    "adminSessionExpire": ADMIN_SESSION_EXPIRE_DEFAULT,
     "openUpload": 1,
     "uploadSize": 1024 * 1024 * 10,
     "allowed_file_types": ["*"],

@@ -3,9 +3,13 @@ import copy
 import unittest
 
 import apps.admin.services as admin_services
+import apps.admin.views as admin_views
+import apps.admin.dependencies as admin_dependencies
 import core.config as core_config
 from apps.admin.dependencies import create_token, verify_token
+from apps.admin.schemas import LoginData
 from apps.admin.services import ConfigService
+from fastapi import HTTPException
 from main import parse_setup_options
 from core.security import (
     LEGACY_DEFAULT_ADMIN_TOKEN,
@@ -119,6 +123,26 @@ class AdminJwtTests(SettingsOverrideMixin, unittest.TestCase):
         with self.assertRaises(ValueError):
             verify_token(token)
 
+    def test_configured_session_lifetime_is_returned_by_login(self):
+        settings.admin_token = hash_password("admin-password")
+        settings.jwt_secret = "j" * 48
+        settings.adminSessionExpire = 90 * 24 * 60 * 60
+        original_time = admin_dependencies.time.time
+        admin_dependencies.time.time = lambda: 1_800_000_000
+        try:
+            response = asyncio.run(
+                admin_views.login(LoginData(password="admin-password"))
+            )
+            payload = verify_token(response.detail["token"])
+        finally:
+            admin_dependencies.time.time = original_time
+
+        self.assertEqual(response.detail["expires_in"], 90 * 24 * 60 * 60)
+        self.assertEqual(
+            response.detail["expires_at"], 1_800_000_000 + 90 * 24 * 60 * 60
+        )
+        self.assertEqual(payload["exp"], response.detail["expires_at"])
+
 
 class FakeKeyValue:
     saved_value = None
@@ -158,6 +182,19 @@ class FakeConfigKeyValue:
 
 
 class ConfigServiceSecurityTests(SettingsOverrideMixin, unittest.TestCase):
+    def test_admin_session_lifetime_rejects_out_of_range_values(self):
+        settings.user_config = copy.deepcopy(DEFAULT_CONFIG)
+
+        for invalid_value in (0, 86399, 90000, 365 * 24 * 60 * 60 + 1):
+            with self.subTest(invalid_value=invalid_value):
+                with self.assertRaises(HTTPException) as context:
+                    asyncio.run(
+                        ConfigService().update_config(
+                            {"adminSessionExpire": invalid_value}
+                        )
+                    )
+                self.assertEqual(context.exception.status_code, 400)
+
     def test_admin_password_update_rotates_jwt_secret(self):
         old_secret = "j" * 48
         settings.user_config = {
