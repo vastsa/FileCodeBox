@@ -1,6 +1,6 @@
 # Configuration Guide
 
-FileCodeBox provides rich configuration options that can be customized through the admin panel or by directly modifying the configuration. This document details all available configuration options.
+FileCodeBox provides rich configuration options. Prefer the admin panel; directly editing the database can introduce invalid types or break security settings.
 
 ## Configuration Methods
 
@@ -22,7 +22,9 @@ On first startup, the system uses default configuration from `core/settings.py`.
 | `name` | string | `文件快递柜 - FileCodeBox` | Site name, displayed in page title and navigation bar |
 | `description` | string | `开箱即用的文件快传系统` | Site description, used for SEO |
 | `keywords` | string | `FileCodeBox, 文件快递柜...` | Site keywords, used for SEO |
-| `port` | int | `12345` | Service listening port |
+| `serverHost` | string | `0.0.0.0` | Service listening address |
+| `serverPort` | int | `12345` | Service listening port |
+| `serverWorkers` | int | `1` | Worker count; keep one worker for SQLite deployments |
 
 ### Notification Settings
 
@@ -42,6 +44,7 @@ On first startup, the system uses default configuration from `core/settings.py`.
 | `openUpload` | int | `1` | Enable upload functionality (1=enabled, 0=disabled) |
 | `uploadSize` | int | `10485760` | Maximum single file upload size (bytes), default 10MB |
 | `enableChunk` | int | `0` | Enable chunked upload (1=enabled, 0=disabled) |
+| `allowed_file_types` | list | `["*"]` | Allowed extensions; `*` allows every file type |
 
 ::: warning Note
 `uploadSize` is in bytes. 10MB = 10 * 1024 * 1024 = 10485760 bytes
@@ -111,6 +114,7 @@ Default available themes:
 |---------|------|---------|-------------|
 | `admin_token` | string | Set during setup | Admin login password |
 | `showAdminAddr` | int | `0` | Show admin panel entry on homepage (1=show, 0=hide) |
+| `adminSessionExpire` | int | `2592000` | Admin session lifetime in seconds (30 days) |
 
 ::: danger Security Warning
 The setup page is shown automatically while the system is uninitialized. Complete setup before exposing a production service to the public internet.
@@ -123,7 +127,8 @@ The setup page is shown automatically while the system is uninitialized. Complet
 | Setting | Type | Default | Description |
 |---------|------|---------|-------------|
 | `errorMinute` | int | `1` | Error limit time window (minutes) |
-| `errorCount` | int | `1` | Maximum errors allowed within the time window |
+| `errorCount` | int | `10` | Maximum errors allowed within the time window |
+| `trustedProxies` | list | `[]` | Trusted reverse-proxy IPs used to resolve client addresses |
 
 This setting prevents brute-force attacks on extraction codes.
 
@@ -135,6 +140,7 @@ This setting prevents brute-force attacks on extraction codes.
 |---------|------|---------|-------------|
 | `file_storage` | string | `local` | Storage backend type |
 | `storage_path` | string | `""` | Custom storage path |
+| `storageLimit` | int | `0` | Total storage quota in bytes; 0 means unlimited |
 
 Supported storage types:
 - `local` - Local storage
@@ -158,7 +164,6 @@ Suitable for personal or small team use with relaxed limits:
     "uploadMinute": 5,             # 5 minutes
     "uploadCount": 20,             # Max 20 uploads
     "expireStyle": ["day", "hour", "forever"],
-    "admin_token": "your-secure-password",
     "showAdminAddr": 1
 }
 ```
@@ -177,7 +182,6 @@ Suitable for public services requiring stricter limits:
     "errorCount": 3,               # Max 3 errors
     "expireStyle": ["hour", "minute", "count"],
     "max_save_seconds": 86400,     # Max retention 1 day
-    "admin_token": "very-secure-password-123",
     "showAdminAddr": 0
 }
 ```
@@ -195,10 +199,13 @@ Suitable for enterprise internal use with large file and chunked upload support:
     "uploadCount": 100,            # Max 100 uploads
     "expireStyle": ["day", "forever"],
     "file_storage": "s3",          # Use S3 storage
-    "admin_token": "enterprise-secure-token",
     "showAdminAddr": 1
 }
 ```
+
+::: warning Configuration examples
+These dictionaries illustrate combinations of values; they are not editable configuration files. Set the admin password through first-run setup or the admin panel.
+:::
 
 ## Next Steps
 

@@ -74,6 +74,10 @@ Open `http://localhost:12345` and complete first-run setup. Pin a version in pro
 
 [Issues](https://github.com/vastsa/FileCodeBox/issues/new/choose) and pull requests are welcome. FileCodeBox is released under [LGPL-3.0](./LICENSE).
 
+## Disclaimer
+
+Use FileCodeBox only for lawful file and text sharing. Do not upload, store, or distribute illegal, infringing, or unauthorized content. Operators are responsible for deployment security, data compliance, and content moderation.
+
 <div align="center">
 
 **If FileCodeBox helps you, consider leaving a Star.**

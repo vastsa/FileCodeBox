@@ -1,6 +1,6 @@
 # 配置说明
 
-FileCodeBox 提供了丰富的配置选项，可以通过管理面板或直接修改配置来自定义系统行为。本文档详细介绍所有可用的配置项。
+FileCodeBox 提供了丰富的配置选项。请优先通过管理面板修改，避免直接编辑数据库造成类型错误或安全配置失效。
 
 ## 配置方式
 
@@ -22,7 +22,9 @@ FileCodeBox 支持两种配置方式：
 | `name` | string | `文件快递柜 - FileCodeBox` | 站点名称，显示在页面标题和导航栏 |
 | `description` | string | `开箱即用的文件快传系统` | 站点描述，用于 SEO |
 | `keywords` | string | `FileCodeBox, 文件快递柜...` | 站点关键词，用于 SEO |
-| `port` | int | `12345` | 服务监听端口 |
+| `serverHost` | string | `0.0.0.0` | 服务监听地址 |
+| `serverPort` | int | `12345` | 服务监听端口 |
+| `serverWorkers` | int | `1` | 工作进程数；SQLite 部署建议保持单进程 |
 
 ### 通知设置
 
@@ -42,6 +44,7 @@ FileCodeBox 支持两种配置方式：
 | `openUpload` | int | `1` | 是否开启上传功能（1=开启，0=关闭） |
 | `uploadSize` | int | `10485760` | 单文件最大上传大小（字节），默认 10MB |
 | `enableChunk` | int | `0` | 是否启用分片上传（1=启用，0=禁用） |
+| `allowed_file_types` | list | `["*"]` | 允许上传的扩展名；`*` 表示不限制 |
 
 ::: warning 注意
 `uploadSize` 的单位是字节。10MB = 10 * 1024 * 1024 = 10485760 字节
@@ -110,6 +113,7 @@ FileCodeBox 支持两种配置方式：
 |--------|------|--------|------|
 | `admin_token` | string | 初始化页面设置 | 管理员登录密码（哈希存储） |
 | `showAdminAddr` | int | `0` | 是否在首页显示管理入口（1=显示，0=隐藏） |
+| `adminSessionExpire` | int | `2592000` | 管理会话有效期（秒），默认 30 天 |
 
 ::: danger 安全警告
 未初始化时会自动显示初始化页面。生产环境请在服务对外开放前完成初始化。
@@ -122,7 +126,8 @@ FileCodeBox 支持两种配置方式：
 | 配置项 | 类型 | 默认值 | 说明 |
 |--------|------|--------|------|
 | `errorMinute` | int | `1` | 错误限制的时间窗口（分钟） |
-| `errorCount` | int | `1` | 在时间窗口内允许的最大错误次数 |
+| `errorCount` | int | `10` | 在时间窗口内允许的最大错误次数 |
+| `trustedProxies` | list | `[]` | 可信反向代理 IP；用于安全解析客户端地址 |
 
 此设置用于防止暴力破解提取码。
 
@@ -134,6 +139,7 @@ FileCodeBox 支持两种配置方式：
 |--------|------|--------|------|
 | `file_storage` | string | `local` | 存储后端类型 |
 | `storage_path` | string | `""` | 自定义存储路径 |
+| `storageLimit` | int | `0` | 总存储配额（字节），0 表示不限制 |
 
 支持的存储类型：
 - `local` - 本地存储
@@ -157,7 +163,6 @@ FileCodeBox 支持两种配置方式：
     "uploadMinute": 5,             # 5分钟
     "uploadCount": 20,             # 最多20次
     "expireStyle": ["day", "hour", "forever"],
-    "admin_token": "your-secure-password",
     "showAdminAddr": 1
 }
 ```
@@ -176,7 +181,6 @@ FileCodeBox 支持两种配置方式：
     "errorCount": 3,               # 最多3次错误
     "expireStyle": ["hour", "minute", "count"],
     "max_save_seconds": 86400,     # 最长保存1天
-    "admin_token": "very-secure-password-123",
     "showAdminAddr": 0
 }
 ```
@@ -194,10 +198,13 @@ FileCodeBox 支持两种配置方式：
     "uploadCount": 100,            # 最多100次
     "expireStyle": ["day", "forever"],
     "file_storage": "s3",          # 使用S3存储
-    "admin_token": "enterprise-secure-token",
     "showAdminAddr": 1
 }
 ```
+
+::: warning 配置示例
+以上字典仅用于展示配置值组合，不是可直接编辑的配置文件。管理员密码请在初始化页面或管理面板中设置。
+:::
 
 ## 下一步
 

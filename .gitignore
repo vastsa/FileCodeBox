@@ -157,6 +157,7 @@ data/.env
 
 # Ignore node_modules
 node_modules/
+docs/.vitepress/cache/
 
 AGENTS.md
 

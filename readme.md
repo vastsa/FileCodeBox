@@ -74,6 +74,10 @@ docker run -d --restart unless-stopped -p 12345:12345 -v ./data:/app/data --name
 
 欢迎 [提交 Issue](https://github.com/vastsa/FileCodeBox/issues/new/choose) 或 Pull Request。项目基于 [LGPL-3.0](./LICENSE) 发布。
 
+## 免责声明
+
+本项目仅供合法的文件与文本分享场景使用。请勿上传、存储或传播违法、侵权或未经授权的内容；使用者应自行承担部署、数据合规与内容管理责任。
+
 <div align="center">
 
 **如果 FileCodeBox 对你有帮助，欢迎点亮一个 Star。**

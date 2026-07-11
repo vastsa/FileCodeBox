@@ -3,9 +3,17 @@ import { defineConfig } from 'vitepress'
 // https://vitepress.dev/reference/site-config
 export default defineConfig({
   title: 'FileCodeBox',
-  description: '简单高效的文件分享工具',
+  description: 'FileCodeBox 自托管文件与文本分享服务文档',
   lang: 'zh-CN',
   lastUpdated: true,
+  cleanUrls: true,
+  sitemap: {
+    hostname: 'https://fcb-docs.aiuo.net',
+  },
+  head: [
+    ['meta', { name: 'theme-color', content: '#111111' }],
+    ['link', { rel: 'icon', href: '/logo_small.png' }],
+  ],
   locales: {
     root: {
       label: '简体中文',
@@ -16,15 +24,24 @@ export default defineConfig({
         logo: '/logo_small.png',
         nav: [
           { text: '首页', link: '/' },
-          { text: '指南', link: '/guide/getting-started' },
-          { text: 'API', link: '/api/' },
-          { text: '优秀案例', link: '/showcase' },
-          { text: 'Demo', link: 'https://share.lanol.cn' },
           {
-            text: '了解更多',
+            text: '使用指南',
             items: [
+              { text: '快速开始', link: '/guide/getting-started' },
+              { text: '上传与分享', link: '/guide/upload' },
+              { text: '管理面板', link: '/guide/management' },
+              { text: '存储配置', link: '/guide/storage' },
+            ],
+          },
+          { text: 'API', link: '/api/' },
+          {
+            text: '资源',
+            items: [
+              { text: '在线体验', link: 'https://share.lanol.cn' },
+              { text: '部署案例', link: '/showcase' },
               { text: '更新日志', link: '/changelog' },
               { text: '贡献指南', link: '/contributing' },
+              { text: 'GitHub', link: 'https://github.com/vastsa/FileCodeBox' },
             ],
           },
         ],
@@ -32,7 +49,7 @@ export default defineConfig({
         sidebar: {
           '/guide/': [
             {
-              text: '介绍',
+              text: '开始',
               items: [
                 {
                   text: '什么是 FileCodeBox',
@@ -42,7 +59,7 @@ export default defineConfig({
               ],
             },
             {
-              text: '基础功能',
+              text: '使用',
               items: [
                 { text: '文件上传', link: '/guide/upload' },
                 { text: '文件分享', link: '/guide/share' },
@@ -50,7 +67,7 @@ export default defineConfig({
               ],
             },
             {
-              text: '高级特性',
+              text: '运维',
               items: [
                 { text: '存储配置', link: '/guide/storage' },
                 { text: '安全设置', link: '/guide/security' },
@@ -63,6 +80,8 @@ export default defineConfig({
             {
               text: 'API 参考',
               items: [
+                { text: 'API 概览', link: '/api/' },
+                { text: '预签名上传', link: '/api/presign-upload' },
                 { text: '分享接口', link: '/api/#分享接口' },
                 { text: '管理接口', link: '/api/#管理接口' },
                 { text: '错误响应', link: '/api/#错误响应' },
@@ -83,9 +102,28 @@ export default defineConfig({
           { icon: 'github', link: 'https://github.com/vastsa/FileCodeBox' },
         ],
         footer: {
-          message: '基于 LGPL-3.0 license 发布',
+          message: '基于 LGPL-3.0 许可证发布',
           copyright: 'Copyright © 2022-present FileCodeBox',
         },
+        editLink: {
+          pattern: 'https://github.com/vastsa/FileCodeBox/edit/master/docs/:path',
+          text: '在 GitHub 上编辑此页',
+        },
+        docFooter: {
+          prev: '上一篇',
+          next: '下一篇',
+        },
+        lastUpdated: {
+          text: '最后更新',
+        },
+        returnToTopLabel: '返回顶部',
+        skipToContentLabel: '跳转到正文',
+        navMenuLabel: '导航菜单',
+        langMenuLabel: '切换语言',
+        sidebarMenuLabel: '文档目录',
+        darkModeSwitchLabel: '外观',
+        lightModeSwitchTitle: '切换到浅色模式',
+        darkModeSwitchTitle: '切换到深色模式',
         search: {
           provider: 'local',
         },
@@ -104,15 +142,24 @@ export default defineConfig({
         logo: '/logo_small.png',
         nav: [
           { text: 'Home', link: '/en/' },
-          { text: 'Guide', link: '/en/guide/getting-started' },
-          { text: 'API', link: '/en/api/' },
-          { text: 'Showcase', link: '/en/showcase' },
-          { text: 'Demo', link: 'https://share.lanol.cn' },
           {
-            text: 'More',
+            text: 'Guides',
             items: [
+              { text: 'Getting Started', link: '/en/guide/getting-started' },
+              { text: 'Upload & Share', link: '/en/guide/upload' },
+              { text: 'Admin Panel', link: '/en/guide/management' },
+              { text: 'Storage', link: '/en/guide/storage' },
+            ],
+          },
+          { text: 'API', link: '/en/api/' },
+          {
+            text: 'Resources',
+            items: [
+              { text: 'Live Demo', link: 'https://share.lanol.cn' },
+              { text: 'Showcase', link: '/en/showcase' },
               { text: 'Changelog', link: '/en/changelog' },
               { text: 'Contributing', link: '/en/contributing' },
+              { text: 'GitHub', link: 'https://github.com/vastsa/FileCodeBox' },
             ],
           },
         ],
@@ -120,7 +167,7 @@ export default defineConfig({
         sidebar: {
           '/en/guide/': [
             {
-              text: 'Introduction',
+              text: 'Start',
               items: [
                 {
                   text: 'What is FileCodeBox',
@@ -133,7 +180,7 @@ export default defineConfig({
               ],
             },
             {
-              text: 'Basic Features',
+              text: 'Use',
               items: [
                 { text: 'File Upload', link: '/en/guide/upload' },
                 { text: 'File Sharing', link: '/en/guide/share' },
@@ -141,7 +188,7 @@ export default defineConfig({
               ],
             },
             {
-              text: 'Advanced Features',
+              text: 'Operate',
               items: [
                 { text: 'Storage Configuration', link: '/en/guide/storage' },
                 { text: 'Security Settings', link: '/en/guide/security' },
@@ -157,6 +204,7 @@ export default defineConfig({
             {
               text: 'API Reference',
               items: [
+                { text: 'API Overview', link: '/en/api/' },
                 { text: 'Share API', link: '/en/api/#share-api' },
                 { text: 'Admin API', link: '/en/api/#admin-api' },
                 { text: 'Error Response', link: '/en/api/#error-response' },
@@ -180,12 +228,31 @@ export default defineConfig({
           message: 'Released under the LGPL-3.0 license',
           copyright: 'Copyright © 2022-present FileCodeBox',
         },
+        editLink: {
+          pattern: 'https://github.com/vastsa/FileCodeBox/edit/master/docs/:path',
+          text: 'Edit this page on GitHub',
+        },
+        docFooter: {
+          prev: 'Previous',
+          next: 'Next',
+        },
+        lastUpdated: {
+          text: 'Last updated',
+        },
+        returnToTopLabel: 'Return to top',
+        skipToContentLabel: 'Skip to content',
+        navMenuLabel: 'Navigation',
+        langMenuLabel: 'Change language',
+        sidebarMenuLabel: 'Documentation',
+        darkModeSwitchLabel: 'Appearance',
+        lightModeSwitchTitle: 'Switch to light theme',
+        darkModeSwitchTitle: 'Switch to dark theme',
         search: {
           provider: 'local',
         },
         outline: {
           level: [2, 3],
-          label: '目录',
+          label: 'On this page',
         },
       },
     },
@@ -251,5 +318,6 @@ export default defineConfig({
       level: [2, 3],
       label: '目录',
     },
+    externalLinkIcon: true,
   },
 })

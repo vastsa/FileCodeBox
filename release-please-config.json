@@ -25,6 +25,14 @@
         {
           "type": "generic",
           "path": "readme_en.md"
+        },
+        {
+          "type": "generic",
+          "path": "docs/index.md"
+        },
+        {
+          "type": "generic",
+          "path": "docs/en/index.md"
         }
       ]
     }

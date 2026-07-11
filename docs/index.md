@@ -3,8 +3,8 @@ layout: home
 
 hero:
   name: "FileCodeBox"
-  text: "文件快递柜"
-  tagline: 匿名口令分享文本，文件，像拿快递一样取文件
+  text: "像取快递一样取文件"
+  tagline: 轻量、现代的自托管文件与文本分享服务
   image:
     src: /logo_small.png
     alt: FileCodeBox
@@ -16,27 +16,51 @@ hero:
       text: 在线体验
       link: https://share.lanol.cn
     - theme: alt
-      text: 在 GitHub 上查看
-      link: https://github.com/vastsa/FileCodeBox
+      text: 部署指南
+      link: /guide/getting-started#docker-部署推荐
 
 features:
-  - icon: 🚀
-    title: 快速部署
-    details: 支持 Docker 一键部署，简单快捷，无需复杂配置
-  - icon: 🔒
-    title: 安全可靠
-    details: 文件访问需要提取码，支持设置有效期和下载次数限制
-  - icon: 💻
-    title: 简洁界面
-    details: 清爽的用户界面，支持拖拽上传，使用体验极佳
-  - icon: 🛠️
-    title: 功能丰富
-    details: 支持文件预览、在线播放、图片处理等多种功能
-  - icon: 📦
-    title: 存储扩展
-    details: 支持本地存储、对象存储等多种存储方式
-  - icon: 🔌
-    title: API 支持
-    details: 提供完整的 REST API，方便与其他系统集成
+  - icon: 01
+    title: 即传即取
+    details: 文件与文本统一分享，支持批量、分片和断点续传
+  - icon: 02
+    title: 灵活失效
+    details: 按时间或取件次数失效，也可以永久保留
+  - icon: 03
+    title: 数据自主
+    details: 支持本地、S3、OneDrive、WebDAV 与 OpenDAL
 ---
 
+## 30 秒启动
+
+```bash
+docker run -d --restart unless-stopped \
+  -p 12345:12345 \
+  -v ./data:/app/data \
+  --name filecodebox \
+  lanol/filecodebox:2.5.0 # x-release-please-version
+```
+
+打开 `http://localhost:12345`，按引导完成首次初始化。
+
+<div class="doc-paths">
+  <a class="doc-path" href="/guide/getting-started">
+    <span>开始使用</span>
+    <strong>部署、初始化与升级</strong>
+    <small>从一台空服务器开始运行 FileCodeBox →</small>
+  </a>
+  <a class="doc-path" href="/guide/storage">
+    <span>管理服务</span>
+    <strong>存储、配置与安全</strong>
+    <small>为生产环境选择合适的存储和保护策略 →</small>
+  </a>
+  <a class="doc-path" href="/api/">
+    <span>集成开发</span>
+    <strong>API 与上传流程</strong>
+    <small>接入分享、分片上传和管理能力 →</small>
+  </a>
+</div>
+
+::: warning 使用须知
+请仅将 FileCodeBox 用于合法的文件与文本分享。服务运营者应自行负责部署安全、数据合规和内容管理。
+:::

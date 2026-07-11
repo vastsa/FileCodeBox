@@ -15,11 +15,24 @@ FileCodeBox is a simple and efficient file sharing tool that supports temporary 
 
 ## Deployment Methods
 
-### Docker Deployment
+### Docker Deployment (Recommended)
 
 ```bash
-docker run -d --restart=always -p 12345:12345 -v /opt/FileCodeBox/:/app/data --name filecodebox lanol/filecodebox:beta
+docker run -d --restart unless-stopped \
+  -p 12345:12345 \
+  -v fcb-data:/app/data \
+  --name filecodebox \
+  lanol/filecodebox:latest
 ```
+
+The named volume persists configuration and uploaded files across container upgrades.
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `HOST` | `0.0.0.0` | Service listening address |
+| `PORT` | `12345` | Service port |
+| `WORKERS` | `1` | Worker count; keep one worker for SQLite deployments |
+| `LOG_LEVEL` | `info` | `debug`, `info`, `warning`, or `error` |
 
 ### Manual Deployment
 
@@ -59,7 +72,7 @@ python main.py
    - Visit `http://localhost:12345/#/admin`
    - Enter the admin password set during setup
    - Enter admin panel
-   - View system information, file list, user management, etc.
+   - View system information, files, activity records, and configuration
 
 ## Next Steps
 

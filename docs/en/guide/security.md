@@ -10,9 +10,7 @@ FileCodeBox provides multiple layers of security mechanisms to protect your file
 FileCodeBox does not ship with a default admin password. Open the site in your browser on first run and set the admin password on the setup page.
 :::
 
-There are two ways to change the admin password:
-
-**Method 1: Via Admin Panel (Recommended)**
+Change the admin password through the admin panel:
 
 1. Access `/admin` to enter the admin panel
 2. Log in with the current password
@@ -20,9 +18,7 @@ There are two ways to change the admin password:
 4. Find the `admin_token` configuration item
 5. Enter a new secure password and save
 
-**Method 2: Via Database**
-
-Configuration is stored in the `keyvalue` table of the `data/filecodebox.db` database. You can directly modify the `admin_token` value.
+`admin_token` is stored as a password hash. Do not write a plaintext password to the database, or admin login will stop working.
 
 ### Password Security Recommendations
 
@@ -91,7 +87,7 @@ Limit the number of error attempts from a single IP to prevent brute-force attac
 | Setting | Type | Default | Description |
 |---------|------|---------|-------------|
 | `errorMinute` | int | `1` | Error limit time window (minutes) |
-| `errorCount` | int | `1` | Maximum errors allowed within the time window |
+| `errorCount` | int | `10` | Maximum errors allowed within the time window |
 
 **How it works:**
 - When a user enters an incorrect extraction code, the system records the error count for that IP
@@ -110,7 +106,7 @@ Limit the number of error attempts from a single IP to prevent brute-force attac
 ```
 
 ::: warning Note
-The default configuration `errorMinute=1, errorCount=1` is very strict, meaning you need to wait 1 minute after entering one incorrect extraction code before retrying. Adjust this configuration based on actual needs.
+The default allows up to 10 errors per IP each minute. Public services can tighten this limit while accounting for users behind shared network addresses.
 :::
 
 ## Upload Restrictions

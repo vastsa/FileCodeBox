@@ -128,7 +128,7 @@ FileCodeBox 是一个基于 FastAPI + Vue3 开发的轻量级文件分享工具�
 ### Docker 部署
 
 ```bash
-docker run -d --restart=always -p 12345:12345 -v /opt/FileCodeBox/:/app/data --name filecodebox lanol/filecodebox:beta
+docker run -d --restart unless-stopped -p 12345:12345 -v fcb-data:/app/data --name filecodebox lanol/filecodebox:latest
 ```
 
 ### 手动部署
