@@ -745,7 +745,7 @@ async def load_config():
     ip_limit["upload"].minutes = settings.uploadMinute
     ip_limit["upload"].count = settings.uploadCount
 
-app = FastAPI(lifespan=lifespan)
+app = FastAPI(lifespan=lifespan, version=APP_VERSION)
 
 @app.middleware("http")
 async def refresh_settings_middleware(request, call_next):

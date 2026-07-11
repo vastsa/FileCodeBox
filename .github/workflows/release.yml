@@ -1,0 +1,54 @@
+name: Create release
+
+on:
+  push:
+    branches:
+      - master
+  workflow_dispatch:
+
+permissions:
+  actions: write
+  contents: write
+  issues: write
+  pull-requests: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release-please:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Create or update release
+        id: release
+        uses: googleapis/release-please-action@v4
+        with:
+          config-file: release-please-config.json
+          manifest-file: .release-please-manifest.json
+
+      - name: Merge release pull request
+        if: ${{ steps.release.outputs.prs_created == 'true' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_PR: ${{ fromJSON(steps.release.outputs.pr).number }}
+        run: |
+          for attempt in {1..120}; do
+            if gh pr merge "$RELEASE_PR" --squash --delete-branch; then
+              break
+            fi
+            if [[ "$attempt" -eq 120 ]]; then
+              echo "Timed out waiting for release PR #$RELEASE_PR to merge" >&2
+              exit 1
+            fi
+            sleep 10
+          done
+          gh workflow run release.yml --ref master
+
+      - name: Publish release image
+        if: ${{ steps.release.outputs.release_created == 'true' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ steps.release.outputs.tag_name }}
+        run: gh workflow run docker-image.yml --ref master -f release_tag="$RELEASE_TAG"

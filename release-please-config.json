@@ -1,0 +1,32 @@
+{
+  "$schema": "https://raw.githubusercontent.com/googleapis/release-please/main/schemas/config.json",
+  "packages": {
+    ".": {
+      "release-type": "simple",
+      "component": "filecodebox",
+      "package-name": "filecodebox",
+      "include-v-in-tag": true,
+      "include-component-in-tag": false,
+      "version-file": "VERSION",
+      "changelog-path": "docs/changelog.md",
+      "extra-files": [
+        {
+          "type": "generic",
+          "path": "docs/en/changelog.md"
+        },
+        {
+          "type": "generic",
+          "path": "docker-compose.yml"
+        },
+        {
+          "type": "generic",
+          "path": "readme.md"
+        },
+        {
+          "type": "generic",
+          "path": "readme_en.md"
+        }
+      ]
+    }
+  }
+}

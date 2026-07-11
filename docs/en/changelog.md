@@ -1,5 +1,7 @@
 ## [Unreleased]
 
+<!-- Current release: 2.4.0 x-release-please-version -->
+
 ### Added
 
 - Added a global storage capacity limit with concurrency-safe reservations for regular, chunked, presigned, and admin file uploads.

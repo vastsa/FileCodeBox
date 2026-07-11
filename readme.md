@@ -175,11 +175,14 @@ FileCodeBox 是一个轻量级的文件分享工具，基于 **FastAPI + Vue3** 
 
 ### Docker 部署（推荐）
 
+生产环境建议使用固定版本标签（例如 `2.4.0`）以便复现和回滚；
+`latest` 仅在正式版本发布时更新，`edge-*` 是 master 分支开发镜像。
+
 **方式一：Docker CLI**
 
 ```bash
 # Docker Hub（推荐）
-docker run -d --restart always -p 12345:12345 -v /opt/FileCodeBox:/app/data --name filecodebox lanol/filecodebox:latest
+docker run -d --restart always -p 12345:12345 -v /opt/FileCodeBox:/app/data --name filecodebox lanol/filecodebox:2.4.0 # x-release-please-version
 
 # 国内镜像（如果 Docker Hub 拉取缓慢）
 docker run -d --restart always -p 12345:12345 -v /opt/FileCodeBox:/app/data --name filecodebox docker.cnb.cool/aixk/filecodebox
@@ -190,7 +193,7 @@ docker run -d --restart always -p 12345:12345 -v /opt/FileCodeBox:/app/data --na
 ```yaml
 services:
   filecodebox:
-    image: lanol/filecodebox:latest
+    image: lanol/filecodebox:2.4.0 # x-release-please-version
     container_name: filecodebox
     restart: unless-stopped
     ports:

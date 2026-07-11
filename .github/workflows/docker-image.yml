@@ -2,6 +2,11 @@ name: Build and push Docker image
 
 on:
   workflow_dispatch:
+    inputs:
+      release_tag:
+        description: Optional release tag created by Release Please
+        required: false
+        type: string
   push:
     branches:
       - master
@@ -20,6 +25,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
         with:
+          ref: ${{ inputs.release_tag || github.ref }}
           submodules: true
 
       - name: Extract metadata
@@ -27,14 +33,63 @@ jobs:
         uses: docker/metadata-action@v5
         with:
           images: ${{ env.REGISTRY_IMAGE }}
+          flavor: |
+            latest=false
           tags: |
-            type=ref,event=branch
-            type=ref,event=pr
-            type=semver,pattern={{version}}
-            type=semver,pattern={{major}}.{{minor}}
+            type=ref,event=branch,enable=${{ inputs.release_tag == '' }}
+            type=ref,event=pr,enable=${{ inputs.release_tag == '' }}
+            type=semver,pattern={{version}},enable=${{ inputs.release_tag == '' }}
+            type=semver,pattern={{major}}.{{minor}},enable=${{ inputs.release_tag == '' }}
+            type=semver,value=${{ inputs.release_tag }},pattern={{version}},enable=${{ inputs.release_tag != '' }}
+            type=semver,value=${{ inputs.release_tag }},pattern={{major}}.{{minor}},enable=${{ inputs.release_tag != '' }}
             type=raw,value=dev,enable=${{ github.ref == 'refs/heads/dev' }}
-            type=raw,value=beta,enable={{is_default_branch}}
-            type=raw,value=latest,enable={{is_default_branch}}
+            type=sha,prefix=edge-,enable=${{ github.ref == 'refs/heads/master' && inputs.release_tag == '' }}
+            type=raw,value=latest,enable=${{ startsWith(github.ref, 'refs/tags/v') || inputs.release_tag != '' }}
+
+      - name: Verify release version
+        if: ${{ startsWith(github.ref, 'refs/tags/v') || inputs.release_tag != '' }}
+        shell: bash
+        env:
+          RELEASE_TAG: ${{ inputs.release_tag || github.ref_name }}
+        run: |
+          source_version="$(tr -d '[:space:]' < VERSION)"
+          tag_version="${RELEASE_TAG#v}"
+          test "$source_version" = "$tag_version" || {
+            echo "Version mismatch: VERSION=$source_version, tag=$tag_version" >&2
+            exit 1
+          }
+
+      - name: Resolve source revision
+        id: source-revision
+        shell: bash
+        run: |
+          revision="$(git rev-parse HEAD)"
+          echo "value=$revision" >> "$GITHUB_OUTPUT"
+          echo "short=${revision::12}" >> "$GITHUB_OUTPUT"
+
+      - name: Resolve latest frontend revisions
+        id: frontend-revisions
+        shell: bash
+        run: |
+          frontend_2024_ref="$(git ls-remote https://github.com/vastsa/FileCodeBoxFronted.git HEAD | cut -f1)"
+          frontend_2023_ref="$(git ls-remote https://github.com/vastsa/FileCodeBoxFronted2023.git HEAD | cut -f1)"
+          test -n "$frontend_2024_ref"
+          test -n "$frontend_2023_ref"
+          echo "frontend_2024=$frontend_2024_ref" >> "$GITHUB_OUTPUT"
+          echo "frontend_2023=$frontend_2023_ref" >> "$GITHUB_OUTPUT"
+
+      - name: Resolve application version
+        id: app-version
+        shell: bash
+        env:
+          RELEASE_TAG: ${{ inputs.release_tag }}
+        run: |
+          source_version="$(tr -d '[:space:]' < VERSION)"
+          if [[ "$GITHUB_REF" == refs/tags/v* || -n "$RELEASE_TAG" ]]; then
+            echo "value=$source_version" >> "$GITHUB_OUTPUT"
+          else
+            echo "value=${source_version}-dev+${{ steps.source-revision.outputs.short }}" >> "$GITHUB_OUTPUT"
+          fi
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
@@ -60,6 +115,11 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            APP_VERSION=${{ steps.app-version.outputs.value }}
+            VCS_REF=${{ steps.source-revision.outputs.value }}
+            FRONTEND_2024_REF=${{ steps.frontend-revisions.outputs.frontend_2024 }}
+            FRONTEND_2023_REF=${{ steps.frontend-revisions.outputs.frontend_2023 }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
           provenance: false

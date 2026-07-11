@@ -175,11 +175,15 @@ FileCodeBox is a lightweight file sharing tool built with **FastAPI + Vue3**. Us
 
 ### Docker Deployment (Recommended)
 
+Pin a version tag (for example, `2.4.0`) in production for reproducible
+deployments and rollbacks. `latest` moves only on formal releases; `edge-*`
+identifies development images built from master.
+
 **Option 1: Docker CLI**
 
 ```bash
 # Docker Hub (Recommended)
-docker run -d --restart always -p 12345:12345 -v /opt/FileCodeBox:/app/data --name filecodebox lanol/filecodebox:latest
+docker run -d --restart always -p 12345:12345 -v /opt/FileCodeBox:/app/data --name filecodebox lanol/filecodebox:2.4.0 # x-release-please-version
 
 # China Mirror (if Docker Hub is slow)
 docker run -d --restart always -p 12345:12345 -v /opt/FileCodeBox:/app/data --name filecodebox docker.cnb.cool/aixk/filecodebox
@@ -190,7 +194,7 @@ docker run -d --restart always -p 12345:12345 -v /opt/FileCodeBox:/app/data --na
 ```yaml
 services:
   filecodebox:
-    image: lanol/filecodebox:latest
+    image: lanol/filecodebox:2.4.0 # x-release-please-version
     container_name: filecodebox
     restart: unless-stopped
     ports:

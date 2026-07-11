@@ -2,6 +2,9 @@
 # 前端产物与 CPU 架构无关，使用原生构建平台避免在 QEMU 中运行 Node/pnpm。
 FROM --platform=$BUILDPLATFORM node:20-alpine AS frontend-builder
 
+ARG FRONTEND_2024_REF=main
+ARG FRONTEND_2023_REF=main
+
 RUN apk add --no-cache git python3 make g++
 
 RUN corepack enable && \
@@ -9,27 +12,42 @@ RUN corepack enable && \
 
 WORKDIR /build
 
-# 克隆并构建 2024 主题
-RUN git clone --depth 1 https://github.com/vastsa/FileCodeBoxFronted.git /build/fronted-2024 && \
+# 克隆并构建固定版本的 2024 主题
+RUN git clone --filter=blob:none --no-checkout https://github.com/vastsa/FileCodeBoxFronted.git /build/fronted-2024 && \
     cd /build/fronted-2024 && \
+    git fetch --depth 1 origin "${FRONTEND_2024_REF}" && \
+    git checkout --detach FETCH_HEAD && \
     pnpm install --frozen-lockfile --prod=false && \
-    pnpm run build
+    VITE_GIT_COMMIT="$(git rev-parse HEAD)" pnpm run build
 
-# 克隆并构建 2023 主题
-RUN git clone --depth 1 https://github.com/vastsa/FileCodeBoxFronted2023.git /build/fronted-2023 && \
+# 克隆并构建固定版本的 2023 主题
+RUN git clone --filter=blob:none --no-checkout https://github.com/vastsa/FileCodeBoxFronted2023.git /build/fronted-2023 && \
     cd /build/fronted-2023 && \
+    git fetch --depth 1 origin "${FRONTEND_2023_REF}" && \
+    git checkout --detach FETCH_HEAD && \
     npm install --legacy-peer-deps && \
     npm run build
 
 # 第二阶段：构建最终镜像
 FROM python:3.12-slim-bookworm
+ARG APP_VERSION
+ARG VCS_REF=unknown
+ARG FRONTEND_2024_REF=main
+ARG FRONTEND_2023_REF=main
 LABEL author="Lan"
 LABEL email="xzu@live.com"
+LABEL org.opencontainers.image.version="${APP_VERSION}"
+LABEL org.opencontainers.image.revision="${VCS_REF}"
+LABEL org.opencontainers.image.filecodebox.frontend-2024-revision="${FRONTEND_2024_REF}"
+LABEL org.opencontainers.image.filecodebox.frontend-2023-revision="${FRONTEND_2023_REF}"
 
 WORKDIR /app
 
 # 复制项目文件（通过 .dockerignore 排除不必要的文件）
 COPY . .
+
+# 分支镜像使用带提交号的开发版本；正式镜像使用 VERSION 中的版本。
+ENV APP_VERSION="${APP_VERSION}"
 
 # 设置时区
 RUN ln -sf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime && \
