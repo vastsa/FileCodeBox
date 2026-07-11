@@ -1,6 +1,7 @@
 import hashlib
 import os
 import time
+import uuid
 from datetime import datetime, timedelta
 from typing import Any, Optional
 
@@ -15,6 +16,7 @@ from core.config import refresh_settings
 from core.security import INTERNAL_CONFIG_KEYS, generate_jwt_secret
 from apps.base.models import FileCodes, KeyValue
 from apps.base.utils import get_expire_info, get_file_path_name
+from apps.base.quota import release_storage, reserve_storage
 from fastapi import HTTPException
 from core.settings import data_root
 from core.utils import get_now, hash_password, is_password_hashed
@@ -1472,25 +1474,36 @@ class FileService:
         if not await local_file.exists():
             raise HTTPException(status_code=404, detail="文件不存在")
 
-        text = await local_file.read()
-        expired_at, expired_count, used_count, code = await get_expire_info(
-            item.expire_value, item.expire_style
-        )
-        path, suffix, prefix, uuid_file_name, save_path = await get_file_path_name(item)
-
-        await self.file_storage.save_file(text, save_path)
-
-        await FileCodes.create(
-            code=code,
-            prefix=prefix,
-            suffix=suffix,
-            uuid_file_name=uuid_file_name,
-            file_path=path,
-            size=local_file.size,
-            expired_at=expired_at,
-            expired_count=expired_count,
-            used_count=used_count,
-        )
+        reservation_token = f"local:{uuid.uuid4().hex}"
+        await reserve_storage(reservation_token, local_file.size, ttl_seconds=3600)
+        try:
+            text = await local_file.read()
+            expired_at, expired_count, used_count, code = await get_expire_info(
+                item.expire_value, item.expire_style
+            )
+            path, suffix, prefix, uuid_file_name, save_path = await get_file_path_name(
+                item
+            )
+            await self.file_storage.save_file(text, save_path)
+            try:
+                await FileCodes.create(
+                    code=code,
+                    prefix=prefix,
+                    suffix=suffix,
+                    uuid_file_name=uuid_file_name,
+                    file_path=path,
+                    size=local_file.size,
+                    expired_at=expired_at,
+                    expired_count=expired_count,
+                    used_count=used_count,
+                )
+            except Exception:
+                await self.file_storage.delete_file(
+                    FileCodes(file_path=path, uuid_file_name=uuid_file_name)
+                )
+                raise
+        finally:
+            await release_storage(reservation_token)
 
         return {
             "code": code,
@@ -1512,6 +1525,7 @@ class ConfigService:
         "serverPort",
         "serverWorkers",
         "showAdminAddr",
+        "storageLimit",
         "uploadCount",
         "uploadMinute",
         "uploadSize",
@@ -1575,6 +1589,12 @@ class ConfigService:
                 detail="adminSessionExpire 必须是 1 到 365 个整天",
             )
         next_config["adminSessionExpire"] = session_expire
+
+        if int(next_config.get("storageLimit", 0)) < 0:
+            raise HTTPException(
+                status_code=400,
+                detail="storageLimit 不能小于 0",
+            )
 
         if admin_password_changed:
             next_config["jwt_secret"] = generate_jwt_secret()

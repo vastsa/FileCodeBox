@@ -182,6 +182,12 @@ class FakeConfigKeyValue:
 
 
 class ConfigServiceSecurityTests(SettingsOverrideMixin, unittest.TestCase):
+    def test_storage_limit_rejects_negative_values(self):
+        settings.user_config = copy.deepcopy(DEFAULT_CONFIG)
+        with self.assertRaises(HTTPException) as context:
+            asyncio.run(ConfigService().update_config({"storageLimit": -1}))
+        self.assertEqual(context.exception.status_code, 400)
+
     def test_admin_session_lifetime_rejects_out_of_range_values(self):
         settings.user_config = copy.deepcopy(DEFAULT_CONFIG)
 

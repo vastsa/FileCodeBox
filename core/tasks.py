@@ -9,7 +9,12 @@ import os
 
 from tortoise.expressions import Q
 
-from apps.base.models import FileCodes, UploadChunk
+from apps.base.models import (
+    FileCodes,
+    PresignUploadSession,
+    StorageReservation,
+    UploadChunk,
+)
 from apps.base.utils import ip_limit, get_chunk_file_path_name
 from core.config import refresh_settings
 from core.settings import settings, data_root
@@ -30,6 +35,7 @@ async def delete_expire_files():
             await ip_limit["error"].remove_expired_ip()
             await ip_limit["metadata"].remove_expired_ip()
             await ip_limit["upload"].remove_expired_ip()
+            await StorageReservation.filter(expires_at__lte=await get_now()).delete()
             expire_data = await FileCodes.filter(
                 Q(expired_at__lt=await get_now()) | Q(expired_count=0)
             ).all()
@@ -75,6 +81,9 @@ async def clean_incomplete_uploads():
 
                 try:
                     await UploadChunk.filter(upload_id=session.upload_id).delete()
+                    await StorageReservation.filter(
+                        token=f"chunk:{session.upload_id}"
+                    ).delete()
                     logging.info(f"已清理过期上传会话 upload_id={session.upload_id}")
                 except Exception as e:
                     logging.error(
@@ -85,3 +94,37 @@ async def clean_incomplete_uploads():
             logging.error(f"清理未完成上传任务异常: {e}")
         finally:
             await asyncio.sleep(3600)
+
+
+async def clean_expired_presign_sessions():
+    while True:
+        try:
+            await refresh_settings()
+            storage: FileStorageInterface = storages[settings.file_storage]()
+            now = await get_now()
+            expired_sessions = await PresignUploadSession.filter(
+                expires_at__lt=now
+            ).all()
+            for session in expired_sessions:
+                if session.mode == "direct":
+                    try:
+                        if await storage.file_exists(session.save_path):
+                            await storage.delete_file(
+                                FileCodes(
+                                    file_path=os.path.dirname(session.save_path),
+                                    uuid_file_name=os.path.basename(session.save_path),
+                                )
+                            )
+                    except Exception as e:
+                        logging.error(
+                            "清理过期直传文件失败 "
+                            f"upload_id={session.upload_id}: {e}"
+                        )
+                await StorageReservation.filter(
+                    token=f"presign:{session.upload_id}"
+                ).delete()
+                await session.delete()
+        except Exception as e:
+            logging.error(f"清理过期预签名会话异常: {e}")
+        finally:
+            await asyncio.sleep(900)

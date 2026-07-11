@@ -84,6 +84,15 @@ class PresignUploadSession(models.Model):
         return self.expires_at < await get_now()
 
 
+class StorageReservation(models.Model):
+    """尚未写入 FileCodes 的上传容量预留。"""
+
+    id = fields.IntField(pk=True)
+    token = fields.CharField(max_length=64, unique=True, index=True)
+    size = fields.BigIntField()
+    expires_at = fields.DatetimeField(index=True)
+
+
 file_codes_pydantic = pydantic_model_creator(FileCodes, name="FileCodes")
 upload_chunk_pydantic = pydantic_model_creator(UploadChunk, name="UploadChunk")
 key_value_pydantic = pydantic_model_creator(KeyValue, name="KeyValue")
