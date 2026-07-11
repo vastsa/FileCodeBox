@@ -32,8 +32,10 @@ jobs:
         if: ${{ steps.release.outputs.prs_created == 'true' }}
         env:
           GH_TOKEN: ${{ github.token }}
-          RELEASE_PR: ${{ fromJSON(steps.release.outputs.pr).number }}
+          GH_REPO: ${{ github.repository }}
+          RELEASE_PR_JSON: ${{ steps.release.outputs.pr }}
         run: |
+          RELEASE_PR="$(jq -r '.number' <<< "$RELEASE_PR_JSON")"
           for attempt in {1..120}; do
             if gh pr merge "$RELEASE_PR" --squash --delete-branch; then
               break
@@ -50,5 +52,6 @@ jobs:
         if: ${{ steps.release.outputs.release_created == 'true' }}
         env:
           GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
           RELEASE_TAG: ${{ steps.release.outputs.tag_name }}
         run: gh workflow run docker-image.yml --ref master -f release_tag="$RELEASE_TAG"
