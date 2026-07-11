@@ -2,10 +2,11 @@
 
 The project uses Semantic Versioning and Conventional Commits.
 
-Complete these settings once in both GitHub repositories:
+Complete these settings once in the backend GitHub repository:
 
 - In `Settings → Actions → General → Workflow permissions`, grant read/write
-  access and allow GitHub Actions to create pull requests.
+  access and allow GitHub Actions to create pull requests. The frontend repository
+  only needs the default read-only Actions permission.
 - Keep squash merging enabled. The release workflow waits for required checks
   before merging the release pull request.
 - Add `DOCKER_USERNAME` and `DOCKER_PASSWORD` Actions secrets to the backend repository.

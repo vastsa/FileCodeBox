@@ -2,10 +2,10 @@
 
 项目采用 Semantic Versioning 和 Conventional Commits 管理版本。
 
-首次启用时，需要在两个 GitHub 仓库完成以下设置：
+首次启用时，需要在后端 GitHub 仓库完成以下设置：
 
 - `Settings → Actions → General → Workflow permissions` 选择读写权限，并允许
-  GitHub Actions 创建 Pull Request。
+  GitHub Actions 创建 Pull Request。前端仓库只需要默认的 Actions 读取权限。
 - 保持 Squash merge 可用；自动发布工作流会等待必需检查通过后合并发布 PR。
 - 后端仓库配置 `DOCKER_USERNAME` 和 `DOCKER_PASSWORD` Actions Secrets。
 
