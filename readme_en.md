@@ -183,7 +183,7 @@ identifies development images built from master.
 
 ```bash
 # Docker Hub (Recommended)
-docker run -d --restart always -p 12345:12345 -v /opt/FileCodeBox:/app/data --name filecodebox lanol/filecodebox:2.4.0 # x-release-please-version
+docker run -d --restart always -p 12345:12345 -v /opt/FileCodeBox:/app/data --name filecodebox lanol/filecodebox:2.5.0 # x-release-please-version
 
 # China Mirror (if Docker Hub is slow)
 docker run -d --restart always -p 12345:12345 -v /opt/FileCodeBox:/app/data --name filecodebox docker.cnb.cool/aixk/filecodebox
@@ -194,7 +194,7 @@ docker run -d --restart always -p 12345:12345 -v /opt/FileCodeBox:/app/data --na
 ```yaml
 services:
   filecodebox:
-    image: lanol/filecodebox:2.4.0 # x-release-please-version
+    image: lanol/filecodebox:2.5.0 # x-release-please-version
     container_name: filecodebox
     restart: unless-stopped
     ports:

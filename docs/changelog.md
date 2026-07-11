@@ -1,3 +1,22 @@
+# Changelog
+
+## [2.5.0](https://github.com/vastsa/FileCodeBox/compare/v2.4.0...v2.5.0) (2026-07-11)
+
+
+### Features
+
+* add global storage capacity limit ([818dd47](https://github.com/vastsa/FileCodeBox/commit/818dd47b2a4136d4b0d68b2484ac2d01a7ae6a3c))
+* automate version releases ([ee8f908](https://github.com/vastsa/FileCodeBox/commit/ee8f9082ab59418a4a7721a05fc358215230981f))
+* configure admin session lifetime ([#484](https://github.com/vastsa/FileCodeBox/issues/484)) ([93ff291](https://github.com/vastsa/FileCodeBox/commit/93ff291366aaac9d04c5259d3ecf01b20aed3fd0))
+
+
+### Bug Fixes
+
+* build frontend on native Docker platform ([2c51384](https://github.com/vastsa/FileCodeBox/commit/2c51384c80a9ff3f4eb98eb876759b8949dfae89))
+* harden automated release workflow ([46883c9](https://github.com/vastsa/FileCodeBox/commit/46883c90ff52894631fe53bbd9b9c4100a7b27f1))
+* harden share retrieval and admin visibility ([#482](https://github.com/vastsa/FileCodeBox/issues/482), [#480](https://github.com/vastsa/FileCodeBox/issues/480)) ([8d7d856](https://github.com/vastsa/FileCodeBox/commit/8d7d856c62d73badd0797eb4daec8d2ff10a403a))
+* resolve docs dependency audit warnings ([36300ef](https://github.com/vastsa/FileCodeBox/commit/36300ef54ee09081a6cf6a5fe4e69cee7aad0162))
+
 ## [Unreleased]
 
 ### Added
