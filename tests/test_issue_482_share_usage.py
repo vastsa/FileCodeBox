@@ -71,6 +71,7 @@ class ShareUsageSecurityTests(unittest.TestCase):
             await self._assert_count_consumption_is_atomic()
             await self._assert_time_expiration_and_usage_are_atomic()
             await self._assert_download_url_is_single_use()
+            await self._assert_text_share_downloads_as_txt()
             await self._assert_limited_files_do_not_expose_direct_urls()
             await self._assert_metadata_counts_all_attempts()
         finally:
@@ -154,6 +155,30 @@ class ShareUsageSecurityTests(unittest.TestCase):
         self.assertEqual(second.code, 404)
         await record.refresh_from_db()
         self.assertEqual(record.expired_count, 0)
+        self.assertEqual(record.used_count, 1)
+
+    async def _assert_text_share_downloads_as_txt(self):
+        record = await FileCodes.create(
+            code="text-download",
+            prefix="TAG",
+            text="hello, 文本直链",
+            expired_count=-1,
+            expired_at=None,
+        )
+
+        with patch.dict(views.storages, {"local": FakeStorage}):
+            response = await views.get_code_file(
+                code=record.code, ip="127.0.0.1"
+            )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.body.decode("utf-8"), record.text)
+        self.assertEqual(response.media_type, "text/plain")
+        self.assertEqual(
+            response.headers["content-disposition"],
+            "attachment; filename*=UTF-8''TAG.txt",
+        )
+        await record.refresh_from_db()
         self.assertEqual(record.used_count, 1)
 
     async def _assert_limited_files_do_not_expose_direct_urls(self):

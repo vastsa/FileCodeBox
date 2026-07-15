@@ -4,13 +4,14 @@ import hashlib
 import os
 import uuid
 from datetime import timedelta
-from urllib.parse import unquote
+from urllib.parse import quote, unquote
 
 from typing import Optional, Tuple, Union
 
 from fastapi import APIRouter, Form, Request, UploadFile, File, Depends, HTTPException
 from pydantic import BaseModel, ValidationError
 from starlette import status
+from starlette.responses import Response
 from tortoise.expressions import Case, F, Q, When
 
 from apps.admin.dependencies import share_required_login
@@ -334,6 +335,17 @@ async def get_code_file(code: str, ip: str = Depends(ip_limit["error"])):
     assert isinstance(file_code, FileCodes)
     if not await consume_file_usage(file_code):
         return APIResponse(code=404, detail="文件已过期")
+    if file_code.text is not None:
+        filename = f"{file_code.prefix or 'Text'}{file_code.suffix or '.txt'}"
+        return Response(
+            content=file_code.text,
+            media_type="text/plain",
+            headers={
+                "Content-Disposition": (
+                    f"attachment; filename*=UTF-8''{quote(filename, safe='')}"
+                )
+            },
+        )
     return await file_storage.get_file_response(file_code)
 
 
