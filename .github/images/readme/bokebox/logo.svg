@@ -1,0 +1,134 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="420 360 1208 1208">
+  <defs>
+    <linearGradient id="blue" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#75A7FF"/>
+      <stop offset="0.52" stop-color="#4E86F7"/>
+      <stop offset="1" stop-color="#3769D8"/>
+    </linearGradient>
+    <linearGradient id="blueSoft" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#EDF4FF"/>
+      <stop offset="1" stop-color="#C9DCFF"/>
+    </linearGradient>
+    <linearGradient id="ear" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#F8FBFF"/>
+      <stop offset="1" stop-color="#DDE9FF"/>
+    </linearGradient>
+    <linearGradient id="earInner" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#FFD8A8"/>
+      <stop offset="1" stop-color="#F3A76E"/>
+    </linearGradient>
+    <linearGradient id="tail" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#6EA2FF"/>
+      <stop offset="1" stop-color="#315FC8"/>
+    </linearGradient>
+    <filter id="softShadow" x="-30%" y="-30%" width="160%" height="180%">
+      <feDropShadow dx="0" dy="24" stdDeviation="26" flood-color="#1D376C" flood-opacity="0.18"/>
+    </filter>
+    <filter id="tinyShadow" x="-50%" y="-50%" width="200%" height="200%">
+      <feDropShadow dx="0" dy="10" stdDeviation="10" flood-color="#243E72" flood-opacity="0.18"/>
+    </filter>
+  </defs>
+
+  <!-- 透明底：已去除外围白底 / 圆角框 / 光晕 -->
+
+  <!-- Floating audio particles -->
+  <g fill="#6A9BFA" opacity="0.9">
+    <circle cx="529" cy="777" r="20"/>
+    <circle cx="1561" cy="728" r="16"/>
+    <circle cx="1516" cy="1302" r="14"/>
+  </g>
+  <g fill="none" stroke="#8EB4FF" stroke-width="20" stroke-linecap="round" opacity="0.72">
+    <path d="M440 942c-36 36-36 94 0 130"/>
+    <path d="M1608 940c36 36 36 94 0 130"/>
+  </g>
+
+  <!-- Tail: a listening loop that wraps the box -->
+  <path d="M1351 1309c176 27 249 166 165 287-65 93-226 95-337 12"
+        fill="none" stroke="url(#tail)" stroke-width="114" stroke-linecap="round"
+        filter="url(#softShadow)"/>
+  <path d="M1418 1460c57 29 71 80 35 116-38 38-100 25-136-8"
+        fill="none" stroke="#DDE9FF" stroke-width="54" stroke-linecap="round"/>
+
+  <!-- Headphones behind the mascot -->
+  <path d="M702 1048c0-318 145-507 322-507s322 189 322 507"
+        fill="none" stroke="#18264A" stroke-width="86" stroke-linecap="round"
+        filter="url(#tinyShadow)"/>
+  <path d="M706 834c41-189 160-293 318-293 157 0 278 104 318 293"
+        fill="none" stroke="#4F86F7" stroke-width="34" stroke-linecap="round"/>
+  <rect x="625" y="972" width="160" height="300" rx="76" fill="#18264A"/>
+  <rect x="1263" y="972" width="160" height="300" rx="76" fill="#18264A"/>
+  <rect x="655" y="1010" width="98" height="225" rx="49" fill="url(#blue)"/>
+  <rect x="1295" y="1010" width="98" height="225" rx="49" fill="url(#blue)"/>
+
+  <!-- Open audio box -->
+  <g filter="url(#softShadow)">
+    <path d="M594 1191c0-49 40-89 89-89h682c49 0 89 40 89 89v331c0 77-62 139-139 139H733c-77 0-139-62-139-139z"
+          fill="url(#blue)"/>
+    <ellipse cx="1024" cy="1122" rx="430" ry="126" fill="#24345E"/>
+    <ellipse cx="1024" cy="1118" rx="365" ry="89" fill="#111B37"/>
+    <path d="M594 1216c189 62 671 62 860 0v311c0 74-60 134-134 134H728c-74 0-134-60-134-134z"
+          fill="url(#blue)"/>
+    <path d="M633 1287c181 50 601 55 782 4" fill="none" stroke="#9BC0FF" stroke-width="18" opacity="0.54"/>
+  </g>
+
+  <!-- Fox ears -->
+  <g filter="url(#softShadow)">
+    <path d="M719 854C664 713 683 520 751 397c26-47 91-42 115 5l170 331z"
+          fill="url(#ear)" stroke="#20335F" stroke-width="24" stroke-linejoin="round"/>
+    <path d="M1329 854c55-141 36-334-32-457-26-47-91-42-115 5l-170 331z"
+          fill="url(#ear)" stroke="#20335F" stroke-width="24" stroke-linejoin="round"/>
+    <path d="M758 726c-25-93-16-200 18-271 12-24 44-20 56 4l111 235z"
+          fill="url(#earInner)"/>
+    <path d="M1290 726c25-93 16-200-18-271-12-24-44-20-56 4l-111 235z"
+          fill="url(#earInner)"/>
+  </g>
+
+  <!-- Fox head -->
+  <g filter="url(#softShadow)">
+    <path d="M741 788c52-125 160-205 283-205s231 80 283 205c38 92 48 232 3 338-45 105-154 170-286 170s-241-65-286-170c-45-106-35-246 3-338z"
+          fill="#F9FBFF" stroke="#20335F" stroke-width="26"/>
+    <path d="M824 1068c52-35 119-51 200-51s148 16 200 51c-20 110-91 179-200 179s-180-69-200-179z"
+          fill="#E8F0FF"/>
+    <path d="M780 856c54-30 102-37 156-16" fill="none" stroke="#D1E0FF" stroke-width="26" stroke-linecap="round"/>
+    <path d="M1268 856c-54-30-102-37-156-16" fill="none" stroke="#D1E0FF" stroke-width="26" stroke-linecap="round"/>
+  </g>
+
+  <!-- Face -->
+  <g fill="none" stroke="#1E2E56" stroke-width="26" stroke-linecap="round">
+    <path d="M862 946c26 27 60 27 86 0"/>
+    <path d="M1100 946c26 27 60 27 86 0"/>
+  </g>
+  <path d="M972 1027c0-30 24-54 54-54s54 24 54 54c0 22-14 39-30 51-15 11-33 11-48 0-16-12-30-29-30-51z"
+        fill="#192544"/>
+  <circle cx="1045" cy="1005" r="10" fill="#FFFFFF" opacity="0.9"/>
+  <path d="M1026 1079c-2 46-30 73-72 77" fill="none" stroke="#1E2E56" stroke-width="20" stroke-linecap="round"/>
+  <path d="M1026 1079c2 46 30 73 72 77" fill="none" stroke="#1E2E56" stroke-width="20" stroke-linecap="round"/>
+  <circle cx="824" cy="1041" r="34" fill="#F4B18B" opacity="0.62"/>
+  <circle cx="1224" cy="1041" r="34" fill="#F4B18B" opacity="0.62"/>
+
+  <!-- Paws resting on the box -->
+  <g filter="url(#tinyShadow)">
+    <ellipse cx="790" cy="1190" rx="116" ry="78" fill="#F9FBFF" stroke="#20335F" stroke-width="22"/>
+    <ellipse cx="1258" cy="1190" rx="116" ry="78" fill="#F9FBFF" stroke="#20335F" stroke-width="22"/>
+    <path d="M756 1189c18 22 46 31 72 20M1224 1189c18 22 46 31 72 20"
+          fill="none" stroke="#CADBFA" stroke-width="15" stroke-linecap="round"/>
+  </g>
+
+  <!-- Audio waveform badge -->
+  <g transform="translate(1024 1442)" filter="url(#tinyShadow)">
+    <circle cx="0" cy="0" r="116" fill="#FFFFFF" opacity="0.96"/>
+    <circle cx="0" cy="0" r="98" fill="#EAF2FF"/>
+    <g stroke="#4D83F2" stroke-width="24" stroke-linecap="round">
+      <line x1="-50" y1="-18" x2="-50" y2="18"/>
+      <line x1="-17" y1="-49" x2="-17" y2="49"/>
+      <line x1="17" y1="-70" x2="17" y2="70"/>
+      <line x1="50" y1="-35" x2="50" y2="35"/>
+    </g>
+  </g>
+
+  <!-- Tiny AI spark -->
+  <g transform="translate(1437 520)" fill="#5E91F6">
+    <path d="M0-66c12 42 24 54 66 66-42 12-54 24-66 66-12-42-24-54-66-66 42-12 54-24 66-66z"/>
+    <circle cx="-91" cy="91" r="15" opacity="0.55"/>
+  </g>
+</svg>

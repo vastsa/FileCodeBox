@@ -70,6 +70,26 @@ Open `http://localhost:12345` and complete first-run setup. Pin a version in pro
 - [API reference](https://fcb-docs.aiuo.net/en/api/) · upload, retrieval, and administration
 - [Frontend source](https://github.com/vastsa/FileCodeBoxFronted) · the active 2024 theme
 
+## Related projects
+
+If you enjoy self-hosted “box” tools, also check out this project from the same author:
+
+### [BokeBox](https://github.com/vastsa/BokeBox/) · Private AI Podcast Box
+
+Drop in videos, links, or drafts, and get listen-worthy personal podcasts with custom host persona and voice.
+
+<p align="center">
+  <a href="https://github.com/vastsa/BokeBox/">
+    <img src="./.github/images/readme/bokebox/banner_en.webp" alt="BokeBox banner" width="860" />
+  </a>
+</p>
+
+<p align="center">
+  <a href="https://github.com/vastsa/BokeBox/">
+    <img src="./.github/images/readme/bokebox/home_en.webp" alt="BokeBox home" width="860" />
+  </a>
+</p>
+
 ## Contributing
 
 [Issues](https://github.com/vastsa/FileCodeBox/issues/new/choose) and pull requests are welcome. FileCodeBox is released under [LGPL-3.0](./LICENSE).

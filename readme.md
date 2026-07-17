@@ -70,6 +70,26 @@ docker run -d --restart unless-stopped -p 12345:12345 -v ./data:/app/data --name
 - [API 文档](https://fcb-docs.aiuo.net/api/) · 上传、取件与管理接口
 - [前端源码](https://github.com/vastsa/FileCodeBoxFronted) · 当前 2024 主题
 
+## 相关项目
+
+如果你也喜欢「盒子」系列的自托管工具，可以看看同作者的：
+
+### [BokeBox](https://github.com/vastsa/BokeBox/) · 私人 AI 播客盒
+
+把视频、链接或文稿丢进去，生成可听完的个人播客，支持自定义主持人设与声音。
+
+<p align="center">
+  <a href="https://github.com/vastsa/BokeBox/">
+    <img src="./.github/images/readme/bokebox/banner_zh.webp" alt="BokeBox 横幅" width="860" />
+  </a>
+</p>
+
+<p align="center">
+  <a href="https://github.com/vastsa/BokeBox/">
+    <img src="./.github/images/readme/bokebox/home_zh.webp" alt="BokeBox 首页" width="860" />
+  </a>
+</p>
+
 ## 参与项目
 
 欢迎 [提交 Issue](https://github.com/vastsa/FileCodeBox/issues/new/choose) 或 Pull Request。项目基于 [LGPL-3.0](./LICENSE) 发布。
