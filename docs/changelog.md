@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.5.1](https://github.com/vastsa/FileCodeBox/compare/v2.5.0...v2.5.1) (2026-07-21)
+
+
+### Bug Fixes
+
+* patch CVE dependencies and path traversal risks ([00f3abd](https://github.com/vastsa/FileCodeBox/commit/00f3abd3b20fe2344e4dbf8d53714773e23a1050))
+
 ## [2.5.0](https://github.com/vastsa/FileCodeBox/compare/v2.4.0...v2.5.0) (2026-07-11)
 
 
