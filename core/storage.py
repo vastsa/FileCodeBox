@@ -111,6 +111,17 @@ class SystemFileStorage(FileStorageInterface):
         self.chunk_size = 256 * 1024
         self.root_path = data_root
 
+    def _resolve_safe_path(self, relative_path: str) -> Path:
+        """将相对路径解析到数据根目录内，阻止路径穿越。"""
+        root = self.root_path.resolve()
+        raw = str(relative_path or "").replace("\\", "/").lstrip("/")
+        candidate = (root / raw).resolve()
+        try:
+            candidate.relative_to(root)
+        except ValueError as exc:
+            raise ValueError("非法文件路径") from exc
+        return candidate
+
     def _save(self, file, save_path):
         with open(save_path, "wb") as f:
             chunk = file.read(self.chunk_size)
@@ -119,19 +130,19 @@ class SystemFileStorage(FileStorageInterface):
                 chunk = file.read(self.chunk_size)
 
     async def save_file(self, file: UploadFile, save_path: str):
-        path_obj = Path(save_path)
-        directory = str(path_obj.parent)
+        path_obj = Path(str(save_path).replace("\\", "/"))
+        directory = str(path_obj.parent).replace("\\", "/").lstrip("/")
         # 提取原始文件名并进行清理
         filename = await sanitize_filename(path_obj.name)
         # 构建安全的完整保存路径
-        safe_save_path = self.root_path / directory / filename
+        safe_save_path = self._resolve_safe_path(f"{directory}/{filename}" if directory not in {"", "."} else filename)
         # 确保目录存在
         if not safe_save_path.parent.exists():
             safe_save_path.parent.mkdir(parents=True)
         await asyncio.to_thread(self._save, file.file, safe_save_path)
 
     async def delete_file(self, file_code: FileCodes):
-        save_path = self.root_path / await file_code.get_file_path()
+        save_path = self._resolve_safe_path(await file_code.get_file_path())
         if save_path.exists():
             save_path.unlink()
 
@@ -139,7 +150,7 @@ class SystemFileStorage(FileStorageInterface):
         return await get_file_url(file_code.code)
 
     async def get_file_response(self, file_code: FileCodes):
-        file_path = self.root_path / await file_code.get_file_path()
+        file_path = self._resolve_safe_path(await file_code.get_file_path())
         if not file_path.exists():
             return APIResponse(code=404, detail="文件已过期删除")
         filename = f"{file_code.prefix}{file_code.suffix}"
@@ -171,8 +182,11 @@ class SystemFileStorage(FileStorageInterface):
         :param chunk_hash: 分片哈希值
         :param save_path: 文件保存路径
         """
-        chunk_dir = self.root_path / save_path
-        chunk_path = chunk_dir.parent / 'chunks' / upload_id / f"{chunk_index}.part"
+        # 先校验目标文件路径合法，再将分片落到同级 chunks 目录。
+        self._resolve_safe_path(save_path)
+        chunk_path = self._resolve_safe_path(
+            str(Path(save_path).parent / "chunks" / upload_id / f"{chunk_index}.part")
+        )
         if not chunk_path.parent.exists():
             chunk_path.parent.mkdir(parents=True, exist_ok=True)
         # 使用临时文件写入，确保原子性
@@ -195,9 +209,11 @@ class SystemFileStorage(FileStorageInterface):
         :param save_path: 文件保存路径
         :return: (文件路径, 文件哈希值)
         """
-        output_path = self.root_path / save_path
+        output_path = self._resolve_safe_path(save_path)
         output_path.parent.mkdir(parents=True, exist_ok=True)
-        chunk_base_dir = output_path.parent / 'chunks' / upload_id
+        chunk_base_dir = self._resolve_safe_path(
+            str(Path(save_path).parent / "chunks" / upload_id)
+        )
         file_sha256 = hashlib.sha256()
         
         # 使用临时文件写入，确保原子性
@@ -233,7 +249,9 @@ class SystemFileStorage(FileStorageInterface):
         :param upload_id: 上传会话ID
         :param save_path: 文件保存路径
         """
-        chunk_dir = (self.root_path / save_path).parent / 'chunks' / upload_id
+        chunk_dir = self._resolve_safe_path(
+            str(Path(save_path).parent / "chunks" / upload_id)
+        )
         if chunk_dir.exists():
             try:
                 shutil.rmtree(chunk_dir)
@@ -253,7 +271,10 @@ class SystemFileStorage(FileStorageInterface):
         :param save_path: 文件路径
         :return: 文件是否存在
         """
-        file_path = self.root_path / save_path
+        try:
+            file_path = self._resolve_safe_path(save_path)
+        except ValueError:
+            return False
         return file_path.exists()
 
 

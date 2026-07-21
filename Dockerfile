@@ -57,16 +57,24 @@ RUN ln -sf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime && \
 COPY --from=frontend-builder /build/fronted-2024/dist ./themes/2024
 COPY --from=frontend-builder /build/fronted-2023/dist ./themes/2023
 
-# 安装 Python 依赖
-RUN pip install --no-cache-dir -r requirements.txt
+# 安装系统安全更新 + Python 依赖
+# 清理 apt 缓存，降低镜像噪音与扫描面
+RUN apt-get update \
+ && apt-get upgrade -y --no-install-recommends \
+ && rm -rf /var/lib/apt/lists/* \
+ && pip install --no-cache-dir -r requirements.txt \
+ && pip cache purge || true
 
 # 环境变量配置
 ENV HOST="0.0.0.0" \
     PORT=12345 \
     WORKERS=1 \
-    LOG_LEVEL="info"
+    LOG_LEVEL="info" \
+    FORWARDED_ALLOW_IPS=""
 
 EXPOSE 12345
 
 # 生产环境启动命令
-CMD ["sh", "-c", "exec uvicorn main:app --host \"$HOST\" --port \"$PORT\" --workers \"$WORKERS\" --log-level \"$LOG_LEVEL\" --proxy-headers --forwarded-allow-ips '*'"]
+# FORWARDED_ALLOW_IPS 默认为空：仅信任直连 IP，避免任意客户端伪造 X-Forwarded-*。
+# 若前面有反向代理，请显式设置为代理网段，例如 "10.0.0.0/8,172.16.0.0/12"。
+CMD ["sh", "-c", "exec uvicorn main:app --host \"$HOST\" --port \"$PORT\" --workers \"$WORKERS\" --log-level \"$LOG_LEVEL\" --proxy-headers --forwarded-allow-ips \"${FORWARDED_ALLOW_IPS:-}\""]

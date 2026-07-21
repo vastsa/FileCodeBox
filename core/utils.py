@@ -4,6 +4,7 @@
 # @Software: PyCharm
 import datetime
 import hashlib
+import hmac
 import os
 import re
 import secrets
@@ -124,10 +125,10 @@ def verify_password(password: str, hashed: str) -> bool:
             return False
         _, salt, stored_hash = parts
         password_hash = hashlib.sha256(f"{salt}{password}".encode()).hexdigest()
-        return password_hash == stored_hash
+        return hmac.compare_digest(password_hash, stored_hash)
 
     # 旧格式: 明文比较 (兼容迁移前的数据)
-    return password == hashed
+    return hmac.compare_digest(str(password), str(hashed))
 
 
 def is_password_hashed(password: str) -> bool:
