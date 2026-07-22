@@ -767,7 +767,9 @@ async def refresh_settings_middleware(request, call_next):
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
-    allow_credentials=True,
+    # 修复: 前后端同源部署且使用 Bearer Token 认证（非 Cookie），
+    # allow_origins=["*"] 与 allow_credentials=True 同开是危险且违规的组合，故关闭 credentials。
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )

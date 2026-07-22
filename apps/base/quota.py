@@ -8,6 +8,20 @@ from core.settings import settings
 from core.utils import get_now
 
 
+def _sql_placeholders(count: int) -> list[str]:
+    """根据数据库类型生成参数占位符（多数据库兼容）。
+
+    SQLite 用 ?，PostgreSQL 用 $1/$2/...，MySQL 用 %s。
+    """
+    conn = connections.get("default")
+    engine = getattr(conn, "engine", "") or ""
+    if "postgres" in engine:
+        return [f"${i}" for i in range(1, count + 1)]
+    if "mysql" in engine:
+        return ["%s"] * count
+    return ["?"] * count
+
+
 def get_storage_limit() -> int:
     try:
         return max(0, int(getattr(settings, "storageLimit", 0)))
@@ -49,15 +63,16 @@ async def reserve_storage(token: str, size: int, ttl_seconds: int) -> None:
         raise HTTPException(status_code=409, detail="上传容量预留信息不一致")
 
     try:
+        ph = _sql_placeholders(6)
         affected, _ = await conn.execute_query(
-            """
+            f"""
             INSERT INTO storagereservation (token, size, expires_at)
-            SELECT ?, ?, ?
+            SELECT {ph[0]}, {ph[1]}, {ph[2]}
             WHERE (
                 COALESCE((SELECT SUM(size) FROM filecodes), 0)
-                + COALESCE((SELECT SUM(size) FROM storagereservation WHERE expires_at > ?), 0)
-                + ?
-            ) <= ?
+                + COALESCE((SELECT SUM(size) FROM storagereservation WHERE expires_at > {ph[3]}), 0)
+                + {ph[4]}
+            ) <= {ph[5]}
             """,
             [token, requested_size, expires_at, now, requested_size, limit],
         )

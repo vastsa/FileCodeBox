@@ -41,17 +41,21 @@ async def get_now():
     return datetime.datetime.now(datetime.timezone(datetime.timedelta(hours=8)))
 
 
-async def get_select_token(code: str):
+async def get_select_token(code: str, offset: int = 0):
     """
     获取下载token
-    :param code:
+    :param code: 取件码
+    :param offset: 时间窗口偏移（0=当前窗口，1=上一个窗口）。
+        用于兼容窗口边界竞态：用户在某窗口末尾获取的 token，
+        请求到达服务器时可能已进入下一窗口。
     :return:
     """
     token = getattr(settings, "jwt_secret", "")
     if not token:
         raise RuntimeError("应用签名密钥未初始化")
+    time_factor = int(time.time() / 1000) - offset
     return hashlib.sha256(
-        f"{code}{int(time.time() / 1000)}000{token}".encode()
+        f"{code}{time_factor}000{token}".encode()
     ).hexdigest()
 
 

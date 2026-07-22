@@ -152,6 +152,9 @@ async def share_text(
     expire_style: str = Form(default="day"),
     ip: str = Depends(ip_limit["upload"]),
 ):
+    # 修复: 与 share_file 保持一致，校验过期方式是否在管理员允许的白名单内
+    if expire_style not in settings.expireStyle:
+        raise HTTPException(status_code=400, detail="过期时间类型错误")
     text_size = len(text.encode("utf-8"))
     max_txt_size = 222 * 1024
     if text_size > max_txt_size:
@@ -374,7 +377,9 @@ async def select_file(data: SelectFileModel, ip: str = Depends(ip_limit["error"]
 async def download_file(key: str, code: str, ip: str = Depends(ip_limit["error"])):
     file_storage: FileStorageInterface = storages[settings.file_storage]()
     normalized_code = normalize_share_code(code)
-    if await get_select_token(normalized_code) != key:
+    # 修复: 同时校验当前窗口与上一个窗口的 token，修复时间窗口边界竞态
+    valid_keys = [await get_select_token(normalized_code, offset=i) for i in range(2)]
+    if key not in valid_keys:
         ip_limit["error"].add_ip(ip)
         raise HTTPException(status_code=403, detail="下载鉴权失败")
     has, file_code = await get_code_file_by_code(normalized_code)
@@ -659,6 +664,9 @@ async def complete_upload(
     chunk_info = await UploadChunk.filter(upload_id=upload_id, chunk_index=-1).first()
     if not chunk_info:
         raise HTTPException(status.HTTP_404_NOT_FOUND, detail="上传会话不存在")
+    # 修复: 与 share_file 保持一致，校验过期方式是否在管理员允许的白名单内
+    if data.expire_style not in settings.expireStyle:
+        raise HTTPException(status_code=400, detail="过期时间类型错误")
     await reserve_storage(
         f"chunk:{upload_id}",
         chunk_info.file_size,
