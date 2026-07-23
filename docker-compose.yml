@@ -1,7 +1,7 @@
 version: "3"
 services:
   file-code-box:
-    image: lanol/filecodebox:2.5.2 # x-release-please-version
+    image: lanol/filecodebox:2.5.3 # x-release-please-version
     user: "1000:1000"
     volumes:
       - fcb-data:/app/data:rw
