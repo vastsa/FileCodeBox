@@ -90,13 +90,13 @@ class LoginRateLimitTests(SettingsOverrideMixin, unittest.TestCase):
         self.assertTrue(ip_limit["login"].check_ip("198.51.100.8"))
 
 
-class DockerNonRootTests(unittest.TestCase):
-    def test_dockerfile_runs_as_non_root_user(self):
+class DockerRuntimeUserTests(unittest.TestCase):
+    def test_dockerfile_defaults_to_root_for_volume_compatibility(self):
+        # 默认 root：兼容已有 data 卷权限；如需非 root 可由编排层自行指定 user
         text = Path("Dockerfile").read_text()
-        self.assertIn("USER appuser", text)
-        self.assertIn("--uid 1000", text)
+        self.assertNotIn("USER appuser", text)
         compose = Path("docker-compose.yml").read_text()
-        self.assertIn('user: "1000:1000"', compose)
+        self.assertNotIn('user: "1000:1000"', compose)
 
 
 if __name__ == "__main__":
