@@ -767,7 +767,9 @@ async def refresh_settings_middleware(request, call_next):
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
-    allow_credentials=True,
+    # 前端使用 Bearer Token，不依赖 Cookie credentials。
+    # allow_origins=["*"] 与 allow_credentials=True 组合不符合 CORS 规范。
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )

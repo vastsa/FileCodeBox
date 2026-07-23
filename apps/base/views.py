@@ -28,6 +28,7 @@ from apps.base.utils import (
     get_file_path_name,
     ip_limit,
     get_chunk_file_path_name,
+    validate_expire_style,
 )
 from core.response import APIResponse
 from core.settings import settings
@@ -152,6 +153,7 @@ async def share_text(
     expire_style: str = Form(default="day"),
     ip: str = Depends(ip_limit["upload"]),
 ):
+    validate_expire_style(expire_style)
     text_size = len(text.encode("utf-8"))
     max_txt_size = 222 * 1024
     if text_size > max_txt_size:
@@ -187,8 +189,7 @@ async def share_file(
 ):
     file_size = await validate_file_size(file, settings.uploadSize)
     validate_file_type(file.filename or "", file.content_type)
-    if expire_style not in settings.expireStyle:
-        raise HTTPException(status_code=400, detail="过期时间类型错误")
+    validate_expire_style(expire_style)
     path, suffix, prefix, uuid_file_name, save_path = await get_file_path_name(file)
     reservation_token = f"file:{uuid.uuid4().hex}"
     await reserve_storage(reservation_token, file_size, ttl_seconds=3600)
@@ -374,7 +375,12 @@ async def select_file(data: SelectFileModel, ip: str = Depends(ip_limit["error"]
 async def download_file(key: str, code: str, ip: str = Depends(ip_limit["error"])):
     file_storage: FileStorageInterface = storages[settings.file_storage]()
     normalized_code = normalize_share_code(code)
-    if await get_select_token(normalized_code) != key:
+    # 同时接受当前窗口与上一窗口 token，避免时间窗边界竞态导致偶发 403
+    valid_keys = {
+        await get_select_token(normalized_code, offset=0),
+        await get_select_token(normalized_code, offset=1),
+    }
+    if key not in valid_keys:
         ip_limit["error"].add_ip(ip)
         raise HTTPException(status_code=403, detail="下载鉴权失败")
     has, file_code = await get_code_file_by_code(normalized_code)
@@ -659,6 +665,7 @@ async def complete_upload(
     chunk_info = await UploadChunk.filter(upload_id=upload_id, chunk_index=-1).first()
     if not chunk_info:
         raise HTTPException(status.HTTP_404_NOT_FOUND, detail="上传会话不存在")
+    validate_expire_style(data.expire_style)
     await reserve_storage(
         f"chunk:{upload_id}",
         chunk_info.file_size,
@@ -775,8 +782,7 @@ async def presign_upload_init(
             403,
             f"文件大小超过限制，最大为 {settings.uploadSize / (1024 * 1024):.2f} MB",
         )
-    if data.expire_style not in settings.expireStyle:
-        raise HTTPException(400, "过期时间类型错误")
+    validate_expire_style(data.expire_style)
 
     upload_id = uuid.uuid4().hex
     reservation_token = f"presign:{upload_id}"
