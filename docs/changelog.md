@@ -1,5 +1,13 @@
 # Changelog
 
+## [2.5.2](https://github.com/vastsa/FileCodeBox/compare/v2.5.1...v2.5.2) (2026-07-23)
+
+
+### Bug Fixes
+
+* harden share expiry, download token, quota SQL, and CORS ([ae77026](https://github.com/vastsa/FileCodeBox/commit/ae7702603a99dc77b9b48e78746058b2a74b0bf5))
+* harden share expiry, download token, quota SQL, and CORS ([a41693f](https://github.com/vastsa/FileCodeBox/commit/a41693f90ded0234e0883c399254319bef04924a))
+
 ## [2.5.1](https://github.com/vastsa/FileCodeBox/compare/v2.5.0...v2.5.1) (2026-07-21)
 
 
