@@ -73,6 +73,8 @@ class SetupOptionTests(unittest.TestCase):
                 "uploadMinute": "2",
                 "errorCount": "5",
                 "errorMinute": "1",
+                "loginCount": "4",
+                "loginMinute": "20",
                 "openUpload": ["0", "1"],
                 "enableChunk": "0",
                 "code_generate_type": "secret",
@@ -87,6 +89,8 @@ class SetupOptionTests(unittest.TestCase):
         self.assertEqual(options["uploadMinute"], 2)
         self.assertEqual(options["errorCount"], 5)
         self.assertEqual(options["errorMinute"], 1)
+        self.assertEqual(options["loginCount"], 4)
+        self.assertEqual(options["loginMinute"], 20)
         self.assertEqual(options["openUpload"], 1)
         self.assertEqual(options["enableChunk"], 0)
         self.assertEqual(options["code_generate_type"], "secret")

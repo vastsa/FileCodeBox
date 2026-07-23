@@ -76,6 +76,8 @@ DEFAULT_CONFIG = {
     "themesSelect": "themes/2024",
     "errorMinute": 1,
     "errorCount": 10,
+    "loginCount": 5,
+    "loginMinute": 15,
     "serverWorkers": 1,
     "serverHost": "0.0.0.0",
     "serverPort": 12345,

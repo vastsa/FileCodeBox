@@ -63,7 +63,14 @@ RUN apt-get update \
  && apt-get upgrade -y --no-install-recommends \
  && rm -rf /var/lib/apt/lists/* \
  && pip install --no-cache-dir -r requirements.txt \
- && pip cache purge || true
+ && pip cache purge || true \
+ && groupadd --system --gid 1000 appuser \
+ && useradd --system --uid 1000 --gid appuser --create-home --home-dir /home/appuser --shell /usr/sbin/nologin appuser \
+ && mkdir -p /app/data \
+ && chown -R appuser:appuser /app
+
+# 非 root 运行，降低容器逃逸后的主机影响面
+USER appuser
 
 # 环境变量配置
 ENV HOST="0.0.0.0" \
