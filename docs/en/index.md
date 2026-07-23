@@ -38,7 +38,7 @@ docker run -d --restart unless-stopped \
   -p 12345:12345 \
   -v ./data:/app/data \
   --name filecodebox \
-  lanol/filecodebox:2.5.3 # x-release-please-version
+  lanol/filecodebox:2.5.4 # x-release-please-version
 ```
 
 Open `http://localhost:12345` and complete the first-run setup.
