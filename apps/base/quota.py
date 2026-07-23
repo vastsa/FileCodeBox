@@ -8,6 +8,43 @@ from core.settings import settings
 from core.utils import get_now
 
 
+def _detect_sql_dialect() -> str:
+    """识别当前默认连接的 SQL 方言。
+
+    优先使用 Tortoise capabilities.dialect；
+    回退到 db_config 中的 engine 路径字符串。
+    """
+    conn = connections.get("default")
+    dialect = getattr(getattr(conn, "capabilities", None), "dialect", "") or ""
+    if dialect:
+        return dialect.lower()
+
+    try:
+        engine = str(connections.db_config.get("default", {}).get("engine", "")).lower()
+    except Exception:
+        engine = ""
+    if "postgres" in engine or "asyncpg" in engine or "psycopg" in engine:
+        return "postgres"
+    if "mysql" in engine:
+        return "mysql"
+    if "sqlite" in engine:
+        return "sqlite"
+    return "sqlite"
+
+
+def _sql_placeholders(count: int) -> list[str]:
+    """根据数据库方言生成参数占位符（多数据库兼容）。
+
+    SQLite 用 ?，PostgreSQL 用 $1/$2/...，MySQL 用 %s。
+    """
+    dialect = _detect_sql_dialect()
+    if dialect in {"postgres", "postgresql"}:
+        return [f"${i}" for i in range(1, count + 1)]
+    if dialect == "mysql":
+        return ["%s"] * count
+    return ["?"] * count
+
+
 def get_storage_limit() -> int:
     try:
         return max(0, int(getattr(settings, "storageLimit", 0)))
@@ -49,15 +86,16 @@ async def reserve_storage(token: str, size: int, ttl_seconds: int) -> None:
         raise HTTPException(status_code=409, detail="上传容量预留信息不一致")
 
     try:
+        ph = _sql_placeholders(6)
         affected, _ = await conn.execute_query(
-            """
+            f"""
             INSERT INTO storagereservation (token, size, expires_at)
-            SELECT ?, ?, ?
+            SELECT {ph[0]}, {ph[1]}, {ph[2]}
             WHERE (
                 COALESCE((SELECT SUM(size) FROM filecodes), 0)
-                + COALESCE((SELECT SUM(size) FROM storagereservation WHERE expires_at > ?), 0)
-                + ?
-            ) <= ?
+                + COALESCE((SELECT SUM(size) FROM storagereservation WHERE expires_at > {ph[3]}), 0)
+                + {ph[4]}
+            ) <= {ph[5]}
             """,
             [token, requested_size, expires_at, now, requested_size, limit],
         )

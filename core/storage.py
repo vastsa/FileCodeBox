@@ -25,6 +25,7 @@ from core.settings import data_root, settings
 from apps.base.models import FileCodes, UploadChunk
 from core.utils import get_file_url, sanitize_filename
 from fastapi.responses import FileResponse, StreamingResponse
+from starlette.background import BackgroundTask
 
 
 class FileStorageInterface:
@@ -374,7 +375,9 @@ class S3FileStorage(FileStorageInterface):
             return StreamingResponse(
                 stream_generator(),
                 media_type="application/octet-stream",
-                headers=headers
+                headers=headers,
+                # 兜底关闭会话：客户端中断时与 generator finally 双保险
+                background=BackgroundTask(session.close),
             )
         except HTTPException:
             raise
@@ -712,7 +715,9 @@ class OneDriveFileStorage(FileStorageInterface):
             return StreamingResponse(
                 stream_generator(),
                 media_type="application/octet-stream",
-                headers=headers
+                headers=headers,
+                # 兜底关闭会话：客户端中断时与 generator finally 双保险
+                background=BackgroundTask(session.close),
             )
         except HTTPException:
             raise
@@ -1188,7 +1193,9 @@ class WebDAVFileStorage(FileStorageInterface):
             return StreamingResponse(
                 stream_generator(),
                 media_type="application/octet-stream",
-                headers=headers
+                headers=headers,
+                # 兜底关闭会话：客户端中断时与 generator finally 双保险
+                background=BackgroundTask(session.close),
             )
         except aiohttp.ClientError as e:
             raise HTTPException(

@@ -19,6 +19,13 @@ from core.utils import (
 )
 
 
+def validate_expire_style(expire_style: str) -> str:
+    """校验过期方式是否在管理员配置的白名单内。"""
+    if expire_style not in settings.expireStyle:
+        raise HTTPException(status_code=400, detail="过期时间类型错误")
+    return expire_style
+
+
 async def get_file_path_name(file: UploadFile) -> Tuple[str, str, str, str, str]:
     today = await get_now()
     storage_path = settings.storage_path.strip("/")
