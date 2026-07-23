@@ -1,5 +1,13 @@
 # Changelog
 
+## [2.5.4](https://github.com/vastsa/FileCodeBox/compare/v2.5.3...v2.5.4) (2026-07-23)
+
+
+### Bug Fixes
+
+* run Docker as root for volume compatibility ([fbcd4a5](https://github.com/vastsa/FileCodeBox/commit/fbcd4a5b2b788cdfc8e86d920f9c5a7299dc839a))
+* run Docker image as root for data volume compatibility ([fc0cbeb](https://github.com/vastsa/FileCodeBox/commit/fc0cbeb4f0c7485d2e7abc0501a5fd9b1456cc22))
+
 ## [2.5.3](https://github.com/vastsa/FileCodeBox/compare/v2.5.2...v2.5.3) (2026-07-23)
 
 
