@@ -1518,6 +1518,8 @@ class ConfigService:
         "enableChunk",
         "errorCount",
         "errorMinute",
+        "loginCount",
+        "loginMinute",
         "max_save_seconds",
         "onedrive_proxy",
         "openUpload",

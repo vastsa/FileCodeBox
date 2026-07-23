@@ -19,6 +19,8 @@ SETUP_CONFIG_FIELDS = {
     "enableChunk",
     "errorCount",
     "errorMinute",
+    "loginCount",
+    "loginMinute",
     "expireStyle",
     "max_save_seconds",
     "name",
@@ -68,6 +70,8 @@ def _sync_ip_limits() -> None:
     ip_limit["metadata"].count = settings.errorCount
     ip_limit["upload"].minutes = settings.uploadMinute
     ip_limit["upload"].count = settings.uploadCount
+    ip_limit["login"].minutes = settings.loginMinute
+    ip_limit["login"].count = settings.loginCount
 
 
 async def refresh_settings() -> None:

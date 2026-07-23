@@ -181,6 +181,12 @@ def parse_setup_options(data: dict) -> dict:
         "errorMinute": parse_int_field(
             data, "errorMinute", DEFAULT_CONFIG["errorMinute"], "取件错误检测窗口", 1
         ),
+        "loginCount": parse_int_field(
+            data, "loginCount", DEFAULT_CONFIG["loginCount"], "登录失败次数限制", 1
+        ),
+        "loginMinute": parse_int_field(
+            data, "loginMinute", DEFAULT_CONFIG["loginMinute"], "登录失败检测窗口", 1
+        ),
         "expireStyle": expire_styles,
         "max_save_seconds": save_time_value * SAVE_TIME_UNITS[save_time_unit],
         "openUpload": int(normalize_bool_field(data, "openUpload", True)),
@@ -227,6 +233,12 @@ def build_setup_page(error: str = "", form: dict | None = None) -> str:
     )
     error_count = html.escape(
         get_form_value(form, "errorCount", str(DEFAULT_CONFIG["errorCount"]))
+    )
+    login_minute = html.escape(
+        get_form_value(form, "loginMinute", str(DEFAULT_CONFIG["loginMinute"]))
+    )
+    login_count = html.escape(
+        get_form_value(form, "loginCount", str(DEFAULT_CONFIG["loginCount"]))
     )
     open_upload_checked = (
         " checked" if normalize_bool_field(form, "openUpload", True) else ""
@@ -576,6 +588,12 @@ def build_setup_page(error: str = "", form: dict | None = None) -> str:
             <input name="errorMinute" type="number" min="1" value="{error_minute}" aria-label="取件错误检测窗口分钟" required>
           </div>
 
+          <label for="loginCount">管理员登录失败频率 <span class="compact-help">次数 / 分钟</span></label>
+          <div class="row">
+            <input id="loginCount" name="loginCount" type="number" min="1" value="{login_count}" required>
+            <input name="loginMinute" type="number" min="1" value="{login_minute}" aria-label="登录失败检测窗口分钟" required>
+          </div>
+
           <label for="save_time_value">最长保存时间</label>
           <div class="row">
             <input id="save_time_value" name="save_time_value" type="number" min="0" value="{save_time_value}" required>
@@ -744,6 +762,8 @@ async def load_config():
     ip_limit["error"].count = settings.errorCount
     ip_limit["upload"].minutes = settings.uploadMinute
     ip_limit["upload"].count = settings.uploadCount
+    ip_limit["login"].minutes = settings.loginMinute
+    ip_limit["login"].count = settings.loginCount
 
 app = FastAPI(lifespan=lifespan, version=APP_VERSION)
 

@@ -136,4 +136,5 @@ ip_limit = {
     "error": IPRateLimit(count=settings.errorCount, minutes=settings.errorMinute),
     "metadata": IPRateLimit(count=settings.errorCount, minutes=settings.errorMinute),
     "upload": IPRateLimit(count=settings.uploadCount, minutes=settings.uploadMinute),
+    "login": IPRateLimit(count=settings.loginCount, minutes=settings.loginMinute),
 }

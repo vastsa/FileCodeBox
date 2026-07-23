@@ -1,5 +1,4 @@
 import datetime
-from fnmatch import fnmatchcase
 import hashlib
 import os
 import uuid
@@ -23,6 +22,7 @@ from apps.base.schemas import (
     CompleteUploadModel,
     PresignUploadInitRequest,
 )
+from apps.base.file_validation import validate_file_type, validate_upload_file, validate_header_bytes
 from apps.base.utils import (
     get_expire_info,
     get_file_path_name,
@@ -106,36 +106,6 @@ async def validate_file_size(file: UploadFile, max_size: int) -> int:
     return size
 
 
-def normalize_allowed_file_types() -> list[str]:
-    raw_value = settings.allowed_file_types
-    if isinstance(raw_value, str):
-        values = raw_value.replace(";", ",").split(",")
-    elif isinstance(raw_value, (list, tuple, set)):
-        values = raw_value
-    else:
-        values = []
-
-    allowed = [str(item).strip().lower() for item in values if str(item).strip()]
-    return allowed or ["*"]
-
-
-def validate_file_type(file_name: str, content_type: Optional[str] = None) -> None:
-    allowed = normalize_allowed_file_types()
-    if "*" in allowed or "*/*" in allowed:
-        return
-
-    normalized_name = file_name.strip().lower()
-    normalized_content_type = (content_type or "").strip().lower()
-
-    for rule in allowed:
-        if "/" in rule and fnmatchcase(normalized_content_type, rule):
-            return
-
-        extension = rule if rule.startswith(".") else f".{rule}"
-        if normalized_name.endswith(extension):
-            return
-
-    raise HTTPException(status_code=403, detail="不允许上传该类型文件")
 
 
 async def create_file_code(code, **kwargs):
@@ -188,7 +158,7 @@ async def share_file(
     ip: str = Depends(ip_limit["upload"]),
 ):
     file_size = await validate_file_size(file, settings.uploadSize)
-    validate_file_type(file.filename or "", file.content_type)
+    await validate_upload_file(file)
     validate_expire_style(expire_style)
     path, suffix, prefix, uuid_file_name, save_path = await get_file_path_name(file)
     reservation_token = f"file:{uuid.uuid4().hex}"
@@ -549,6 +519,8 @@ async def upload_chunk(
 
     # 读取分片数据并计算哈希
     chunk_data = await chunk.read()
+    if chunk_index == 0:
+        validate_header_bytes(chunk_info.file_name, None, chunk_data[:64])
     chunk_size = len(chunk_data)
 
     # 校验分片大小不超过声明的 chunk_size
@@ -844,6 +816,7 @@ async def presign_upload_proxy(
     )
 
     file_size = await validate_file_size(file, settings.uploadSize)
+    await validate_upload_file(file)
     if abs(file_size - session.file_size) > 1024:
         raise HTTPException(400, "文件大小与声明不符")
 
