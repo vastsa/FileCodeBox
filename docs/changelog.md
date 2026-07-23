@@ -1,5 +1,13 @@
 # Changelog
 
+## [2.5.3](https://github.com/vastsa/FileCodeBox/compare/v2.5.2...v2.5.3) (2026-07-23)
+
+
+### Bug Fixes
+
+* add magic-byte checks, login rate limits, and non-root Docker ([eda0a31](https://github.com/vastsa/FileCodeBox/commit/eda0a3127ab562b6a2cf828c0df4a93933c44526))
+* magic-byte file checks, admin login rate limit, non-root Docker ([0ee2f04](https://github.com/vastsa/FileCodeBox/commit/0ee2f046dd057fecceaee1059d72d67de3038f19))
+
 ## [2.5.2](https://github.com/vastsa/FileCodeBox/compare/v2.5.1...v2.5.2) (2026-07-23)
 
 
