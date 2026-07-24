@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="https://fastly.jsdelivr.net/gh/vastsa/FileCodeBox@V1.6/static/banners/img_1.png" alt="FileCodeBox Logo">
+<img src="/screenshots/retrieve.webp" alt="FileCodeBox" width="860" />
 
 <p><em>匿名口令分享文本和文件，像拿快递一样取文件</em></p>
 
@@ -14,6 +14,28 @@
 [![Vue Version](https://img.shields.io/badge/Vue.js-3.x-brightgreen.svg)](https://v3.vuejs.org)
 </div>
 
+
+## 🖼️ 界面预览
+
+<p align="center">
+  <img src="/screenshots/retrieve.webp" alt="提取文件" width="860" />
+</p>
+
+<p align="center">
+  <img src="/screenshots/send.webp" alt="文件发送" width="48%" />
+  &nbsp;
+  <img src="/screenshots/dashboard.webp" alt="管理仪表盘" width="48%" />
+</p>
+
+<p align="center">
+  <img src="/screenshots/files.webp" alt="文件管理" width="48%" />
+  &nbsp;
+  <img src="/screenshots/settings.webp" alt="系统设置" width="48%" />
+</p>
+
+<p align="center">
+  <img src="/screenshots/login.webp" alt="管理登录" width="60%" />
+</p>
 
 ## 🚀 更新计划
 - [ ] 切片上传，同文件秒传，断点续传

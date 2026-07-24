@@ -61,6 +61,26 @@ Open `http://localhost:12345` and complete the first-run setup.
   </a>
 </div>
 
+## Interface preview
+
+<p align="center">
+  <img src="/screenshots/retrieve.webp" alt="Retrieve files" width="860" />
+</p>
+
+<p align="center">
+  <img src="/screenshots/send.webp" alt="Send files" width="48%" />
+  &nbsp;
+  <img src="/screenshots/dashboard.webp" alt="Admin dashboard" width="48%" />
+</p>
+
+<table>
+<tr>
+<td width="33%"><img src="/screenshots/login.webp" alt="Admin login" /></td>
+<td width="33%"><img src="/screenshots/files.webp" alt="File management" /></td>
+<td width="33%"><img src="/screenshots/settings.webp" alt="System settings" /></td>
+</tr>
+</table>
+
 ::: warning Responsible use
 Use FileCodeBox only for lawful file and text sharing. Operators are responsible for deployment security, data compliance, and content moderation.
 :::

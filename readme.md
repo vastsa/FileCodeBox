@@ -17,7 +17,7 @@
 
 <br />
 
-<img src="./.github/images/readme/retrieve-dark.png" alt="FileCodeBox 取件页面" width="860" />
+<img src="./.github/images/readme/banner_zh.webp" alt="FileCodeBox" width="100%" />
 
 </div>
 
@@ -43,18 +43,18 @@ docker run -d --restart unless-stopped -p 12345:12345 -v ./data:/app/data --name
 
 <table>
 <tr>
-<td width="50%"><img src="./.github/images/readme/send.png" alt="文件发送页面" /></td>
-<td width="50%"><img src="./.github/images/readme/dashboard.png" alt="管理仪表盘" /></td>
+<td width="50%"><img src="./.github/images/readme/send.webp" alt="文件发送页面" /></td>
+<td width="50%"><img src="./.github/images/readme/dashboard.webp" alt="管理仪表盘" /></td>
 </tr>
 </table>
 
-<p align="center">
-  <img src="./.github/images/readme/mobile-retrieve.png" alt="移动端取件" width="29%" />
-  &nbsp;&nbsp;
-  <img src="./.github/images/readme/mobile-send.png" alt="移动端发送" width="29%" />
-  &nbsp;&nbsp;
-  <img src="./.github/images/readme/mobile-files.png" alt="移动端管理" width="29%" />
-</p>
+<table>
+<tr>
+<td width="33%"><img src="./.github/images/readme/login.webp" alt="管理登录" /></td>
+<td width="33%"><img src="./.github/images/readme/files.webp" alt="文件管理" /></td>
+<td width="33%"><img src="./.github/images/readme/settings.webp" alt="系统设置" /></td>
+</tr>
+</table>
 
 <div align="center">
 

@@ -4,6 +4,10 @@ FileCodeBox provides a fully-featured admin panel that allows administrators to 
 
 ## Accessing the Admin Panel
 
+<p align="center">
+  <img src="/screenshots/login.webp" alt="Admin login" width="640" />
+</p>
+
 ### Login Method
 
 The admin panel is located at the `/admin` path. Access method:
@@ -39,6 +43,10 @@ The admin panel uses JWT (JSON Web Token) for authentication:
 
 ## Dashboard
 
+<p align="center">
+  <img src="/screenshots/dashboard.webp" alt="Dashboard" width="860" />
+</p>
+
 After logging in, you first see the dashboard page, which displays the overall system status.
 
 ### Statistics
@@ -66,6 +74,10 @@ Storage usage is displayed in bytes. For example, `10485760` represents approxim
 :::
 
 ## File Management
+
+<p align="center">
+  <img src="/screenshots/files.webp" alt="File management" width="860" />
+</p>
 
 ### File List
 
@@ -199,6 +211,10 @@ Local file management is useful for:
 :::
 
 ## System Settings
+
+<p align="center">
+  <img src="/screenshots/settings.webp" alt="System settings" width="860" />
+</p>
 
 ### View Configuration
 

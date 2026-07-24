@@ -17,7 +17,7 @@ A lightweight, modern, self-hosted file sharing service. No account required—u
 
 <br />
 
-<img src="./.github/images/readme/retrieve-dark.png" alt="FileCodeBox retrieval screen" width="860" />
+<img src="./.github/images/readme/banner_en.webp" alt="FileCodeBox" width="100%" />
 
 </div>
 
@@ -43,18 +43,18 @@ Open `http://localhost:12345` and complete first-run setup. Pin a version in pro
 
 <table>
 <tr>
-<td width="50%"><img src="./.github/images/readme/send.png" alt="File sharing screen" /></td>
-<td width="50%"><img src="./.github/images/readme/dashboard.png" alt="Admin dashboard" /></td>
+<td width="50%"><img src="./.github/images/readme/send.webp" alt="File sharing screen" /></td>
+<td width="50%"><img src="./.github/images/readme/dashboard.webp" alt="Admin dashboard" /></td>
 </tr>
 </table>
 
-<p align="center">
-  <img src="./.github/images/readme/mobile-retrieve.png" alt="Mobile retrieval" width="29%" />
-  &nbsp;&nbsp;
-  <img src="./.github/images/readme/mobile-send.png" alt="Mobile sharing" width="29%" />
-  &nbsp;&nbsp;
-  <img src="./.github/images/readme/mobile-files.png" alt="Mobile administration" width="29%" />
-</p>
+<table>
+<tr>
+<td width="33%"><img src="./.github/images/readme/login.webp" alt="Admin login" /></td>
+<td width="33%"><img src="./.github/images/readme/files.webp" alt="File management" /></td>
+<td width="33%"><img src="./.github/images/readme/settings.webp" alt="System settings" /></td>
+</tr>
+</table>
 
 <div align="center">
 

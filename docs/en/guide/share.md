@@ -4,6 +4,10 @@ FileCodeBox provides simple and easy-to-use file and text sharing functionality.
 
 ## Sharing Methods
 
+<p align="center">
+  <img src="/screenshots/send.webp" alt="Send page" width="720" />
+</p>
+
 FileCodeBox supports two sharing methods:
 
 1. **Text Sharing** - Share text content directly, suitable for code snippets, configuration files, etc.
@@ -136,6 +140,10 @@ expire_value=5, expire_style=count
 ```
 
 ## Retrieving Files
+
+<p align="center">
+  <img src="/screenshots/retrieve.webp" alt="Retrieve page" width="720" />
+</p>
 
 ### How to Use
 

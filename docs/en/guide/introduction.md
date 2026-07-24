@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="https://fastly.jsdelivr.net/gh/vastsa/FileCodeBox@V1.6/static/banners/img_1.png" alt="FileCodeBox Logo">
+<img src="/screenshots/retrieve.webp" alt="FileCodeBox" width="860" />
 
 <p><em>Share text and files anonymously with a passcode, like picking up a package</em></p>
 

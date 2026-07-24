@@ -4,6 +4,10 @@ FileCodeBox provides multiple flexible file upload methods, supporting both regu
 
 ## Upload Methods
 
+<p align="center">
+  <img src="/screenshots/send.webp" alt="Upload and send page" width="720" />
+</p>
+
 FileCodeBox supports the following upload methods:
 
 ### Drag and Drop Upload

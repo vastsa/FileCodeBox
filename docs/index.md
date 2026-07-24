@@ -61,6 +61,26 @@ docker run -d --restart unless-stopped \
   </a>
 </div>
 
+## 界面预览
+
+<p align="center">
+  <img src="/screenshots/retrieve.webp" alt="提取文件" width="860" />
+</p>
+
+<p align="center">
+  <img src="/screenshots/send.webp" alt="文件发送" width="48%" />
+  &nbsp;
+  <img src="/screenshots/dashboard.webp" alt="管理仪表盘" width="48%" />
+</p>
+
+<table>
+<tr>
+<td width="33%"><img src="/screenshots/login.webp" alt="管理登录" /></td>
+<td width="33%"><img src="/screenshots/files.webp" alt="文件管理" /></td>
+<td width="33%"><img src="/screenshots/settings.webp" alt="系统设置" /></td>
+</tr>
+</table>
+
 ::: warning 使用须知
 请仅将 FileCodeBox 用于合法的文件与文本分享。服务运营者应自行负责部署安全、数据合规和内容管理。
 :::
