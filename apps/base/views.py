@@ -393,7 +393,8 @@ async def parse_complete_upload(request: Request) -> CompleteUploadModel:
 
 @chunk_api.post("/upload/init/", dependencies=[Depends(share_required_login)])
 async def init_chunk_upload(data: InitChunkUploadModel = Depends(parse_init_chunk_upload)):
-    validate_file_type(data.file_name)
+    safe_file_name = await sanitize_filename(unquote(data.file_name or ""))
+    validate_file_type(safe_file_name)
     # 服务端校验：根据 total_chunks * chunk_size 计算理论最大上传量
     total_chunks = (data.file_size + data.chunk_size - 1) // data.chunk_size
     max_possible_size = total_chunks * data.chunk_size
@@ -423,7 +424,7 @@ async def init_chunk_upload(data: InitChunkUploadModel = Depends(parse_init_chun
         chunk_hash=data.file_hash,
         chunk_index=-1,
         file_size=data.file_size,
-        file_name=data.file_name,
+        file_name=safe_file_name,
     ).first()
 
     if existing_session:
@@ -459,7 +460,9 @@ async def init_chunk_upload(data: InitChunkUploadModel = Depends(parse_init_chun
     await reserve_storage(
         reservation_token, data.file_size, ttl_seconds=chunk_expire_seconds
     )
-    _, _, _, _, save_path = await get_chunk_file_path_name(data.file_name, upload_id)
+    _, _, _, safe_file_name, save_path = await get_chunk_file_path_name(
+        data.file_name, upload_id
+    )
     try:
         await UploadChunk.create(
             upload_id=upload_id,
@@ -468,7 +471,7 @@ async def init_chunk_upload(data: InitChunkUploadModel = Depends(parse_init_chun
             file_size=data.file_size,
             chunk_size=data.chunk_size,
             chunk_hash=data.file_hash,
-            file_name=data.file_name,
+            file_name=safe_file_name,
             save_path=save_path,
         )
     except Exception:
@@ -670,7 +673,8 @@ async def complete_upload(
 
     save_path = chunk_info.save_path
     path = os.path.dirname(save_path) if save_path else ""
-    prefix, suffix = os.path.splitext(chunk_info.file_name)
+    safe_file_name = os.path.basename(save_path) if save_path else ""
+    prefix, suffix = os.path.splitext(safe_file_name)
 
     try:
         # 合并文件并计算哈希
@@ -689,7 +693,7 @@ async def complete_upload(
             expired_count=expired_count,
             used_count=used_count,
             file_path=path,
-            uuid_file_name=f"{prefix}{suffix}",
+            uuid_file_name=safe_file_name,
             prefix=prefix,
             suffix=suffix,
         )
@@ -699,7 +703,7 @@ async def complete_upload(
         await UploadChunk.filter(upload_id=upload_id).delete()
         await release_storage(f"chunk:{upload_id}")
         ip_limit["upload"].add_ip(ip)
-        return APIResponse(detail={"code": code, "name": chunk_info.file_name})
+        return APIResponse(detail={"code": code, "name": safe_file_name})
     except ValueError as e:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, detail=str(e))
     except Exception as e:
