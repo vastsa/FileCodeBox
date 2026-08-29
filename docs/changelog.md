@@ -1,5 +1,14 @@
 # Changelog
 
+## [2.5.5](https://github.com/vastsa/FileCodeBox/compare/v2.5.4...v2.5.5) (2026-08-29)
+
+
+### Bug Fixes
+
+* **chunk-upload:** persist sanitized filenames ([da1dd06](https://github.com/vastsa/FileCodeBox/commit/da1dd066551cc7cc9a631a0c982b5675bd4b1967))
+* harden chunk upload filename metadata ([5a7195c](https://github.com/vastsa/FileCodeBox/commit/5a7195c5c7d1028500b0e363c6b47130d260e11c))
+* sanitize chunk upload file_name to prevent path traversal ([cebac32](https://github.com/vastsa/FileCodeBox/commit/cebac32145f948bfca7c44c663a0bcdcd9c56830))
+
 ## [2.5.4](https://github.com/vastsa/FileCodeBox/compare/v2.5.3...v2.5.4) (2026-07-23)
 
 
