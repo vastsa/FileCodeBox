@@ -43,6 +43,7 @@ async def get_chunk_file_path_name(
 ) -> Tuple[str, str, str, str, str]:
     today = await get_now()
     storage_path = settings.storage_path.strip("/")
+    file_name = await sanitize_filename(unquote(file_name or ""))
     base_path = f"share/data/{today.strftime('%Y/%m/%d')}/{upload_id}"
     path = f"{storage_path}/{base_path}" if storage_path else base_path
     prefix, suffix = os.path.splitext(file_name)
