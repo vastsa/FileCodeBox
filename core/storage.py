@@ -116,6 +116,8 @@ class SystemFileStorage(FileStorageInterface):
         """将相对路径解析到数据根目录内，阻止路径穿越。"""
         root = self.root_path.resolve()
         raw = str(relative_path or "").replace("\\", "/").lstrip("/")
+        if any(part == ".." for part in raw.split("/")):
+            raise ValueError("非法文件路径")
         candidate = (root / raw).resolve()
         try:
             candidate.relative_to(root)
