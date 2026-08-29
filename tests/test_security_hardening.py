@@ -10,6 +10,7 @@ from fastapi import HTTPException
 from apps.admin import dependencies as admin_dependencies
 from apps.admin.dependencies import create_token, verify_token
 from apps.admin.services import LocalFileClass
+from apps.base.utils import get_chunk_file_path_name
 from core.settings import data_root, settings
 from core.storage import SystemFileStorage
 from core.utils import hash_password, verify_password
@@ -71,9 +72,42 @@ class SystemStoragePathTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             self.storage._resolve_safe_path("../etc/passwd")
 
+    def test_resolve_safe_path_blocks_internal_dotdot(self):
+        with self.assertRaises(ValueError):
+            self.storage._resolve_safe_path("share/data/2026/08/29/x/../../../../../../filecodebox.db")
+
+    def test_resolve_safe_path_blocks_windows_dotdot(self):
+        with self.assertRaises(ValueError):
+            self.storage._resolve_safe_path("share\\data\\..\\..\\filecodebox.db")
+
     def test_resolve_safe_path_allows_nested(self):
         target = self.storage._resolve_safe_path("share/data/a/b.txt")
         self.assertTrue(str(target).startswith(str(Path(self._tmpdir.name).resolve())))
+
+
+class ChunkFileNameSanitizeTests(unittest.TestCase):
+    def test_chunk_file_path_name_strips_traversal(self):
+        path, _, _, filename, save_path = asyncio.run(
+            get_chunk_file_path_name("../../../../../../filecodebox.db", "a" * 32)
+        )
+        self.assertNotIn("..", save_path)
+        self.assertEqual(filename, "filecodebox.db")
+        self.assertEqual(save_path, f"{path}/filecodebox.db")
+        self.assertIn("a" * 32, path)
+
+    def test_chunk_file_path_name_strips_windows_traversal(self):
+        _, _, _, filename, save_path = asyncio.run(
+            get_chunk_file_path_name("..\\..\\..\\..\\..\\..\\evil.bin", "b" * 32)
+        )
+        self.assertNotIn("..", save_path)
+        self.assertEqual(filename, "evil.bin")
+
+    def test_chunk_file_path_name_keeps_normal_name(self):
+        _, _, _, filename, save_path = asyncio.run(
+            get_chunk_file_path_name("safe.txt", "c" * 32)
+        )
+        self.assertEqual(filename, "safe.txt")
+        self.assertTrue(save_path.endswith("/safe.txt"))
 
 
 class AdminJwtUrlSafeTests(unittest.TestCase):
