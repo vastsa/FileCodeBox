@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.5.6](https://github.com/vastsa/FileCodeBox/compare/v2.5.5...v2.5.6) (2026-09-01)
+
+
+### Bug Fixes
+
+* **logging:** reduce production log noise ([5537f56](https://github.com/vastsa/FileCodeBox/commit/5537f56b884a15eda015665c67c3f8469e4e9d89))
+
 ## [2.5.5](https://github.com/vastsa/FileCodeBox/compare/v2.5.4...v2.5.5) (2026-08-29)
 
 

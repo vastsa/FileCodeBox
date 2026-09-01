@@ -42,7 +42,7 @@ docker run -d --restart unless-stopped \
   --log-opt max-size=10m \
   --log-opt max-file=3 \
   --name filecodebox \
-  lanol/filecodebox:2.5.5 # x-release-please-version
+  lanol/filecodebox:2.5.6 # x-release-please-version
 ```
 
 打开 `http://localhost:12345`，按引导完成首次初始化。
