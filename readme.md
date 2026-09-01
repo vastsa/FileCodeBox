@@ -24,7 +24,15 @@
 ## 一条命令开始
 
 ```bash
-docker run -d --restart unless-stopped -p 12345:12345 -v ./data:/app/data --name filecodebox lanol/filecodebox:2.5.5 # x-release-please-version
+docker run -d --restart unless-stopped \
+  -p 12345:12345 \
+  -v ./data:/app/data \
+  -e APP_ENV=production \
+  -e LOG_LEVEL=warning \
+  --log-opt max-size=10m \
+  --log-opt max-file=3 \
+  --name filecodebox \
+  lanol/filecodebox:2.5.5 # x-release-please-version
 ```
 
 访问 `http://localhost:12345`，完成首次初始化。生产环境建议固定版本号；`latest` 指向最新正式版。

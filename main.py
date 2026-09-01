@@ -26,7 +26,7 @@ from core.config import (
     refresh_settings,
 )
 from core.database import db_startup_lock, get_db_config, init_db
-from core.logger import logger
+from core.logger import get_log_level_name, is_access_log_enabled, logger
 from core.response import APIResponse
 from core.settings import settings, BASE_DIR, DEFAULT_CONFIG
 from core.tasks import (
@@ -933,4 +933,6 @@ if __name__ == "__main__":
         port=settings.serverPort,
         reload=False,
         workers=settings.serverWorkers,
+        log_level=get_log_level_name(),
+        access_log=is_access_log_enabled(),
     )

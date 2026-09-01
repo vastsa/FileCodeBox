@@ -24,7 +24,15 @@ A lightweight, modern, self-hosted file sharing service. No account required—u
 ## Start with one command
 
 ```bash
-docker run -d --restart unless-stopped -p 12345:12345 -v ./data:/app/data --name filecodebox lanol/filecodebox:2.5.5 # x-release-please-version
+docker run -d --restart unless-stopped \
+  -p 12345:12345 \
+  -v ./data:/app/data \
+  -e APP_ENV=production \
+  -e LOG_LEVEL=warning \
+  --log-opt max-size=10m \
+  --log-opt max-file=3 \
+  --name filecodebox \
+  lanol/filecodebox:2.5.5 # x-release-please-version
 ```
 
 Open `http://localhost:12345` and complete first-run setup. Pin a version in production; `latest` tracks the newest stable release.
