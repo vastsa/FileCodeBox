@@ -32,7 +32,7 @@ docker run -d --restart unless-stopped \
   --log-opt max-size=10m \
   --log-opt max-file=3 \
   --name filecodebox \
-  lanol/filecodebox:2.5.5 # x-release-please-version
+  lanol/filecodebox:2.5.6 # x-release-please-version
 ```
 
 Open `http://localhost:12345` and complete first-run setup. Pin a version in production; `latest` tracks the newest stable release.

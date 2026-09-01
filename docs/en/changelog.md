@@ -1,6 +1,6 @@
 ## [Unreleased]
 
-<!-- Current release: 2.5.5 x-release-please-version -->
+<!-- Current release: 2.5.6 x-release-please-version -->
 
 ### Added
 
