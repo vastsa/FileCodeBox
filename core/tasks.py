@@ -4,7 +4,6 @@
 # @Software: PyCharm
 import asyncio
 import datetime
-import logging
 import os
 
 from tortoise.expressions import Q
@@ -17,6 +16,7 @@ from apps.base.models import (
 )
 from apps.base.utils import ip_limit, get_chunk_file_path_name
 from core.config import refresh_settings
+from core.logger import logger
 from core.settings import settings, data_root
 from core.storage import FileStorageInterface, storages
 from core.utils import get_now
@@ -43,13 +43,13 @@ async def delete_expire_files():
                 try:
                     await file_storage.delete_file(exp)
                 except Exception as e:
-                    logging.error(f"删除过期文件失败 code={exp.code}: {e}")
+                    logger.error(f"删除过期文件失败 code={exp.code}: {e}")
                 try:
                     await exp.delete()
                 except Exception as e:
-                    logging.error(f"删除记录失败 code={exp.code}: {e}")
+                    logger.error(f"删除记录失败 code={exp.code}: {e}")
         except Exception as e:
-            logging.error(e)
+            logger.error(e)
         finally:
             await asyncio.sleep(600)
 
@@ -75,7 +75,7 @@ async def clean_incomplete_uploads():
                         )
                     await file_storage.clean_chunks(session.upload_id, save_path)
                 except Exception as e:
-                    logging.error(
+                    logger.error(
                         f"清理分片文件失败 upload_id={session.upload_id}: {e}"
                     )
 
@@ -84,14 +84,14 @@ async def clean_incomplete_uploads():
                     await StorageReservation.filter(
                         token=f"chunk:{session.upload_id}"
                     ).delete()
-                    logging.info(f"已清理过期上传会话 upload_id={session.upload_id}")
+                    logger.info(f"已清理过期上传会话 upload_id={session.upload_id}")
                 except Exception as e:
-                    logging.error(
+                    logger.error(
                         f"删除分片记录失败 upload_id={session.upload_id}: {e}"
                     )
 
         except Exception as e:
-            logging.error(f"清理未完成上传任务异常: {e}")
+            logger.error(f"清理未完成上传任务异常: {e}")
         finally:
             await asyncio.sleep(3600)
 
@@ -116,7 +116,7 @@ async def clean_expired_presign_sessions():
                                 )
                             )
                     except Exception as e:
-                        logging.error(
+                        logger.error(
                             "清理过期直传文件失败 "
                             f"upload_id={session.upload_id}: {e}"
                         )
@@ -125,6 +125,6 @@ async def clean_expired_presign_sessions():
                 ).delete()
                 await session.delete()
         except Exception as e:
-            logging.error(f"清理过期预签名会话异常: {e}")
+            logger.error(f"清理过期预签名会话异常: {e}")
         finally:
             await asyncio.sleep(900)

@@ -259,14 +259,14 @@ class SystemFileStorage(FileStorageInterface):
             try:
                 shutil.rmtree(chunk_dir)
             except Exception as e:
-                logger.info(f"清理本地分片目录失败: {e}")
+                logger.warning(f"清理本地分片目录失败: {e}")
         # 清理父级 chunks 目录（如果为空）
         chunks_parent = chunk_dir.parent
         if chunks_parent.exists() and not any(chunks_parent.iterdir()):
             try:
                 chunks_parent.rmdir()
             except Exception as e:
-                logger.info(f"清理 chunks 父目录失败: {e}")
+                logger.warning(f"清理 chunks 父目录失败: {e}")
 
     async def file_exists(self, save_path: str) -> bool:
         """
@@ -537,7 +537,7 @@ class S3FileStorage(FileStorageInterface):
                             Delete={'Objects': delete_objects}
                         )
             except Exception as e:
-                logger.info(f"清理 S3 分片数据时出错: {e}")
+                logger.warning(f"清理 S3 分片数据时出错: {e}")
 
     async def generate_presigned_upload_url(self, save_path: str, expires_in: int = 900) -> Optional[str]:
         """
@@ -865,7 +865,7 @@ class OneDriveFileStorage(FileStorageInterface):
         try:
             await asyncio.to_thread(self._delete_chunk_dir, chunk_dir)
         except Exception as e:
-            logger.info(f"清理 OneDrive 分片时出错: {e}")
+            logger.warning(f"清理 OneDrive 分片时出错: {e}")
 
     def _file_exists(self, save_path: str) -> bool:
         """同步检查文件是否存在"""
@@ -1023,7 +1023,7 @@ class OpenDALFileStorage(FileStorageInterface):
             # OpenDAL 支持递归删除
             await self.operator.remove_all(chunk_dir)
         except Exception as e:
-            logger.info(f"清理 OpenDAL 分片时出错: {e}")
+            logger.warning(f"清理 OpenDAL 分片时出错: {e}")
 
     async def file_exists(self, save_path: str) -> bool:
         """
@@ -1334,16 +1334,16 @@ class WebDAVFileStorage(FileStorageInterface):
                                 file_url = self._build_url(file_path)
                                 async with session.delete(file_url) as delete_resp:
                                     if delete_resp.status not in (200, 204, 404):
-                                        logger.info(f"删除分片文件失败: {file_path}")
+                                        logger.warning(f"删除分片文件失败: {file_path}")
 
                         # 删除分片目录
                         async with session.delete(chunk_dir_url) as delete_resp:
                             if delete_resp.status not in (200, 204, 404):
-                                logger.info(f"删除分片目录失败: {chunk_dir_url}")
+                                logger.warning(f"删除分片目录失败: {chunk_dir_url}")
                     else:
                         logger.info(f"分片目录不存在: {chunk_dir_url}")
             except Exception as e:
-                logger.info(f"清理 WebDAV 分片时出错: {e}")
+                logger.warning(f"清理 WebDAV 分片时出错: {e}")
 
     async def file_exists(self, save_path: str) -> bool:
         """

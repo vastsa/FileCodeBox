@@ -69,7 +69,9 @@ RUN apt-get update \
 ENV HOST="0.0.0.0" \
     PORT=12345 \
     WORKERS=1 \
-    LOG_LEVEL="info" \
+    APP_ENV="production" \
+    LOG_LEVEL="warning" \
+    ACCESS_LOG="false" \
     FORWARDED_ALLOW_IPS=""
 
 EXPOSE 12345
@@ -77,4 +79,4 @@ EXPOSE 12345
 # 生产环境启动命令
 # FORWARDED_ALLOW_IPS 默认为空：仅信任直连 IP，避免任意客户端伪造 X-Forwarded-*。
 # 若前面有反向代理，请显式设置为代理网段，例如 "10.0.0.0/8,172.16.0.0/12"。
-CMD ["sh", "-c", "exec uvicorn main:app --host \"$HOST\" --port \"$PORT\" --workers \"$WORKERS\" --log-level \"$LOG_LEVEL\" --proxy-headers --forwarded-allow-ips \"${FORWARDED_ALLOW_IPS:-}\""]
+CMD ["sh", "-c", "access_log_arg=--no-access-log; if [ \"${APP_ENV:-development}\" != \"production\" ] || [ \"${ACCESS_LOG:-false}\" = \"true\" ]; then access_log_arg=--access-log; fi; exec uvicorn main:app --host \"$HOST\" --port \"$PORT\" --workers \"$WORKERS\" --log-level \"$LOG_LEVEL\" \"$access_log_arg\" --proxy-headers --forwarded-allow-ips \"${FORWARDED_ALLOW_IPS:-}\""]

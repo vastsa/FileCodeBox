@@ -7,6 +7,16 @@ services:
     restart: unless-stopped
     ports:
       - "12345:12345"
+    environment:
+      - APP_ENV=production
+      - LOG_LEVEL=warning
+      - ACCESS_LOG=false
+      - WORKERS=1
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
 volumes:
   fcb-data:
     external: false

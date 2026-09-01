@@ -136,7 +136,15 @@ Command-line download
 ### Docker Deployment
 
 ```bash
-docker run -d --restart unless-stopped -p 12345:12345 -v fcb-data:/app/data --name filecodebox lanol/filecodebox:latest
+docker run -d --restart unless-stopped \
+  -p 12345:12345 \
+  -v fcb-data:/app/data \
+  -e APP_ENV=production \
+  -e LOG_LEVEL=warning \
+  --log-opt max-size=10m \
+  --log-opt max-file=3 \
+  --name filecodebox \
+  lanol/filecodebox:latest
 ```
 
 ### Manual Deployment

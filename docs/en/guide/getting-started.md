@@ -21,6 +21,10 @@ FileCodeBox is a simple and efficient file sharing tool that supports temporary 
 docker run -d --restart unless-stopped \
   -p 12345:12345 \
   -v fcb-data:/app/data \
+  -e APP_ENV=production \
+  -e LOG_LEVEL=warning \
+  --log-opt max-size=10m \
+  --log-opt max-file=3 \
   --name filecodebox \
   lanol/filecodebox:latest
 ```
@@ -32,7 +36,11 @@ The named volume persists configuration and uploaded files across container upgr
 | `HOST` | `0.0.0.0` | Service listening address |
 | `PORT` | `12345` | Service port |
 | `WORKERS` | `1` | Worker count; keep one worker for SQLite deployments |
-| `LOG_LEVEL` | `info` | `debug`, `info`, `warning`, or `error` |
+| `APP_ENV` | `production` (Docker) | Runtime environment; production disables HTTP access logs by default |
+| `LOG_LEVEL` | `warning` (Docker) | `debug`, `info`, `warning`, or `error` |
+| `ACCESS_LOG` | `false` (production) | Enable HTTP access logs; set to `true` when debugging requests |
+
+Production deployments output only warning, error, and other key events by default. Docker retains at most three 10 MB log files.
 
 ### Manual Deployment
 

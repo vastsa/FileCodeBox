@@ -23,6 +23,10 @@ FileCodeBox 是一个简单高效的文件分享工具，支持文件临时中�
 docker run -d --restart unless-stopped \
   -p 12345:12345 \
   -v fcb-data:/app/data \
+  -e APP_ENV=production \
+  -e LOG_LEVEL=warning \
+  --log-opt max-size=10m \
+  --log-opt max-file=3 \
   --name filecodebox \
   lanol/filecodebox:latest
 ```
@@ -40,8 +44,15 @@ services:
     ports:
       - "12345:12345"
     environment:
+      - APP_ENV=production
       - WORKERS=1
-      - LOG_LEVEL=info
+      - LOG_LEVEL=warning
+      - ACCESS_LOG=false
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
 volumes:
   fcb-data:
     external: false
@@ -54,7 +65,11 @@ volumes:
 | `HOST` | `0.0.0.0` | 服务监听地址 |
 | `PORT` | `12345` | 服务端口 |
 | `WORKERS` | `1` | 工作进程数；SQLite 部署建议保持单进程 |
-| `LOG_LEVEL` | `info` | 日志级别：debug/info/warning/error |
+| `APP_ENV` | `production`（Docker） | 运行环境；生产环境默认关闭 HTTP 访问日志 |
+| `LOG_LEVEL` | `warning`（Docker） | 日志级别：debug/info/warning/error |
+| `ACCESS_LOG` | `false`（生产环境） | 是否启用 HTTP 访问日志；调试请求时可设为 `true` |
+
+生产环境默认只输出 warning、error 等关键日志，并限制 Docker 日志最多保留 3 个 10 MB 文件。
 
 #### 自定义配置示例
 
@@ -63,8 +78,11 @@ docker run -d --restart=always \
   -p 12345:12345 \
   -v fcb-data:/app/data \
   -e WORKERS=1 \
+  -e APP_ENV=production \
   -e LOG_LEVEL=warning \
   --name filecodebox \
+  --log-opt max-size=10m \
+  --log-opt max-file=3 \
   lanol/filecodebox:latest
 ```
 
