@@ -6,6 +6,9 @@ from fastapi import HTTPException
 from core.settings import BASE_DIR, settings
 from main import index, resolve_theme_file
 
+# themes/ is produced by the Dockerfile frontend build (see .gitignore); a bare checkout has no such directory
+THEMES_BUILT = BASE_DIR.joinpath("themes/2024/assets").is_dir()
+
 
 class SettingsOverrideMixin:
     def setUp(self):
@@ -21,6 +24,7 @@ class ThemeAssetTests(SettingsOverrideMixin, unittest.TestCase):
         self.assertTrue(assets, f"{theme} 缺少 index JS 资源")
         return assets[0].name
 
+    @unittest.skipUnless(THEMES_BUILT, "themes/ exists only after the Docker frontend build; skip in bare checkouts")
     def test_resolves_assets_from_current_theme(self):
         settings.themesSelect = "themes/2023"
         theme_2023_asset = resolve_theme_file(
@@ -43,6 +47,7 @@ class ThemeAssetTests(SettingsOverrideMixin, unittest.TestCase):
 
         self.assertEqual(error.exception.status_code, 404)
 
+    @unittest.skipUnless(THEMES_BUILT, "themes/ exists only after the Docker frontend build; skip in bare checkouts")
     def test_index_keeps_absolute_asset_urls(self):
         settings.themesSelect = "themes/2023"
 

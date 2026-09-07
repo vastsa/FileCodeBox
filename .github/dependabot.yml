@@ -1,0 +1,15 @@
+version: 2
+updates:
+  # Runtime deps (requirements.txt is the single source; once a lockfile lands, keep raising version PRs here)
+  - package-ecosystem: "pip"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+  - package-ecosystem: "docker"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"

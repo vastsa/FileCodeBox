@@ -1,4 +1,3 @@
-import datetime
 import hashlib
 import os
 import uuid
@@ -16,6 +15,7 @@ from tortoise.expressions import Case, F, Q, When
 from apps.admin.dependencies import share_required_login
 from apps.base.models import FileCodes, UploadChunk, PresignUploadSession
 from apps.base.quota import release_storage, reserve_storage
+from core.logger import logger
 from apps.base.schemas import (
     SelectFileModel,
     InitChunkUploadModel,
@@ -24,6 +24,7 @@ from apps.base.schemas import (
 )
 from apps.base.file_validation import validate_file_type, validate_upload_file, validate_header_bytes
 from apps.base.utils import (
+    build_file_path,
     get_expire_info,
     get_file_path_name,
     ip_limit,
@@ -51,16 +52,8 @@ class FileUploadService:
     async def generate_file_path(
         file_name: str, upload_id: Optional[str] = None
     ) -> tuple[str, str, str, str, str]:
-        """统一的路径生成"""
-        today = datetime.datetime.now()
-        storage_path = settings.storage_path.strip("/")
-        file_uuid = upload_id or uuid.uuid4().hex
-        filename = await sanitize_filename(unquote(file_name))
-        base_path = f"share/data/{today.strftime('%Y/%m/%d')}/{file_uuid}"
-        path = f"{storage_path}/{base_path}" if storage_path else base_path
-        prefix, suffix = os.path.splitext(filename)
-        save_path = f"{path}/{filename}"
-        return path, suffix, prefix, filename, save_path
+        """Delegates path generation to apps.base.utils.build_file_path."""
+        return await build_file_path(file_name, upload_id or uuid.uuid4().hex)
 
     @staticmethod
     async def create_file_record(
@@ -186,7 +179,7 @@ async def share_file(
                 FileCodes(file_path=path, uuid_file_name=uuid_file_name)
             )
         except Exception:
-            pass
+            logger.warning("分享上传：记录创建失败，回滚删除已保存文件失败", exc_info=True)
         raise
     finally:
         await release_storage(reservation_token)
@@ -404,21 +397,6 @@ async def init_chunk_upload(data: InitChunkUploadModel = Depends(parse_init_chun
             status_code=403, detail=f"文件大小超过限制，最大为 {max_size_mb:.2f} MB"
         )
 
-    # # 秒传检查
-    # existing = await FileCodes.filter(file_hash=data.file_hash).first()
-    # if existing:
-    #     if await existing.is_expired():
-    #         file_storage: FileStorageInterface = storages[settings.file_storage](
-    #         )
-    #         await file_storage.delete_file(existing)
-    #         await existing.delete()
-    #     else:
-    #         return APIResponse(detail={
-    #             "code": existing.code,
-    #             "existed": True,
-    #             "name": f'{existing.prefix}{existing.suffix}'
-    #         })
-
     # 断点续传：检查是否存在相同文件的未完成上传会话
     existing_session = await UploadChunk.filter(
         chunk_hash=data.file_hash,
@@ -591,8 +569,8 @@ async def cancel_upload(upload_id: str):
     if save_path:
         try:
             await storage.clean_chunks(upload_id, save_path)
-        except Exception as e:
-            pass
+        except Exception:
+            logger.warning("取消分片上传：清理分片文件失败 upload_id=%s", upload_id, exc_info=True)
 
     # 清理数据库记录
     await UploadChunk.filter(upload_id=upload_id).delete()
@@ -663,7 +641,7 @@ async def complete_upload(
             try:
                 await storage.clean_chunks(upload_id, save_path)
             except Exception:
-                pass
+                logger.warning("分片超限中止：清理分片文件失败 upload_id=%s", upload_id, exc_info=True)
         await UploadChunk.filter(upload_id=upload_id).delete()
         await release_storage(f"chunk:{upload_id}")
         max_size_mb = settings.uploadSize / (1024 * 1024)
@@ -711,7 +689,7 @@ async def complete_upload(
         try:
             await storage.clean_chunks(upload_id, save_path)
         except Exception:
-            pass
+            logger.warning("分片合并失败：清理临时分片文件失败 upload_id=%s", upload_id, exc_info=True)
         raise HTTPException(
             status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"文件合并失败: {str(e)}"
         )
@@ -847,7 +825,7 @@ async def presign_upload_proxy(
                 )
             )
         except Exception:
-            pass
+            logger.warning("预签名代理上传：记录创建失败，回滚删除已保存文件失败 upload_id=%s", session.upload_id, exc_info=True)
         raise
 
     await session.delete()
@@ -904,7 +882,7 @@ async def presign_upload_confirm(upload_id: str, ip: str = Depends(ip_limit["upl
                 )
             )
         except Exception:
-            pass
+            logger.warning("预签名确认：记录创建失败，回滚删除已保存文件失败 upload_id=%s", session.upload_id, exc_info=True)
         raise
 
     await session.delete()
@@ -952,7 +930,7 @@ async def presign_upload_cancel(upload_id: str):
                 )
                 await storage.delete_file(temp_file_code)
         except Exception:
-            pass
+            logger.warning("取消预签名会话：清理临时文件失败 upload_id=%s", upload_id, exc_info=True)
 
     await session.delete()
     await release_storage(f"presign:{upload_id}")

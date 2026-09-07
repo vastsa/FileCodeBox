@@ -1,6 +1,5 @@
 import asyncio
 from io import BytesIO
-import os
 import tempfile
 import unittest
 from pathlib import Path
@@ -11,13 +10,12 @@ from starlette.datastructures import UploadFile
 from tortoise import Tortoise
 
 from apps.base import views
-from apps.admin import dependencies as admin_dependencies
 from apps.admin.dependencies import create_token, verify_token
 from apps.admin.services import LocalFileClass
 from apps.base.models import FileCodes, UploadChunk
 from apps.base.schemas import CompleteUploadModel, InitChunkUploadModel
 from apps.base.utils import get_chunk_file_path_name
-from core.settings import data_root, settings
+from core.settings import settings
 from core.storage import SystemFileStorage
 from core.utils import hash_password, verify_password
 

@@ -1,5 +1,4 @@
 import datetime
-import hashlib
 import os
 import uuid
 from urllib.parse import unquote
@@ -26,29 +25,32 @@ def validate_expire_style(expire_style: str) -> str:
     return expire_style
 
 
-async def get_file_path_name(file: UploadFile) -> Tuple[str, str, str, str, str]:
+async def build_file_path(
+    file_name: str, file_uuid: str
+) -> Tuple[str, str, str, str, str]:
+    """Single source of storage path generation (date dir + UUID), shared by
+    regular, chunked, and presigned uploads.
+
+    Always use get_now() (UTC+8); do not switch to server-local time.
+    """
     today = await get_now()
     storage_path = settings.storage_path.strip("/")
-    file_uuid = uuid.uuid4().hex
-    filename = await sanitize_filename(unquote(file.filename or ""))
+    filename = await sanitize_filename(unquote(file_name or ""))
     base_path = f"share/data/{today.strftime('%Y/%m/%d')}/{file_uuid}"
     path = f"{storage_path}/{base_path}" if storage_path else base_path
     prefix, suffix = os.path.splitext(filename)
-    save_path = f"{path}/{filename}"
+    save_path = f"{path}/{prefix}{suffix}"
     return path, suffix, prefix, filename, save_path
+
+
+async def get_file_path_name(file: UploadFile) -> Tuple[str, str, str, str, str]:
+    return await build_file_path(file.filename or "", uuid.uuid4().hex)
 
 
 async def get_chunk_file_path_name(
     file_name: str, upload_id: str
 ) -> Tuple[str, str, str, str, str]:
-    today = await get_now()
-    storage_path = settings.storage_path.strip("/")
-    file_name = await sanitize_filename(unquote(file_name or ""))
-    base_path = f"share/data/{today.strftime('%Y/%m/%d')}/{upload_id}"
-    path = f"{storage_path}/{base_path}" if storage_path else base_path
-    prefix, suffix = os.path.splitext(file_name)
-    save_path = f"{path}/{prefix}{suffix}"
-    return path, suffix, prefix, file_name, save_path
+    return await build_file_path(file_name, upload_id)
 
 
 async def get_expire_info(
@@ -119,18 +121,6 @@ async def get_random_code(style: str | None = None) -> str:
         )
         if not await FileCodes.filter(code=code).exists():
             return str(code)
-
-
-async def calculate_file_hash(file: UploadFile, chunk_size=1024 * 1024) -> str:
-    sha = hashlib.sha256()
-    await file.seek(0)
-    while True:
-        chunk = await file.read(chunk_size)
-        if not chunk:
-            break
-        sha.update(chunk)
-    await file.seek(0)
-    return sha.hexdigest()
 
 
 ip_limit = {

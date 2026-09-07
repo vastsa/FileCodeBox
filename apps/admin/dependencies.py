@@ -2,7 +2,7 @@
 # @Author  : Lan
 # @File    : depends.py
 # @Software: PyCharm
-from fastapi import Header, HTTPException, Depends
+from fastapi import Header, HTTPException
 from fastapi.requests import Request
 import base64
 import hmac

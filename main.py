@@ -16,7 +16,6 @@ from tortoise.contrib.fastapi import register_tortoise
 
 from apps.admin.views import admin_api
 from apps.base.models import KeyValue
-from apps.base.utils import ip_limit
 from apps.base.views import share_api, chunk_api, presign_api
 from core.config import (
     ensure_security_settings,
@@ -755,15 +754,11 @@ async def load_config():
     await KeyValue.update_or_create(
         key="sys_start", defaults={"value": int(time.time() * 1000)}
     )
+    # refresh_settings already syncs every rate limiter (error/metadata/upload/login)
+    # via _sync_ip_limits; do not hand-sync a subset here — that once drifted by
+    # missing the metadata limiter.
     await refresh_settings()
     await ensure_security_settings()
-
-    ip_limit["error"].minutes = settings.errorMinute
-    ip_limit["error"].count = settings.errorCount
-    ip_limit["upload"].minutes = settings.uploadMinute
-    ip_limit["upload"].count = settings.uploadCount
-    ip_limit["login"].minutes = settings.loginMinute
-    ip_limit["login"].count = settings.loginCount
 
 app = FastAPI(lifespan=lifespan, version=APP_VERSION)
 
@@ -879,14 +874,17 @@ async def theme_asset(asset_path: str):
 @app.exception_handler(404)
 @app.get("/")
 async def index(request=None, exc=None):
+    # Site config is admin input (and during the setup window anyone can claim it);
+    # always escape before injecting into the theme template to prevent stored XSS
+    # (mirrors the setup page).
     return HTMLResponse(
         content=resolve_theme_file("index.html")
         .read_text(encoding="utf-8")
-        .replace("{{title}}", str(settings.name))
-        .replace("{{description}}", str(settings.description))
-        .replace("{{keywords}}", str(settings.keywords))
-        .replace("{{opacity}}", str(settings.opacity))
-        .replace("{{background}}", str(settings.background)),
+        .replace("{{title}}", html.escape(str(settings.name)))
+        .replace("{{description}}", html.escape(str(settings.description)))
+        .replace("{{keywords}}", html.escape(str(settings.keywords)))
+        .replace("{{opacity}}", html.escape(str(settings.opacity)))
+        .replace("{{background}}", html.escape(str(settings.background))),
         media_type="text/html",
         headers={"Cache-Control": "no-cache"},
     )
