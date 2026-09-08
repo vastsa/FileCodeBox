@@ -6,12 +6,7 @@ from apps.admin.services import FileService
 from core.settings import settings
 
 
-class SettingsOverrideMixin:
-    def setUp(self):
-        self._original_user_config = dict(settings.user_config)
-
-    def tearDown(self):
-        settings.user_config = self._original_user_config
+from tests.helpers import SettingsOverrideMixin
 
 
 class FakeFileCode:

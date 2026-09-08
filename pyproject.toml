@@ -8,6 +8,8 @@ testpaths = ["tests"]
 # Tests import top-level packages (core/apps) directly; put the repo root on
 # sys.path so bare `pytest` collects without `python -m pytest`.
 pythonpath = ["."]
+# Async tests/fixtures without per-test decorators.
+asyncio_mode = "auto"
 
 [dependency-groups]
 dev = [

@@ -3,10 +3,10 @@ import datetime
 import unittest
 from unittest.mock import patch
 
-from tortoise import Tortoise
 
 from apps.base.models import FileCodes
 from apps.base import views
+from tests.helpers import close_db, init_memory_db
 from core.settings import DEFAULT_CONFIG, settings
 from core.utils import get_now, get_select_token
 from main import build_setup_page, parse_setup_options
@@ -48,25 +48,7 @@ class ShareUsageSecurityTests(unittest.TestCase):
         original_metadata_limit = views.ip_limit["metadata"]
         settings.file_storage = "local"
         settings.jwt_secret = "test-download-secret"
-        await Tortoise.init(
-            config={
-                "connections": {
-                    "default": {
-                        "engine": "tortoise.backends.sqlite",
-                        "credentials": {"file_path": ":memory:"},
-                    }
-                },
-                "apps": {
-                    "models": {
-                        "models": ["apps.base.models"],
-                        "default_connection": "default",
-                    }
-                },
-                "use_tz": False,
-                "timezone": "Asia/Shanghai",
-            }
-        )
-        await Tortoise.generate_schemas()
+        await init_memory_db()
         try:
             await self._assert_count_consumption_is_atomic()
             await self._assert_time_expiration_and_usage_are_atomic()
@@ -77,7 +59,7 @@ class ShareUsageSecurityTests(unittest.TestCase):
         finally:
             views.ip_limit["metadata"] = original_metadata_limit
             settings.user_config = original_config
-            await Tortoise.close_connections()
+            await close_db()
 
     async def _assert_count_consumption_is_atomic(self):
         record = await FileCodes.create(

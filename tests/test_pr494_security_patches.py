@@ -10,6 +10,7 @@ from apps.base import views
 from apps.base.models import FileCodes
 from apps.base.quota import _detect_sql_dialect, _sql_placeholders, reserve_storage
 from apps.base.utils import validate_expire_style
+from tests.helpers import init_memory_db
 from core.settings import settings
 from core.utils import get_select_token
 
@@ -38,24 +39,7 @@ class SecurityPatchTests(unittest.TestCase):
         asyncio.run(self._assert_sql_placeholders())
 
     async def _assert_sql_placeholders(self):
-        await Tortoise.init(
-            config={
-                "connections": {
-                    "default": {
-                        "engine": "tortoise.backends.sqlite",
-                        "credentials": {"file_path": ":memory:"},
-                    }
-                },
-                "apps": {
-                    "models": {
-                        "models": ["apps.base.models"],
-                        "default_connection": "default",
-                    }
-                },
-                "use_tz": False,
-                "timezone": "Asia/Shanghai",
-            }
-        )
+        await init_memory_db()
         try:
             self.assertEqual(_detect_sql_dialect(), "sqlite")
             self.assertEqual(_sql_placeholders(3), ["?", "?", "?"])
@@ -96,24 +80,7 @@ class SecurityPatchTests(unittest.TestCase):
         self.assertEqual(current, expected_current)
         self.assertEqual(previous, expected_previous)
 
-        await Tortoise.init(
-            config={
-                "connections": {
-                    "default": {
-                        "engine": "tortoise.backends.sqlite",
-                        "credentials": {"file_path": ":memory:"},
-                    }
-                },
-                "apps": {
-                    "models": {
-                        "models": ["apps.base.models"],
-                        "default_connection": "default",
-                    }
-                },
-                "use_tz": False,
-                "timezone": "Asia/Shanghai",
-            }
-        )
+        await init_memory_db()
         await Tortoise.generate_schemas()
         try:
             await FileCodes.create(

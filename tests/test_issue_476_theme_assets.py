@@ -5,17 +5,10 @@ from fastapi import HTTPException
 
 from core.settings import BASE_DIR, settings
 from main import index, resolve_theme_file
+from tests.helpers import SettingsOverrideMixin
 
 # themes/ is produced by the Dockerfile frontend build (see .gitignore); a bare checkout has no such directory
 THEMES_BUILT = BASE_DIR.joinpath("themes/2024/assets").is_dir()
-
-
-class SettingsOverrideMixin:
-    def setUp(self):
-        self._original_user_config = dict(settings.user_config)
-
-    def tearDown(self):
-        settings.user_config = self._original_user_config
 
 
 class ThemeAssetTests(SettingsOverrideMixin, unittest.TestCase):
