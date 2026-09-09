@@ -776,15 +776,13 @@ async def presign_upload_proxy(
             session.expire_style,
         )
     except Exception:
-        try:
-            await storage.delete_file(
-                FileCodes(
-                    file_path=os.path.dirname(session.save_path),
-                    uuid_file_name=os.path.basename(session.save_path),
-                )
-            )
-        except Exception:
-            logger.warning("预签名代理上传：记录创建失败，回滚删除已保存文件失败 upload_id=%s", session.upload_id, exc_info=True)
+        await rollback_saved_file(
+            storage,
+            os.path.dirname(session.save_path),
+            os.path.basename(session.save_path),
+            context="预签名代理上传：记录创建失败",
+            upload_id=session.upload_id,
+        )
         raise
 
     await session.delete()
@@ -833,15 +831,13 @@ async def presign_upload_confirm(upload_id: str, ip: str = Depends(ip_limit["upl
             session.expire_style,
         )
     except Exception:
-        try:
-            await storage.delete_file(
-                FileCodes(
-                    file_path=os.path.dirname(session.save_path),
-                    uuid_file_name=os.path.basename(session.save_path),
-                )
-            )
-        except Exception:
-            logger.warning("预签名确认：记录创建失败，回滚删除已保存文件失败 upload_id=%s", session.upload_id, exc_info=True)
+        await rollback_saved_file(
+            storage,
+            os.path.dirname(session.save_path),
+            os.path.basename(session.save_path),
+            context="预签名确认：记录创建失败",
+            upload_id=session.upload_id,
+        )
         raise
 
     await session.delete()
