@@ -25,6 +25,7 @@ from apps.base.config import (
     refresh_settings,
 )
 from core.database import db_startup_lock, get_db_config, init_db
+from core.errors import StorageError
 from core.logger import get_log_level_name, is_access_log_enabled, logger
 from core.response import APIResponse
 from core.settings import settings, BASE_DIR, DEFAULT_CONFIG
@@ -761,6 +762,14 @@ async def load_config():
     await ensure_security_settings()
 
 app = FastAPI(lifespan=lifespan, version=APP_VERSION)
+
+
+@app.exception_handler(StorageError)
+async def storage_error_handler(request, exc: StorageError):
+    # Render StorageError exactly like FastAPI renders HTTPException so the
+    # framework-free storage layer keeps identical client-visible responses.
+    return JSONResponse(status_code=exc.status_code, content={"detail": exc.detail})
+
 
 @app.middleware("http")
 async def refresh_settings_middleware(request, call_next):

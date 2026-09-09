@@ -20,7 +20,8 @@ from dataclasses import dataclass
 import re
 import aioboto3
 from botocore.config import Config
-from fastapi import HTTPException, Response, UploadFile
+from fastapi import Response, UploadFile
+from core.errors import StorageError
 from core.response import APIResponse
 from core.settings import data_root, settings
 from core.utils import get_file_url, sanitize_filename
@@ -416,7 +417,7 @@ class S3FileStorage(FileStorageInterface):
                 try:
                     async with session.get(link) as resp:
                         if resp.status != 200:
-                            raise HTTPException(
+                            raise StorageError(
                                 status_code=resp.status,
                                 detail=f"从S3获取文件失败: {resp.status}"
                             )
@@ -444,10 +445,10 @@ class S3FileStorage(FileStorageInterface):
                 # 兜底关闭会话：客户端中断时与 generator finally 双保险
                 background=BackgroundTask(session.close),
             )
-        except HTTPException:
+        except StorageError:
             raise
         except Exception:
-            raise HTTPException(status_code=503, detail="服务代理下载异常，请稍后再试")
+            raise StorageError(status_code=503, detail="服务代理下载异常，请稍后再试")
 
     async def get_file_url(self, file_code: StoredFile):
         if file_code.prefix == "文本分享":
@@ -752,7 +753,7 @@ class OneDriveFileStorage(FileStorageInterface):
                 try:
                     async with session.get(link) as resp:
                         if resp.status != 200:
-                            raise HTTPException(
+                            raise StorageError(
                                 status_code=resp.status,
                                 detail=f"从OneDrive获取文件失败: {resp.status}"
                             )
@@ -778,10 +779,10 @@ class OneDriveFileStorage(FileStorageInterface):
                 # 兜底关闭会话：客户端中断时与 generator finally 双保险
                 background=BackgroundTask(session.close),
             )
-        except HTTPException:
+        except StorageError:
             raise
         except Exception:
-            raise HTTPException(status_code=503, detail="服务代理下载异常，请稍后再试")
+            raise StorageError(status_code=503, detail="服务代理下载异常，请稍后再试")
 
     async def get_file_url(self, file_code: StoredFile):
         if self.proxy:
@@ -998,7 +999,7 @@ class OpenDALFileStorage(FileStorageInterface):
             )
         except Exception as e:
             logger.info(e)
-            raise HTTPException(status_code=404, detail="文件已过期删除")
+            raise StorageError(status_code=404, detail="文件已过期删除")
 
     async def save_chunk(self, upload_id: str, chunk_index: int, chunk_data: bytes, chunk_hash: str, save_path: str):
         """保存分片到 OpenDAL 存储"""
@@ -1095,7 +1096,7 @@ class WebDAVFileStorage(FileStorageInterface):
                         async with session.request("MKCOL", url) as mkcol_resp:
                             if mkcol_resp.status not in (200, 201, 409):
                                 content = await mkcol_resp.text()
-                                raise HTTPException(
+                                raise StorageError(
                                     status_code=mkcol_resp.status,
                                     detail=f"目录创建失败: {content[:200]}",
                                 )
@@ -1160,12 +1161,12 @@ class WebDAVFileStorage(FileStorageInterface):
                 ) as resp:
                     if resp.status not in (200, 201, 204):
                         content = await resp.text()
-                        raise HTTPException(
+                        raise StorageError(
                             status_code=resp.status,
                             detail=f"文件上传失败: {content[:200]}",
                         )
         except aiohttp.ClientError as e:
-            raise HTTPException(
+            raise StorageError(
                 status_code=503, detail=f"WebDAV连接异常: {str(e)}")
 
     async def delete_file(self, file_code: StoredFile):
@@ -1178,7 +1179,7 @@ class WebDAVFileStorage(FileStorageInterface):
                 async with session.delete(url) as resp:
                     if resp.status not in (200, 204, 404):
                         content = await resp.text()
-                        raise HTTPException(
+                        raise StorageError(
                             status_code=resp.status,
                             detail=f"WebDAV删除失败: {content[:200]}",
                         )
@@ -1187,7 +1188,7 @@ class WebDAVFileStorage(FileStorageInterface):
                 await self._delete_empty_dirs(file_path, session)
 
         except aiohttp.ClientError as e:
-            raise HTTPException(
+            raise StorageError(
                 status_code=503, detail=f"WebDAV连接异常: {str(e)}")
 
     async def get_file_url(self, file_code: StoredFile):
@@ -1218,7 +1219,7 @@ class WebDAVFileStorage(FileStorageInterface):
                 try:
                     async with session.get(url) as resp:
                         if resp.status != 200:
-                            raise HTTPException(
+                            raise StorageError(
                                 status_code=resp.status,
                                 detail=f"文件获取失败{resp.status}: {await resp.text()}",
                             )
@@ -1245,7 +1246,7 @@ class WebDAVFileStorage(FileStorageInterface):
                 background=BackgroundTask(session.close),
             )
         except aiohttp.ClientError as e:
-            raise HTTPException(
+            raise StorageError(
                 status_code=503, detail=f"WebDAV连接异常: {str(e)}")
 
     async def save_chunk(self, upload_id: str, chunk_index: int, chunk_data: bytes, chunk_hash: str, save_path: str):
@@ -1261,7 +1262,7 @@ class WebDAVFileStorage(FileStorageInterface):
             async with session.put(chunk_url, data=chunk_data) as resp:
                 if resp.status not in (200, 201, 204):
                     content = await resp.text()
-                    raise HTTPException(
+                    raise StorageError(
                         status_code=resp.status,
                         detail=f"分片上传失败: {content[:200]}"
                     )
@@ -1318,7 +1319,7 @@ class WebDAVFileStorage(FileStorageInterface):
                 async with session.put(output_url, data=file_sender()) as resp:
                     if resp.status not in (200, 201, 204):
                         content = await resp.text()
-                        raise HTTPException(
+                        raise StorageError(
                             status_code=resp.status,
                             detail=f"合并文件上传失败: {content[:200]}"
                         )
