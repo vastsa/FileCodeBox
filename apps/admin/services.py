@@ -14,7 +14,7 @@ from core.settings import (
     settings,
 )
 from apps.base.config import refresh_settings
-from apps.base.services import stored_file_of
+from apps.base.services import response_from_download, stored_file_of
 from core.security import INTERNAL_CONFIG_KEYS, generate_jwt_secret
 from apps.base.models import FileCodes, KeyValue
 from apps.base.utils import get_expire_info, get_file_path_name
@@ -1441,7 +1441,7 @@ class FileService:
         if file_code.text:
             return APIResponse(detail=file_code.text)
         else:
-            return await self.file_storage.get_file_response(stored_file_of(file_code))
+            return response_from_download(await self.file_storage.get_file_response(stored_file_of(file_code)))
 
     async def preview_file(self, file_id: int, max_chars: int = 4000):
         max_chars = min(max(max_chars, 1), 20000)

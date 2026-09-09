@@ -20,13 +20,31 @@ from dataclasses import dataclass
 import re
 import aioboto3
 from botocore.config import Config
-from fastapi import Response, UploadFile
+from fastapi import UploadFile
 from core.errors import StorageError
-from core.response import APIResponse
 from core.settings import data_root, settings
 from core.utils import get_file_url, sanitize_filename
-from fastapi.responses import FileResponse, StreamingResponse
 from starlette.background import BackgroundTask
+
+
+@dataclass
+class StoredDownload:
+    """Framework-free description of a file download.
+
+    Backends return this; the view layer builds the starlette Response:
+    - ``path`` set -> FileResponse (local files, Range support for free)
+    - ``content`` set -> small full-read Response (legacy OpenDAL fallback)
+    - ``stream_factory`` set -> StreamingResponse(stream_factory(), ...)
+    ``background`` is an optional response-sent cleanup hook.
+    """
+
+    filename: str
+    headers: dict
+    media_type: str = "application/octet-stream"
+    path: object = None
+    content: object = None
+    stream_factory: object = None
+    background: object = None
 
 
 @dataclass
@@ -203,7 +221,7 @@ class SystemFileStorage(FileStorageInterface):
     async def get_file_response(self, file_code: StoredFile):
         file_path = self._resolve_safe_path(file_code.get_file_path())
         if not file_path.exists():
-            return APIResponse(code=404, detail="文件已过期删除")
+            raise StorageError(status_code=404, detail="文件已过期删除")
         filename = f"{file_code.prefix}{file_code.suffix}"
         encoded_filename = quote(filename, safe='')
         content_disposition = f"attachment; filename*=UTF-8''{encoded_filename}"
@@ -217,11 +235,10 @@ class SystemFileStorage(FileStorageInterface):
             # 如果获取文件大小失败，则不提供 Content-Length
             pass
         
-        return FileResponse(
-            file_path,
-            media_type="application/octet-stream",
+        return StoredDownload(
+            filename=filename,
             headers=headers,
-            filename=filename  # 保留原始文件名以备某些场景使用
+            path=file_path,
         )
 
     async def save_chunk(self, upload_id: str, chunk_index: int, chunk_data: bytes, chunk_hash: str, save_path: str):
@@ -431,17 +448,16 @@ class S3FileStorage(FileStorageInterface):
                 finally:
                     await session.close()
             
-            from fastapi.responses import StreamingResponse
             encoded_filename = quote(filename, safe='')
             headers = {
                 "Content-Disposition": f"attachment; filename*=UTF-8''{encoded_filename}"
             }
             if content_length is not None:
                 headers["Content-Length"] = str(content_length)
-            return StreamingResponse(
-                stream_generator(),
-                media_type="application/octet-stream",
+            return StoredDownload(
+                filename=filename,
                 headers=headers,
+                stream_factory=stream_generator,
                 # 兜底关闭会话：客户端中断时与 generator finally 双保险
                 background=BackgroundTask(session.close),
             )
@@ -772,10 +788,10 @@ class OneDriveFileStorage(FileStorageInterface):
             }
             if content_length is not None:
                 headers["Content-Length"] = str(content_length)
-            return StreamingResponse(
-                stream_generator(),
-                media_type="application/octet-stream",
+            return StoredDownload(
+                filename=filename,
                 headers=headers,
+                stream_factory=stream_generator,
                 # 兜底关闭会话：客户端中断时与 generator finally 双保险
                 background=BackgroundTask(session.close),
             )
@@ -974,8 +990,10 @@ class OpenDALFileStorage(FileStorageInterface):
                 }
                 if content_length is not None:
                     headers["Content-Length"] = str(content_length)
-                return Response(
-                    content, headers=headers, media_type="application/octet-stream"
+                return StoredDownload(
+                    filename=filename,
+                    headers=headers,
+                    content=content,
                 )
             
             async def stream_generator():
@@ -992,10 +1010,10 @@ class OpenDALFileStorage(FileStorageInterface):
             }
             if content_length is not None:
                 headers["Content-Length"] = str(content_length)
-            return StreamingResponse(
-                stream_generator(),
-                media_type="application/octet-stream",
-                headers=headers
+            return StoredDownload(
+                filename=filename,
+                headers=headers,
+                stream_factory=stream_generator,
             )
         except Exception as e:
             logger.info(e)
@@ -1238,10 +1256,10 @@ class WebDAVFileStorage(FileStorageInterface):
             }
             if content_length is not None:
                 headers["Content-Length"] = str(content_length)
-            return StreamingResponse(
-                stream_generator(),
-                media_type="application/octet-stream",
+            return StoredDownload(
+                filename=filename,
                 headers=headers,
+                stream_factory=stream_generator,
                 # 兜底关闭会话：客户端中断时与 generator finally 双保险
                 background=BackgroundTask(session.close),
             )

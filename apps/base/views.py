@@ -15,7 +15,7 @@ from tortoise.expressions import Case, F, Q, When
 from apps.admin.dependencies import share_required_login
 from apps.base.models import FileCodes, UploadChunk, PresignUploadSession
 from apps.base.quota import release_storage, reserve_storage
-from apps.base.services import FileUploadService, rollback_saved_file, stored_file_of
+from apps.base.services import FileUploadService, response_from_download, rollback_saved_file, stored_file_of
 from core.storage import StoredFile
 from core.logger import logger
 from apps.base.schemas import (
@@ -270,7 +270,7 @@ async def get_code_file(code: str, ip: str = Depends(ip_limit["error"])):
                 )
             },
         )
-    return await file_storage.get_file_response(stored_file_of(file_code))
+    return response_from_download(await file_storage.get_file_response(stored_file_of(file_code)))
 
 
 @share_api.post("/select/")
@@ -315,7 +315,7 @@ async def download_file(key: str, code: str, ip: str = Depends(ip_limit["error"]
     return (
         APIResponse(detail=file_code.text)
         if file_code.text
-        else await file_storage.get_file_response(stored_file_of(file_code))
+        else response_from_download(await file_storage.get_file_response(stored_file_of(file_code)))
     )
 
 

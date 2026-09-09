@@ -8,6 +8,7 @@ from tortoise import Tortoise
 
 from apps.base import views
 from apps.base.models import FileCodes
+from core.storage import StoredDownload
 from apps.base.quota import _detect_sql_dialect, _sql_placeholders, reserve_storage
 from apps.base.utils import validate_expire_style
 from tests.helpers import init_memory_db
@@ -20,7 +21,11 @@ class FakeStorage:
         return f"https://example.invalid/{file_code.code}"
 
     async def get_file_response(self, file_code):
-        return {"downloaded": file_code.code}
+        return StoredDownload(
+            filename=f"{file_code.prefix}{file_code.suffix}",
+            headers={},
+            content=f"downloaded:{file_code.code}".encode(),
+        )
 
 
 class SecurityPatchTests(unittest.TestCase):
@@ -97,7 +102,7 @@ class SecurityPatchTests(unittest.TestCase):
                     result = await views.download_file(
                         key=current, code=code, ip="127.0.0.1"
                     )
-            self.assertEqual(result, {"downloaded": code})
+            self.assertEqual(result.body, f"downloaded:{code}".encode())
         finally:
             settings.user_config = original
             await Tortoise.close_connections()

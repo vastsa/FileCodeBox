@@ -6,8 +6,10 @@ writes, share-record creation, and failure rollback.
 """
 import os
 
+from fastapi.responses import FileResponse, Response, StreamingResponse
+
 from core.logger import logger
-from core.storage import FileStorageInterface, StoredFile
+from core.storage import FileStorageInterface, StoredDownload, StoredFile
 
 from apps.base.models import FileCodes
 from apps.base.utils import build_file_path, get_expire_info
@@ -92,3 +94,24 @@ class FileUploadService:
             **extra_fields,
         )
         return code
+
+
+def response_from_download(download: StoredDownload):
+    """Build the starlette Response for a StoredDownload (view-layer duty)."""
+    if download.path is not None:
+        return FileResponse(
+            download.path,
+            media_type=download.media_type,
+            headers=download.headers,
+            filename=download.filename,
+        )
+    if download.content is not None:
+        return Response(
+            download.content, media_type=download.media_type, headers=download.headers
+        )
+    return StreamingResponse(
+        download.stream_factory(),
+        media_type=download.media_type,
+        headers=download.headers,
+        background=download.background,
+    )

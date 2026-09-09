@@ -6,6 +6,7 @@ from unittest.mock import patch
 
 from apps.base.models import FileCodes
 from apps.base import views
+from core.storage import StoredDownload
 from tests.helpers import close_db, init_memory_db
 from core.settings import DEFAULT_CONFIG, settings
 from core.utils import get_now, get_select_token
@@ -20,7 +21,11 @@ class FakeStorage:
         return "https://storage.example/reusable-url"
 
     async def get_file_response(self, file_code):
-        return {"downloaded": file_code.code}
+        return StoredDownload(
+            filename=f"{file_code.prefix}{file_code.suffix}",
+            headers={},
+            content=f"downloaded:{file_code.code}".encode(),
+        )
 
 
 class FakeRateLimit:
@@ -133,7 +138,7 @@ class ShareUsageSecurityTests(unittest.TestCase):
             first = await views.download_file(key=key, code=record.code, ip="127.0.0.1")
             second = await views.download_file(key=key, code=record.code, ip="127.0.0.1")
 
-        self.assertEqual(first, {"downloaded": record.code})
+        self.assertEqual(first.body, b"downloaded:" + record.code.encode())
         self.assertEqual(second.code, 404)
         await record.refresh_from_db()
         self.assertEqual(record.expired_count, 0)
