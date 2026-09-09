@@ -77,6 +77,16 @@ async def load_config():
     await refresh_settings()
     await ensure_security_settings()
 
+    # Rate limiters keep per-process state (apps.base.dependencies.IPRateLimit).
+    # With multiple workers each process counts independently, so the effective
+    # threshold scales with the worker count and resets on restart.
+    if settings.serverWorkers > 1:
+        logger.warning(
+            "serverWorkers=%s：进程内限流在多 worker 下各自独立，阈值将按 worker 数放大；"
+            "如需完整限流请使用单 worker（默认）或改造为共享存储限流",
+            settings.serverWorkers,
+        )
+
 
 app = FastAPI(lifespan=lifespan, version=APP_VERSION)
 
