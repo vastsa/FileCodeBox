@@ -29,6 +29,11 @@ async def db():
 
 @pytest_asyncio.fixture
 async def client(db):
+    # Rate limiters are process-global; clear them so tests never trip 429.
+    from apps.base.utils import ip_limit
+
+    for limiter in ip_limit.values():
+        limiter.ips.clear()
     transport = httpx.ASGITransport(app=main.app)
     async with httpx.AsyncClient(
         transport=transport, base_url="http://test", follow_redirects=True
