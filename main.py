@@ -74,7 +74,7 @@ async def load_config():
     # refresh_settings already syncs every rate limiter (error/metadata/upload/login)
     # via _sync_ip_limits; do not hand-sync a subset here — that once drifted by
     # missing the metadata limiter.
-    await refresh_settings()
+    await refresh_settings(force=True)
     await ensure_security_settings()
 
     # Rate limiters keep per-process state (apps.base.dependencies.IPRateLimit).

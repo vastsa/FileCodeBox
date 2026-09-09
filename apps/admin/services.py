@@ -1609,7 +1609,7 @@ class ConfigService:
             next_config["jwt_secret"] = generate_jwt_secret()
 
         await KeyValue.update_or_create(key="settings", defaults={"value": next_config})
-        await refresh_settings()
+        await refresh_settings(force=True)
 
 
 class LocalFileService:

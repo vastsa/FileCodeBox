@@ -152,7 +152,7 @@ class FakeKeyValue:
         return None, True
 
 
-async def fake_refresh_settings():
+async def fake_refresh_settings(force=False):
     return None
 
 

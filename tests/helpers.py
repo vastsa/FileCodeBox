@@ -39,6 +39,11 @@ class SettingsOverrideMixin:
 
 async def init_memory_db():
     """Init Tortoise against an in-memory DB and create all schemas."""
+    # 每个测试都是全新 DB，必须同步失效进程级配置 TTL 缓存，
+    # 否则上一个测试的缓存会让 middleware 误判初始化状态。
+    import apps.base.config as config_module
+
+    config_module._config_cached_until = 0.0
     await Tortoise.init(config=MEMORY_DB_CONFIG)
     await Tortoise.generate_schemas()
 

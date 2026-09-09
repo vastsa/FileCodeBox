@@ -108,3 +108,40 @@ class CheapInitProbeTests(unittest.TestCase):
 
         self.assertFalse(is_config_initialized({"admin_token": ""}))
         self.assertFalse(is_config_initialized({"admin_token": LEGACY_DEFAULT_ADMIN_TOKEN}))
+
+
+class ConfigCacheTests(unittest.TestCase):
+    """D6 回归：TTL 内的 refresh_settings 不再读库，写路径 force=True 必须穿透。
+
+    验证手法（无 mock）：直接改 DB 里的值——
+    - TTL 内普通 refresh 不读库 → settings 仍是旧值；
+    - force=True 读库 → 新值生效。
+    """
+
+    def test_ttl_cache_skips_db_and_force_bypasses(self):
+        import apps.base.config as config_module
+        from apps.base.models import KeyValue
+        from tests.helpers import close_db, init_memory_db
+
+        async def scenario():
+            await init_memory_db()
+            try:
+                row = await KeyValue.create(
+                    key="settings", value={"name": "旧值", "admin_token": "x" * 64}
+                )
+                await config_module.refresh_settings(force=True)
+                self.assertEqual(settings.name, "旧值")
+
+                # 直接改 DB（绕过应用层），TTL 内普通 refresh 不应看到
+                row.value = {"name": "新值", "admin_token": "x" * 64}
+                await row.save()
+                await config_module.refresh_settings()
+                self.assertEqual(settings.name, "旧值", "TTL 内不应读库")
+
+                await config_module.refresh_settings(force=True)
+                self.assertEqual(settings.name, "新值", "force 必须穿透缓存")
+            finally:
+                config_module._config_cached_until = 0.0
+                await close_db()
+
+        asyncio.run(scenario())
