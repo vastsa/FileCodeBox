@@ -58,11 +58,12 @@ COPY --from=frontend-builder /build/fronted-2024/dist ./themes/2024
 COPY --from=frontend-builder /build/fronted-2023/dist ./themes/2023
 
 # 安装系统安全更新 + Python 依赖
+# 依赖从带哈希的锁定文件安装（--require-hashes），保证构建可复现、防供应链篡改。
 # 清理 apt 缓存，降低镜像噪音与扫描面
 RUN apt-get update \
  && apt-get upgrade -y --no-install-recommends \
  && rm -rf /var/lib/apt/lists/* \
- && pip install --no-cache-dir -r requirements.txt \
+ && pip install --no-cache-dir --require-hashes -r requirements.lock.txt \
  && pip cache purge || true
 
 # 环境变量配置
