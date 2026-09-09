@@ -50,7 +50,7 @@ async def initialized_client(client):
             "admin_password": TEST_ADMIN_PASSWORD,
             "confirm_password": TEST_ADMIN_PASSWORD,
             "site_name": "integration-tests",
-            "expireStyle": ["day", "forever", "count"],
+            "expire_style": ["day", "forever", "count"],
         },
         headers={"Accept": "application/json"},
     )

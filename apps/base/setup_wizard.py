@@ -34,14 +34,14 @@ def build_public_config() -> dict:
         "name": settings.name,
         "description": settings.description,
         "explain": settings.page_explain,
-        "uploadSize": settings.uploadSize,
+        "upload_size": settings.upload_size,
         "allowedFileTypes": settings.allowed_file_types,
-        "expireStyle": settings.expireStyle,
-        "enableChunk": settings.enableChunk,
-        "openUpload": settings.openUpload,
+        "expire_style": settings.expire_style,
+        "enable_chunk": settings.enable_chunk,
+        "open_upload": settings.open_upload,
         "notify_title": settings.notify_title,
         "notify_content": settings.notify_content,
-        "show_admin_address": normalize_public_flag(settings.showAdminAddr),
+        "show_admin_address": normalize_public_flag(settings.show_admin_addr),
         "max_save_seconds": settings.max_save_seconds,
     }
 
@@ -55,17 +55,17 @@ def build_public_meta() -> dict:
             "health": "/health",
         },
         "features": {
-            "chunkUpload": bool(settings.enableChunk),
-            "guestUpload": bool(settings.openUpload),
-            "adminAddressVisible": bool(normalize_public_flag(settings.showAdminAddr)),
-            "expirationModes": settings.expireStyle,
+            "chunkUpload": bool(settings.enable_chunk),
+            "guestUpload": bool(settings.open_upload),
+            "adminAddressVisible": bool(normalize_public_flag(settings.show_admin_addr)),
+            "expirationModes": settings.expire_style,
         },
         "limits": {
-            "uploadSize": settings.uploadSize,
+            "upload_size": settings.upload_size,
             "allowedFileTypes": settings.allowed_file_types,
             "maxSaveSeconds": settings.max_save_seconds,
-            "uploadWindowMinutes": settings.uploadMinute,
-            "uploadWindowCount": settings.uploadCount,
+            "uploadWindowMinutes": settings.upload_minute,
+            "uploadWindowCount": settings.upload_count,
         },
     }
 
@@ -135,7 +135,7 @@ def parse_setup_options(data: dict) -> dict:
         data, "save_time_value", 0, "最长保存时间", min_value=0
     )
 
-    expire_styles = get_form_list(data, "expireStyle")
+    expire_styles = get_form_list(data, "expire_style")
     valid_expire_styles = {style for style, _label in EXPIRE_STYLE_OPTIONS}
     expire_styles = [style for style in expire_styles if style in valid_expire_styles]
     if not expire_styles:
@@ -152,29 +152,29 @@ def parse_setup_options(data: dict) -> dict:
             get_form_value(data, "allowed_file_types", "*")
         ),
         "code_generate_type": code_generate_type,
-        "enableChunk": int(normalize_bool_field(data, "enableChunk", False)),
-        "errorCount": parse_int_field(
-            data, "errorCount", DEFAULT_CONFIG["errorCount"], "取件错误次数限制", 1
+        "enable_chunk": int(normalize_bool_field(data, "enable_chunk", False)),
+        "error_count": parse_int_field(
+            data, "error_count", DEFAULT_CONFIG["error_count"], "取件错误次数限制", 1
         ),
-        "errorMinute": parse_int_field(
-            data, "errorMinute", DEFAULT_CONFIG["errorMinute"], "取件错误检测窗口", 1
+        "error_minute": parse_int_field(
+            data, "error_minute", DEFAULT_CONFIG["error_minute"], "取件错误检测窗口", 1
         ),
-        "loginCount": parse_int_field(
-            data, "loginCount", DEFAULT_CONFIG["loginCount"], "登录失败次数限制", 1
+        "login_count": parse_int_field(
+            data, "login_count", DEFAULT_CONFIG["login_count"], "登录失败次数限制", 1
         ),
-        "loginMinute": parse_int_field(
-            data, "loginMinute", DEFAULT_CONFIG["loginMinute"], "登录失败检测窗口", 1
+        "login_minute": parse_int_field(
+            data, "login_minute", DEFAULT_CONFIG["login_minute"], "登录失败检测窗口", 1
         ),
-        "expireStyle": expire_styles,
+        "expire_style": expire_styles,
         "max_save_seconds": save_time_value * SAVE_TIME_UNITS[save_time_unit],
-        "openUpload": int(normalize_bool_field(data, "openUpload", True)),
-        "uploadCount": parse_int_field(
-            data, "uploadCount", DEFAULT_CONFIG["uploadCount"], "上传次数限制", 1
+        "open_upload": int(normalize_bool_field(data, "open_upload", True)),
+        "upload_count": parse_int_field(
+            data, "upload_count", DEFAULT_CONFIG["upload_count"], "上传次数限制", 1
         ),
-        "uploadMinute": parse_int_field(
-            data, "uploadMinute", DEFAULT_CONFIG["uploadMinute"], "上传检测窗口", 1
+        "upload_minute": parse_int_field(
+            data, "upload_minute", DEFAULT_CONFIG["upload_minute"], "上传检测窗口", 1
         ),
-        "uploadSize": upload_size_value * FILE_SIZE_UNITS[upload_size_unit],
+        "upload_size": upload_size_value * FILE_SIZE_UNITS[upload_size_unit],
     }
 
 def build_expire_style_inputs(selected_styles: list[str]) -> str:
@@ -183,7 +183,7 @@ def build_expire_style_inputs(selected_styles: list[str]) -> str:
     for style, label in EXPIRE_STYLE_OPTIONS:
         checked = " checked" if style in selected else ""
         inputs.append(
-            f'<label class="check"><input type="checkbox" name="expireStyle" value="{style}"{checked}> {label}</label>'
+            f'<label class="check"><input type="checkbox" name="expire_style" value="{style}"{checked}> {label}</label>'
         )
     return "\n        ".join(inputs)
 
@@ -199,34 +199,34 @@ def build_setup_page(error: str = "", form: dict | None = None) -> str:
     save_time_value = html.escape(get_form_value(form, "save_time_value", "0"))
     save_time_unit = get_form_value(form, "save_time_unit", "day")
     upload_minute = html.escape(
-        get_form_value(form, "uploadMinute", str(DEFAULT_CONFIG["uploadMinute"]))
+        get_form_value(form, "upload_minute", str(DEFAULT_CONFIG["upload_minute"]))
     )
     upload_count = html.escape(
-        get_form_value(form, "uploadCount", str(DEFAULT_CONFIG["uploadCount"]))
+        get_form_value(form, "upload_count", str(DEFAULT_CONFIG["upload_count"]))
     )
     error_minute = html.escape(
-        get_form_value(form, "errorMinute", str(DEFAULT_CONFIG["errorMinute"]))
+        get_form_value(form, "error_minute", str(DEFAULT_CONFIG["error_minute"]))
     )
     error_count = html.escape(
-        get_form_value(form, "errorCount", str(DEFAULT_CONFIG["errorCount"]))
+        get_form_value(form, "error_count", str(DEFAULT_CONFIG["error_count"]))
     )
     login_minute = html.escape(
-        get_form_value(form, "loginMinute", str(DEFAULT_CONFIG["loginMinute"]))
+        get_form_value(form, "login_minute", str(DEFAULT_CONFIG["login_minute"]))
     )
     login_count = html.escape(
-        get_form_value(form, "loginCount", str(DEFAULT_CONFIG["loginCount"]))
+        get_form_value(form, "login_count", str(DEFAULT_CONFIG["login_count"]))
     )
     open_upload_checked = (
-        " checked" if normalize_bool_field(form, "openUpload", True) else ""
+        " checked" if normalize_bool_field(form, "open_upload", True) else ""
     )
     chunk_checked = (
-        " checked" if normalize_bool_field(form, "enableChunk", False) else ""
+        " checked" if normalize_bool_field(form, "enable_chunk", False) else ""
     )
     code_generate_type = get_form_value(
         form, "code_generate_type", DEFAULT_CONFIG["code_generate_type"]
     )
-    selected_expire_styles = get_form_list(form, "expireStyle") or list(
-        DEFAULT_CONFIG["expireStyle"]
+    selected_expire_styles = get_form_list(form, "expire_style") or list(
+        DEFAULT_CONFIG["expire_style"]
     )
     expire_style_inputs = build_expire_style_inputs(selected_expire_styles)
     size_unit_options = "\n".join(
@@ -542,32 +542,32 @@ def build_setup_page(error: str = "", form: dict | None = None) -> str:
             </select>
           </div>
 
-          <label for="uploadCount">上传频率 <span class="compact-help">次数 / 分钟</span></label>
+          <label for="upload_count">上传频率 <span class="compact-help">次数 / 分钟</span></label>
           <div class="row">
-            <input id="uploadCount" name="uploadCount" type="number" min="1" value="{upload_count}" required>
-            <input name="uploadMinute" type="number" min="1" value="{upload_minute}" aria-label="上传检测窗口分钟" required>
+            <input id="upload_count" name="upload_count" type="number" min="1" value="{upload_count}" required>
+            <input name="upload_minute" type="number" min="1" value="{upload_minute}" aria-label="上传检测窗口分钟" required>
           </div>
 
           <div class="grid">
-            <input type="hidden" name="openUpload" value="0">
-            <label class="check"><input type="checkbox" name="openUpload" value="1"{open_upload_checked}> 允许游客上传</label>
-            <input type="hidden" name="enableChunk" value="0">
-            <label class="check"><input type="checkbox" name="enableChunk" value="1"{chunk_checked}> 启用切片上传</label>
+            <input type="hidden" name="open_upload" value="0">
+            <label class="check"><input type="checkbox" name="open_upload" value="1"{open_upload_checked}> 允许游客上传</label>
+            <input type="hidden" name="enable_chunk" value="0">
+            <label class="check"><input type="checkbox" name="enable_chunk" value="1"{chunk_checked}> 启用切片上传</label>
           </div>
         </section>
 
         <section class="panel">
           <div class="panel-title">取件与保存</div>
-          <label for="errorCount">取件错误频率 <span class="compact-help">次数 / 分钟</span></label>
+          <label for="error_count">取件错误频率 <span class="compact-help">次数 / 分钟</span></label>
           <div class="row">
-            <input id="errorCount" name="errorCount" type="number" min="1" value="{error_count}" required>
-            <input name="errorMinute" type="number" min="1" value="{error_minute}" aria-label="取件错误检测窗口分钟" required>
+            <input id="error_count" name="error_count" type="number" min="1" value="{error_count}" required>
+            <input name="error_minute" type="number" min="1" value="{error_minute}" aria-label="取件错误检测窗口分钟" required>
           </div>
 
-          <label for="loginCount">管理员登录失败频率 <span class="compact-help">次数 / 分钟</span></label>
+          <label for="login_count">管理员登录失败频率 <span class="compact-help">次数 / 分钟</span></label>
           <div class="row">
-            <input id="loginCount" name="loginCount" type="number" min="1" value="{login_count}" required>
-            <input name="loginMinute" type="number" min="1" value="{login_minute}" aria-label="登录失败检测窗口分钟" required>
+            <input id="login_count" name="login_count" type="number" min="1" value="{login_count}" required>
+            <input name="login_minute" type="number" min="1" value="{login_minute}" aria-label="登录失败检测窗口分钟" required>
           </div>
 
           <label for="save_time_value">最长保存时间</label>

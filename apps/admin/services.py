@@ -1515,24 +1515,24 @@ class FileService:
 
 class ConfigService:
     INT_FIELDS = {
-        "adminSessionExpire",
-        "enableChunk",
-        "errorCount",
-        "errorMinute",
-        "loginCount",
-        "loginMinute",
+        "admin_session_expire",
+        "enable_chunk",
+        "error_count",
+        "error_minute",
+        "login_count",
+        "login_minute",
         "max_save_seconds",
         "onedrive_proxy",
-        "openUpload",
+        "open_upload",
         "port",
         "s3_proxy",
-        "serverPort",
-        "serverWorkers",
-        "showAdminAddr",
-        "storageLimit",
-        "uploadCount",
-        "uploadMinute",
-        "uploadSize",
+        "server_port",
+        "server_workers",
+        "show_admin_addr",
+        "storage_limit",
+        "upload_count",
+        "upload_minute",
+        "upload_size",
         "webdav_proxy",
     }
     FLOAT_FIELDS = {"opacity"}
@@ -1578,11 +1578,11 @@ class ConfigService:
                 raise HTTPException(status_code=400, detail=f"{key} 配置值格式错误")
 
         try:
-            session_expire = int(next_config.get("adminSessionExpire"))
+            session_expire = int(next_config.get("admin_session_expire"))
         except (TypeError, ValueError):
             raise HTTPException(
                 status_code=400,
-                detail="adminSessionExpire 配置值格式错误",
+                detail="admin_session_expire 配置值格式错误",
             )
         if (
             not ADMIN_SESSION_EXPIRE_MIN <= session_expire <= ADMIN_SESSION_EXPIRE_MAX
@@ -1590,14 +1590,14 @@ class ConfigService:
         ):
             raise HTTPException(
                 status_code=400,
-                detail="adminSessionExpire 必须是 1 到 365 个整天",
+                detail="admin_session_expire 必须是 1 到 365 个整天",
             )
-        next_config["adminSessionExpire"] = session_expire
+        next_config["admin_session_expire"] = session_expire
 
-        if int(next_config.get("storageLimit", 0)) < 0:
+        if int(next_config.get("storage_limit", 0)) < 0:
             raise HTTPException(
                 status_code=400,
-                detail="storageLimit 不能小于 0",
+                detail="storage_limit 不能小于 0",
             )
 
         try:

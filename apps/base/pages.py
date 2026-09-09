@@ -60,13 +60,13 @@ async def setup_submit(request: Request):
 
 def resolve_theme_root():
     themes_root = (BASE_DIR / "themes").resolve()
-    theme_root = (BASE_DIR / str(settings.themesSelect)).resolve()
+    theme_root = (BASE_DIR / str(settings.themes_select)).resolve()
     try:
         theme_root.relative_to(themes_root)
     except ValueError:
-        theme_root = (BASE_DIR / DEFAULT_CONFIG["themesSelect"]).resolve()
+        theme_root = (BASE_DIR / DEFAULT_CONFIG["themes_select"]).resolve()
     if not theme_root.exists():
-        theme_root = (BASE_DIR / DEFAULT_CONFIG["themesSelect"]).resolve()
+        theme_root = (BASE_DIR / DEFAULT_CONFIG["themes_select"]).resolve()
     return theme_root
 
 
@@ -107,7 +107,7 @@ async def index(request=None, exc=None):
 
 @router.get("/robots.txt")
 async def robots():
-    return HTMLResponse(content=settings.robotsText, media_type="text/plain")
+    return HTMLResponse(content=settings.robots_text, media_type="text/plain")
 
 
 @router.post("/")
@@ -132,6 +132,6 @@ async def health_check():
             "status": "ok",
             "version": APP_VERSION,
             "storage": settings.file_storage,
-            "theme": settings.themesSelect,
+            "theme": settings.themes_select,
         }
     )

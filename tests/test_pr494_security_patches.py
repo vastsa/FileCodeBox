@@ -32,7 +32,7 @@ class SecurityPatchTests(unittest.TestCase):
     def test_validate_expire_style_rejects_unknown_mode(self):
         original = dict(settings.user_config)
         try:
-            settings.expireStyle = ["day", "count"]
+            settings.expire_style = ["day", "count"]
             self.assertEqual(validate_expire_style("day"), "day")
             with self.assertRaises(HTTPException) as ctx:
                 validate_expire_style("forever")
@@ -57,11 +57,11 @@ class SecurityPatchTests(unittest.TestCase):
                 self.assertEqual(_sql_placeholders(2), ["%s", "%s"])
 
             # sqlite 下 reserve_storage 仍可正常工作
-            settings.storageLimit = 100
+            settings.storage_limit = 100
             await Tortoise.generate_schemas()
             await reserve_storage("patch-token", 10, 300)
         finally:
-            settings.storageLimit = 0
+            settings.storage_limit = 0
             await Tortoise.close_connections()
 
     def test_download_token_accepts_previous_window(self):

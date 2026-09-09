@@ -113,7 +113,7 @@ async def share_file(
     file: UploadFile = File(...),
     ip: str = Depends(ip_limit["upload"]),
 ):
-    file_size = await validate_file_size(file, settings.uploadSize)
+    file_size = await validate_file_size(file, settings.upload_size)
     await validate_upload_file(file)
     validate_expire_style(expire_style)
     path, suffix, prefix, uuid_file_name, save_path = await get_file_path_name(file)
@@ -351,8 +351,8 @@ async def init_chunk_upload(data: InitChunkUploadModel = Depends(parse_init_chun
     # 服务端校验：根据 total_chunks * chunk_size 计算理论最大上传量
     total_chunks = (data.file_size + data.chunk_size - 1) // data.chunk_size
     max_possible_size = total_chunks * data.chunk_size
-    if max_possible_size > settings.uploadSize:
-        max_size_mb = settings.uploadSize / (1024 * 1024)
+    if max_possible_size > settings.upload_size:
+        max_size_mb = settings.upload_size / (1024 * 1024)
         raise HTTPException(
             status_code=403, detail=f"文件大小超过限制，最大为 {max_size_mb:.2f} MB"
         )
@@ -477,8 +477,8 @@ async def upload_chunk(
     ).count()
     # 已上传分片的最大可能大小 + 当前分片
     max_uploaded_size = uploaded_count * chunk_info.chunk_size + chunk_size
-    if max_uploaded_size > settings.uploadSize:
-        max_size_mb = settings.uploadSize / (1024 * 1024)
+    if max_uploaded_size > settings.upload_size:
+        max_size_mb = settings.upload_size / (1024 * 1024)
         raise HTTPException(
             status_code=403, detail=f"累计上传大小超过限制，最大为 {max_size_mb:.2f} MB"
         )
@@ -595,7 +595,7 @@ async def complete_upload(
 
     # 用分片数 * chunk_size 校验最大可能大小
     max_total_size = len(completed_chunks_list) * chunk_info.chunk_size
-    if max_total_size > settings.uploadSize:
+    if max_total_size > settings.upload_size:
         save_path = chunk_info.save_path
         if save_path:
             try:
@@ -604,7 +604,7 @@ async def complete_upload(
                 logger.warning("分片超限中止：清理分片文件失败 upload_id=%s", upload_id, exc_info=True)
         await UploadChunk.filter(upload_id=upload_id).delete()
         await release_storage(f"chunk:{upload_id}")
-        max_size_mb = settings.uploadSize / (1024 * 1024)
+        max_size_mb = settings.upload_size / (1024 * 1024)
         raise HTTPException(
             status_code=403, detail=f"实际上传大小超过限制，最大为 {max_size_mb:.2f} MB"
         )
@@ -694,10 +694,10 @@ async def presign_upload_init(
 ):
     """初始化预签名上传，S3返回直传URL，其他存储返回代理URL"""
     validate_file_type(data.file_name)
-    if data.file_size > settings.uploadSize:
+    if data.file_size > settings.upload_size:
         raise HTTPException(
             403,
-            f"文件大小超过限制，最大为 {settings.uploadSize / (1024 * 1024):.2f} MB",
+            f"文件大小超过限制，最大为 {settings.upload_size / (1024 * 1024):.2f} MB",
         )
     validate_expire_style(data.expire_style)
 
@@ -760,7 +760,7 @@ async def presign_upload_proxy(
         ttl_seconds=PRESIGN_SESSION_EXPIRES,
     )
 
-    file_size = await validate_file_size(file, settings.uploadSize)
+    file_size = await validate_file_size(file, settings.upload_size)
     await validate_upload_file(file)
     if abs(file_size - session.file_size) > 1024:
         raise HTTPException(400, "文件大小与声明不符")

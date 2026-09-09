@@ -189,12 +189,12 @@ class TestChunkUploadJourney:
 @pytest.mark.usefixtures("initialized_client")
 class TestUploadAuth:
     async def test_guest_upload_allowed_when_open_upload_on(self, client):
-        await _set_db_config("openUpload", 1)
+        await _set_db_config("open_upload", 1)
         code = await _share_text(client, "guest ok")
         assert code
 
     async def test_upload_requires_login_when_guest_upload_off(self, client):
-        await _set_db_config("openUpload", 0)
+        await _set_db_config("open_upload", 0)
         response = await client.post(
             "/share/text",
             data={"text": "no guest", "expire_value": "1", "expire_style": "day"},

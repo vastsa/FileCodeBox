@@ -16,18 +16,18 @@ MIN_ADMIN_PASSWORD_LENGTH = 8
 SETUP_CONFIG_FIELDS = {
     "allowed_file_types",
     "code_generate_type",
-    "enableChunk",
-    "errorCount",
-    "errorMinute",
-    "loginCount",
-    "loginMinute",
-    "expireStyle",
+    "enable_chunk",
+    "error_count",
+    "error_minute",
+    "login_count",
+    "login_minute",
+    "expire_style",
     "max_save_seconds",
     "name",
-    "openUpload",
-    "uploadCount",
-    "uploadMinute",
-    "uploadSize",
+    "open_upload",
+    "upload_count",
+    "upload_minute",
+    "upload_size",
 }
 
 
@@ -64,14 +64,14 @@ async def ensure_security_settings() -> None:
 
 
 def _sync_ip_limits() -> None:
-    ip_limit["error"].minutes = settings.errorMinute
-    ip_limit["error"].count = settings.errorCount
-    ip_limit["metadata"].minutes = settings.errorMinute
-    ip_limit["metadata"].count = settings.errorCount
-    ip_limit["upload"].minutes = settings.uploadMinute
-    ip_limit["upload"].count = settings.uploadCount
-    ip_limit["login"].minutes = settings.loginMinute
-    ip_limit["login"].count = settings.loginCount
+    ip_limit["error"].minutes = settings.error_minute
+    ip_limit["error"].count = settings.error_count
+    ip_limit["metadata"].minutes = settings.error_minute
+    ip_limit["metadata"].count = settings.error_count
+    ip_limit["upload"].minutes = settings.upload_minute
+    ip_limit["upload"].count = settings.upload_count
+    ip_limit["login"].minutes = settings.login_minute
+    ip_limit["login"].count = settings.login_count
 
 
 async def refresh_settings() -> None:

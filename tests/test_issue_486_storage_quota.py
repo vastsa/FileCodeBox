@@ -16,7 +16,7 @@ class StorageQuotaTests(unittest.TestCase):
 
     async def _run_scenario(self):
         original_config = dict(settings.user_config)
-        settings.storageLimit = 100
+        settings.storage_limit = 100
         await init_memory_db()
         try:
             await FileCodes.create(code="existing", size=60, expired_count=-1)
@@ -42,13 +42,13 @@ class StorageQuotaTests(unittest.TestCase):
             await reserve_storage("upload-c", 40, 300)
             self.assertEqual((await get_storage_usage())["available"], 0)
 
-            settings.storageLimit = 0
+            settings.storage_limit = 0
             await reserve_storage("unlimited", 10_000, 300)
             self.assertFalse(
                 await StorageReservation.filter(token="unlimited").exists()
             )
 
-            settings.storageLimit = 100
+            settings.storage_limit = 100
             expired = await StorageReservation.get(token="upload-c")
             expired.expires_at = await get_now()
             await expired.save(update_fields=["expires_at"])

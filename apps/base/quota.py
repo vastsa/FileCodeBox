@@ -47,7 +47,7 @@ def _sql_placeholders(count: int) -> list[str]:
 
 def get_storage_limit() -> int:
     try:
-        return max(0, int(getattr(settings, "storageLimit", 0)))
+        return max(0, int(getattr(settings, "storage_limit", 0)))
     except (TypeError, ValueError):
         return 0
 

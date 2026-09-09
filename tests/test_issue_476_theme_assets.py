@@ -7,8 +7,11 @@ from core.settings import BASE_DIR, settings
 from apps.base.pages import index, resolve_theme_file
 from tests.helpers import SettingsOverrideMixin
 
-# themes/ is produced by the Dockerfile frontend build (see .gitignore); a bare checkout has no such directory
-THEMES_BUILT = BASE_DIR.joinpath("themes/2024/assets").is_dir()
+# themes/ is produced by the Dockerfile frontend build (see .gitignore); the test
+# switches between both bundled themes, so it needs both to exist locally.
+THEMES_BUILT = all(
+    BASE_DIR.joinpath(f"themes/{year}/assets").is_dir() for year in ("2023", "2024")
+)
 
 
 class ThemeAssetTests(SettingsOverrideMixin, unittest.TestCase):
@@ -19,12 +22,12 @@ class ThemeAssetTests(SettingsOverrideMixin, unittest.TestCase):
 
     @unittest.skipUnless(THEMES_BUILT, "themes/ exists only after the Docker frontend build; skip in bare checkouts")
     def test_resolves_assets_from_current_theme(self):
-        settings.themesSelect = "themes/2023"
+        settings.themes_select = "themes/2023"
         theme_2023_asset = resolve_theme_file(
             "assets", self.get_theme_index_asset("themes/2023")
         )
 
-        settings.themesSelect = "themes/2024"
+        settings.themes_select = "themes/2024"
         theme_2024_asset = resolve_theme_file(
             "assets", self.get_theme_index_asset("themes/2024")
         )
@@ -33,7 +36,7 @@ class ThemeAssetTests(SettingsOverrideMixin, unittest.TestCase):
         self.assertIn("themes/2024/assets", str(theme_2024_asset))
 
     def test_rejects_theme_asset_path_traversal(self):
-        settings.themesSelect = "themes/2024"
+        settings.themes_select = "themes/2024"
 
         with self.assertRaises(HTTPException) as error:
             resolve_theme_file("assets", "..", "..", "core", "settings.py")
@@ -42,7 +45,7 @@ class ThemeAssetTests(SettingsOverrideMixin, unittest.TestCase):
 
     @unittest.skipUnless(THEMES_BUILT, "themes/ exists only after the Docker frontend build; skip in bare checkouts")
     def test_index_keeps_absolute_asset_urls(self):
-        settings.themesSelect = "themes/2023"
+        settings.themes_select = "themes/2023"
 
         response = asyncio.run(index())
         html = response.body.decode("utf-8")

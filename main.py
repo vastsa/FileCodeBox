@@ -80,11 +80,11 @@ async def load_config():
     # Rate limiters keep per-process state (apps.base.dependencies.IPRateLimit).
     # With multiple workers each process counts independently, so the effective
     # threshold scales with the worker count and resets on restart.
-    if settings.serverWorkers > 1:
+    if settings.server_workers > 1:
         logger.warning(
-            "serverWorkers=%s：进程内限流在多 worker 下各自独立，阈值将按 worker 数放大；"
+            "server_workers=%s：进程内限流在多 worker 下各自独立，阈值将按 worker 数放大；"
             "如需完整限流请使用单 worker（默认）或改造为共享存储限流",
-            settings.serverWorkers,
+            settings.server_workers,
         )
 
 
@@ -149,10 +149,10 @@ if __name__ == "__main__":
 
     uvicorn.run(
         app="main:app",
-        host=settings.serverHost,
-        port=settings.serverPort,
+        host=settings.server_host,
+        port=settings.server_port,
         reload=False,
-        workers=settings.serverWorkers,
+        workers=settings.server_workers,
         log_level=get_log_level_name(),
         access_log=is_access_log_enabled(),
     )

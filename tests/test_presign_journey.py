@@ -80,7 +80,7 @@ class TestPresignProxyJourney:
 
         record = await KeyValue.filter(key="settings").first()
         config = dict(record.value or {})
-        config["uploadSize"] = 1024
+        config["upload_size"] = 1024
         record.value = config
         await record.save()
         settings.user_config = config

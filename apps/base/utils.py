@@ -20,7 +20,7 @@ from core.utils import (
 
 def validate_expire_style(expire_style: str) -> str:
     """校验过期方式是否在管理员配置的白名单内。"""
-    if expire_style not in settings.expireStyle:
+    if expire_style not in settings.expire_style:
         raise HTTPException(status_code=400, detail="过期时间类型错误")
     return expire_style
 
@@ -124,8 +124,8 @@ async def get_random_code(style: str | None = None) -> str:
 
 
 ip_limit = {
-    "error": IPRateLimit(count=settings.errorCount, minutes=settings.errorMinute),
-    "metadata": IPRateLimit(count=settings.errorCount, minutes=settings.errorMinute),
-    "upload": IPRateLimit(count=settings.uploadCount, minutes=settings.uploadMinute),
-    "login": IPRateLimit(count=settings.loginCount, minutes=settings.loginMinute),
+    "error": IPRateLimit(count=settings.error_count, minutes=settings.error_minute),
+    "metadata": IPRateLimit(count=settings.error_count, minutes=settings.error_minute),
+    "upload": IPRateLimit(count=settings.upload_count, minutes=settings.upload_minute),
+    "login": IPRateLimit(count=settings.login_count, minutes=settings.login_minute),
 }

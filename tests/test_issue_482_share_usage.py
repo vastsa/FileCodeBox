@@ -40,7 +40,7 @@ class ShareUsageSecurityTests(unittest.TestCase):
     def test_new_installations_default_to_secret_codes(self):
         self.assertEqual(DEFAULT_CONFIG["code_generate_type"], "secret")
         self.assertEqual(
-            parse_setup_options({"expireStyle": ["day"]})["code_generate_type"],
+            parse_setup_options({"expire_style": ["day"]})["code_generate_type"],
             "secret",
         )
         self.assertIn('<option value="secret" selected>', build_setup_page())

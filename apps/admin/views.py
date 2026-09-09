@@ -56,7 +56,7 @@ def _pick_query_text(*values: Optional[str]) -> Optional[str]:
 
 @admin_api.post("/login")
 async def login(data: LoginData, ip: str = Depends(ip_limit["login"])):
-    # 登录失败计入 IP 频率限制，超过 loginCount/loginMinute 后暂时锁定
+    # 登录失败计入 IP 频率限制，超过 login_count/login_minute 后暂时锁定
     if not verify_password(data.password, settings.admin_token):
         ip_limit["login"].add_ip(ip)
         raise HTTPException(status_code=401, detail="密码错误")
@@ -168,9 +168,9 @@ async def dashboard(file_service: FileService = Depends(get_file_service)):
             "chunkedCount": chunked_count,
             "usedCount": used_count,
             "storageBackend": settings.file_storage,
-            "uploadSizeLimit": settings.uploadSize,
-            "openUpload": settings.openUpload,
-            "enableChunk": settings.enableChunk,
+            "uploadSizeLimit": settings.upload_size,
+            "open_upload": settings.open_upload,
+            "enable_chunk": settings.enable_chunk,
             "maxSaveSeconds": settings.max_save_seconds,
             **health_summary,
             "healthSummary": health_summary,
@@ -518,7 +518,7 @@ async def update_config(
     config_service: ConfigService = Depends(get_config_service),
     file_service: FileService = Depends(get_file_service),
 ):
-    data.pop("themesChoices", None)
+    data.pop("themes_choices", None)
     await config_service.update_config(data)
     await file_service.record_admin_activity(
         action="config.update",
@@ -588,7 +588,7 @@ async def share_local_file(
         count=1,
         meta={
             "expireValue": item.expire_value,
-            "expireStyle": item.expire_style,
+            "expire_style": item.expire_style,
         },
     )
     return APIResponse(detail=share_info)

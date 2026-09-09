@@ -16,7 +16,7 @@ class AdminAddressPublicConfigTests(unittest.TestCase):
 
         for configured_value, expected_value in cases:
             with self.subTest(configured_value=configured_value):
-                settings.showAdminAddr = configured_value
+                settings.show_admin_addr = configured_value
 
                 public_value = build_public_config()["show_admin_address"]
                 feature_value = build_public_meta()["features"]["adminAddressVisible"]
