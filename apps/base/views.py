@@ -15,7 +15,8 @@ from tortoise.expressions import Case, F, Q, When
 from apps.admin.dependencies import share_required_login
 from apps.base.models import FileCodes, UploadChunk, PresignUploadSession
 from apps.base.quota import release_storage, reserve_storage
-from apps.base.services import FileUploadService, rollback_saved_file
+from apps.base.services import FileUploadService, rollback_saved_file, stored_file_of
+from core.storage import StoredFile
 from core.logger import logger
 from apps.base.schemas import (
     SelectFileModel,
@@ -211,7 +212,7 @@ async def build_select_detail(
         # 有次数限制的文件必须经过下载接口，第三方直链无法阻止重复使用。
         download_url = await get_proxy_file_url(file_code.code)
     else:
-        download_url = await file_storage.get_file_url(file_code)
+        download_url = await file_storage.get_file_url(stored_file_of(file_code))
     content = file_code.text if file_code.text is not None else None
     return {
         **metadata,
@@ -269,7 +270,7 @@ async def get_code_file(code: str, ip: str = Depends(ip_limit["error"])):
                 )
             },
         )
-    return await file_storage.get_file_response(file_code)
+    return await file_storage.get_file_response(stored_file_of(file_code))
 
 
 @share_api.post("/select/")
@@ -314,7 +315,7 @@ async def download_file(key: str, code: str, ip: str = Depends(ip_limit["error"]
     return (
         APIResponse(detail=file_code.text)
         if file_code.text
-        else await file_storage.get_file_response(file_code)
+        else await file_storage.get_file_response(stored_file_of(file_code))
     )
 
 
@@ -615,7 +616,10 @@ async def complete_upload(
 
     try:
         # 合并文件并计算哈希
-        _, file_hash = await storage.merge_chunks(upload_id, chunk_info, save_path)
+        records = {r.chunk_index: r for r in completed_chunks_list}
+        _, file_hash = await storage.merge_chunks(
+            upload_id, chunk_info.total_chunks, chunk_info.chunk_size, save_path, records
+        )
         # 创建文件记录
         expired_at, expired_count, used_count, code = await get_expire_info(
             data.expire_value, data.expire_style
@@ -808,7 +812,7 @@ async def presign_upload_confirm(upload_id: str, ip: str = Depends(ip_limit["upl
         try:
             if await storage.file_exists(session.save_path):
                 await storage.delete_file(
-                    FileCodes(
+                    StoredFile(
                         file_path=os.path.dirname(session.save_path),
                         uuid_file_name=os.path.basename(session.save_path),
                     )
@@ -879,7 +883,7 @@ async def presign_upload_cancel(upload_id: str):
         storage: FileStorageInterface = storages[settings.file_storage]()
         try:
             if await storage.file_exists(session.save_path):
-                temp_file_code = FileCodes(
+                temp_file_code = StoredFile(
                     file_path=os.path.dirname(session.save_path),
                     uuid_file_name=os.path.basename(session.save_path),
                 )

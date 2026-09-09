@@ -7,12 +7,24 @@ writes, share-record creation, and failure rollback.
 import os
 
 from core.logger import logger
-from core.storage import FileStorageInterface
+from core.storage import FileStorageInterface, StoredFile
 
 from apps.base.models import FileCodes
 from apps.base.utils import build_file_path, get_expire_info
 
 import uuid
+
+
+def stored_file_of(code: FileCodes) -> StoredFile:
+    """Adapter: project an ORM FileCodes row onto the storage-layer contract."""
+    return StoredFile(
+        file_path=code.file_path,
+        uuid_file_name=code.uuid_file_name,
+        code=code.code,
+        prefix=code.prefix,
+        suffix=code.suffix,
+        text=code.text or "",
+    )
 
 
 async def rollback_saved_file(
@@ -31,7 +43,7 @@ async def rollback_saved_file(
     """
     try:
         await storage.delete_file(
-            FileCodes(file_path=file_path, uuid_file_name=uuid_file_name)
+            StoredFile(file_path=file_path, uuid_file_name=uuid_file_name)
         )
     except Exception:
         logger.warning(

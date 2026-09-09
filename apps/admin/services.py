@@ -7,13 +7,14 @@ from datetime import datetime, timedelta
 from typing import Any, Optional
 
 from core.response import APIResponse
-from core.storage import FileStorageInterface, storages
+from core.storage import FileStorageInterface, StoredFile, storages
 from core.settings import (
     ADMIN_SESSION_EXPIRE_MAX,
     ADMIN_SESSION_EXPIRE_MIN,
     settings,
 )
 from apps.base.config import refresh_settings
+from apps.base.services import stored_file_of
 from core.security import INTERNAL_CONFIG_KEYS, generate_jwt_secret
 from apps.base.models import FileCodes, KeyValue
 from apps.base.utils import get_expire_info, get_file_path_name
@@ -91,7 +92,7 @@ class FileService:
 
     async def _delete_file_code(self, file_code: FileCodes):
         if file_code.text is None:
-            await self.file_storage.delete_file(file_code)
+            await self.file_storage.delete_file(stored_file_of(file_code))
         await KeyValue.filter(key=self._file_metadata_key(file_code.id)).delete()
         await file_code.delete()
 
@@ -1440,7 +1441,7 @@ class FileService:
         if file_code.text:
             return APIResponse(detail=file_code.text)
         else:
-            return await self.file_storage.get_file_response(file_code)
+            return await self.file_storage.get_file_response(stored_file_of(file_code))
 
     async def preview_file(self, file_id: int, max_chars: int = 4000):
         max_chars = min(max(max_chars, 1), 20000)
@@ -1500,7 +1501,7 @@ class FileService:
                 )
             except Exception:
                 await self.file_storage.delete_file(
-                    FileCodes(file_path=path, uuid_file_name=uuid_file_name)
+                    StoredFile(file_path=path, uuid_file_name=uuid_file_name)
                 )
                 raise
         finally:

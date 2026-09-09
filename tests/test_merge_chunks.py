@@ -3,6 +3,9 @@
 The happy path is already exercised end-to-end by the ASGI journey tests;
 these target the guard rails: missing chunk records, missing chunk files,
 hash mismatches, and that a failed merge leaves no half-written output.
+
+Contract note: storage is ORM-free — the caller fetches chunk records and
+passes them as a ``{chunk_index: record}`` dict keyed by index.
 """
 import asyncio
 import hashlib
@@ -38,7 +41,11 @@ class MergeChunksFailureTests(SettingsOverrideMixin, unittest.TestCase):
                     (chunk_dir / "0.part").write_bytes(chunk_a)
                     (chunk_dir / "1.part").write_bytes(chunk_b)
 
-                    session = await UploadChunk.create(
+                    async def records():
+                        rows = await UploadChunk.filter(upload_id="uid-merge").all()
+                        return {r.chunk_index: r for r in rows}
+
+                    await UploadChunk.create(
                         upload_id="uid-merge",
                         chunk_index=-1,
                         chunk_hash="0" * 64,
@@ -62,7 +69,7 @@ class MergeChunksFailureTests(SettingsOverrideMixin, unittest.TestCase):
 
                     # 1) 分片 1 记录缺失
                     with self.assertRaisesRegex(ValueError, "分片1记录不存在"):
-                        await storage.merge_chunks("uid-merge", session, save_path)
+                        await storage.merge_chunks("uid-merge", 2, 4, save_path, await records())
                     self.assertFalse((Path(tmpdir) / save_path).exists(), "失败不得产出半成品文件")
 
                     # 2) 分片 1 记录存在但哈希与文件内容不匹配
@@ -78,13 +85,13 @@ class MergeChunksFailureTests(SettingsOverrideMixin, unittest.TestCase):
                         completed=True,
                     )
                     with self.assertRaisesRegex(ValueError, "哈希不匹配"):
-                        await storage.merge_chunks("uid-merge", session, save_path)
+                        await storage.merge_chunks("uid-merge", 2, 4, save_path, await records())
                     self.assertFalse((Path(tmpdir) / save_path).exists())
 
                     # 3) 记录匹配但磁盘文件缺失
                     (chunk_dir / "1.part").unlink()
                     with self.assertRaisesRegex(ValueError, "分片1文件不存在"):
-                        await storage.merge_chunks("uid-merge", session, save_path)
+                        await storage.merge_chunks("uid-merge", 2, 4, save_path, await records())
 
                     # 4) happy path：修正分片1记录哈希后合并成功，且输出哈希正确
                     (chunk_dir / "1.part").write_bytes(chunk_b)
@@ -93,7 +100,9 @@ class MergeChunksFailureTests(SettingsOverrideMixin, unittest.TestCase):
                     ).first()
                     wrong_record.chunk_hash = _sha(chunk_b)
                     await wrong_record.save()
-                    out_path, file_hash = await storage.merge_chunks("uid-merge", session, save_path)
+                    out_path, file_hash = await storage.merge_chunks(
+                        "uid-merge", 2, 4, save_path, await records()
+                    )
                     self.assertTrue(Path(out_path).exists())
                     self.assertEqual(file_hash, _sha(chunk_a + chunk_b))
                     self.assertFalse((chunk_dir / "1.part").with_suffix(".merging").exists(), "临时合并文件应被重命名消费")
@@ -103,6 +112,7 @@ class MergeChunksFailureTests(SettingsOverrideMixin, unittest.TestCase):
                     self.assertFalse(chunk_dir.exists())
             finally:
                 await close_db()
+
 
 if __name__ == "__main__":
     unittest.main()
