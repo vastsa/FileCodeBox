@@ -1,3 +1,4 @@
+import asyncio
 import hashlib
 import io
 from pathlib import Path
@@ -23,6 +24,11 @@ from apps.base.quota import release_storage, reserve_storage
 from fastapi import HTTPException
 from core.settings import data_root
 from core.utils import get_now, hash_password, is_password_hashed, validate_background_url
+
+# KeyValue 里的 settings/activities/presets 都是整块 JSON 读-改-写；
+# 进程内写锁串行化这三个写路径，避免并发管理操作互相覆盖（last-writer-wins）。
+# 多进程部署下锁不跨进程——文档已锁定单 worker 部署。
+keyvalue_write_lock = asyncio.Lock()
 
 
 class FileService:
@@ -295,44 +301,45 @@ class FileService:
         name: str,
         filters: dict[str, Any],
     ) -> dict[str, Any]:
-        presets = await self._get_file_view_presets()
-        normalized_name = self._normalize_file_view_preset_name(name)
-        normalized_filters = self._normalize_file_view_preset_filters(filters)
-        now = await get_now()
-        updated_at = now.isoformat()
+        async with keyvalue_write_lock:
+            presets = await self._get_file_view_presets()
+            normalized_name = self._normalize_file_view_preset_name(name)
+            normalized_filters = self._normalize_file_view_preset_filters(filters)
+            now = await get_now()
+            updated_at = now.isoformat()
 
-        target_index = next(
-            (index for index, preset in enumerate(presets) if preset["id"] == preset_id),
-            -1,
-        )
-        is_update = target_index >= 0
-        if is_update:
-            preset = presets[target_index]
-            next_preset = {
-                **preset,
-                "name": normalized_name,
-                "filters": normalized_filters,
-                "params": normalized_filters,
-                "updatedAt": updated_at,
-                "updated_at": updated_at,
-            }
-            presets[target_index] = next_preset
-        else:
-            if len(presets) >= self.MAX_VIEW_PRESETS:
-                raise HTTPException(status_code=400, detail="视图预设数量已达上限")
-            next_preset = {
-                "id": preset_id or self._build_file_view_preset_id(normalized_name, now),
-                "name": normalized_name,
-                "filters": normalized_filters,
-                "params": normalized_filters,
-                "createdAt": updated_at,
-                "created_at": updated_at,
-                "updatedAt": updated_at,
-                "updated_at": updated_at,
-            }
-            presets.append(next_preset)
+            target_index = next(
+                (index for index, preset in enumerate(presets) if preset["id"] == preset_id),
+                -1,
+            )
+            is_update = target_index >= 0
+            if is_update:
+                preset = presets[target_index]
+                next_preset = {
+                    **preset,
+                    "name": normalized_name,
+                    "filters": normalized_filters,
+                    "params": normalized_filters,
+                    "updatedAt": updated_at,
+                    "updated_at": updated_at,
+                }
+                presets[target_index] = next_preset
+            else:
+                if len(presets) >= self.MAX_VIEW_PRESETS:
+                    raise HTTPException(status_code=400, detail="视图预设数量已达上限")
+                next_preset = {
+                    "id": preset_id or self._build_file_view_preset_id(normalized_name, now),
+                    "name": normalized_name,
+                    "filters": normalized_filters,
+                    "params": normalized_filters,
+                    "createdAt": updated_at,
+                    "created_at": updated_at,
+                    "updatedAt": updated_at,
+                    "updated_at": updated_at,
+                }
+                presets.append(next_preset)
 
-        await self._save_file_view_presets(presets)
+            await self._save_file_view_presets(presets)
         await self.record_admin_activity(
             action="file.view_preset_update" if is_update else "file.view_preset_create",
             target_type="view_preset",
@@ -348,16 +355,17 @@ class FileService:
         if not preset_id:
             raise HTTPException(status_code=400, detail="请选择要删除的视图预设")
 
-        presets = await self._get_file_view_presets()
-        deleted_preset = next(
-            (preset for preset in presets if preset["id"] == preset_id),
-            None,
-        )
-        next_presets = [preset for preset in presets if preset["id"] != preset_id]
-        if len(next_presets) == len(presets):
-            raise HTTPException(status_code=404, detail="视图预设不存在")
+        async with keyvalue_write_lock:
+            presets = await self._get_file_view_presets()
+            deleted_preset = next(
+                (preset for preset in presets if preset["id"] == preset_id),
+                None,
+            )
+            next_presets = [preset for preset in presets if preset["id"] != preset_id]
+            if len(next_presets) == len(presets):
+                raise HTTPException(status_code=404, detail="视图预设不存在")
 
-        await self._save_file_view_presets(next_presets)
+            await self._save_file_view_presets(next_presets)
         await self.record_admin_activity(
             action="file.view_preset_delete",
             target_type="view_preset",
@@ -838,12 +846,13 @@ class FileService:
             if not activity:
                 return None
 
-            activities = await self._get_admin_activities()
-            next_activities = [
-                activity,
-                *[item for item in activities if item["id"] != activity["id"]],
-            ][: self.MAX_ADMIN_ACTIVITIES]
-            await self._save_admin_activities(next_activities)
+            async with keyvalue_write_lock:
+                activities = await self._get_admin_activities()
+                next_activities = [
+                    activity,
+                    *[item for item in activities if item["id"] != activity["id"]],
+                ][: self.MAX_ADMIN_ACTIVITIES]
+                await self._save_admin_activities(next_activities)
             return activity
         except Exception:
             return None
@@ -1609,7 +1618,8 @@ class ConfigService:
         if admin_password_changed:
             next_config["jwt_secret"] = generate_jwt_secret()
 
-        await KeyValue.update_or_create(key="settings", defaults={"value": next_config})
+        async with keyvalue_write_lock:
+            await KeyValue.update_or_create(key="settings", defaults={"value": next_config})
         await refresh_settings(force=True)
 
 
