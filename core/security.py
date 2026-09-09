@@ -29,9 +29,18 @@ def is_valid_jwt_secret(secret: Any) -> bool:
 
 
 def is_config_initialized(config: dict[str, Any]) -> bool:
+    """Cheap initialization probe — runs on EVERY request via the middleware.
+
+    Must never run a slow hash: a scrypt-stored token cannot be the legacy
+    default (which only ever existed as plaintext or sha256), so those tokens
+    are initialized without any verification. Only plaintext/sha256 tokens go
+    through the legacy-default comparison, which is microseconds.
+    """
     admin_token = str(config.get("admin_token") or "")
     if not admin_token:
         return False
+    if is_password_hashed(admin_token) and admin_token.startswith("scrypt$"):
+        return True
     return not verify_password(LEGACY_DEFAULT_ADMIN_TOKEN, admin_token)
 
 

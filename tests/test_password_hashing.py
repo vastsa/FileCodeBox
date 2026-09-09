@@ -5,6 +5,7 @@ hashes are scrypt (memory-hard). A successful login with a legacy-stored
 password upgrades the stored hash in place.
 """
 import asyncio
+import time
 import hashlib
 import unittest
 
@@ -87,3 +88,23 @@ class TransparentRehashTests(SettingsOverrideMixin, unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class CheapInitProbeTests(unittest.TestCase):
+    """D1 回归：is_config_initialized 在每个请求都会被中间件调用，
+    对 scrypt 口令绝不允许跑慢哈希。"""
+
+    def test_scrypt_token_is_initialized_without_slow_hash(self):
+        from core.security import is_config_initialized
+        from core.utils import hash_password as hp
+
+        token = hp("some-real-password")
+        t0 = time.perf_counter()
+        self.assertTrue(is_config_initialized({"admin_token": token}))
+        self.assertLess(time.perf_counter() - t0, 0.01, "初始化探测不应执行 scrypt")
+
+    def test_empty_and_legacy_default_are_not_initialized(self):
+        from core.security import is_config_initialized, LEGACY_DEFAULT_ADMIN_TOKEN
+
+        self.assertFalse(is_config_initialized({"admin_token": ""}))
+        self.assertFalse(is_config_initialized({"admin_token": LEGACY_DEFAULT_ADMIN_TOKEN}))
