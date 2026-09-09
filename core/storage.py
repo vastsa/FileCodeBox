@@ -30,6 +30,31 @@ from starlette.background import BackgroundTask
 
 class FileStorageInterface:
 
+    async def _load_chunk_record(self, upload_id: str, index: int) -> UploadChunk:
+        """Fetch the UploadChunk row for chunk `index`, shared by all backends."""
+        chunk_record = await UploadChunk.filter(
+            upload_id=upload_id, chunk_index=index
+        ).first()
+        if not chunk_record:
+            raise ValueError(f"分片{index}记录不存在")
+        return chunk_record
+
+    def _verify_and_hash_chunk(
+        self,
+        index: int,
+        chunk_record: UploadChunk,
+        chunk_data: bytes,
+        file_sha256,
+    ) -> None:
+        """Verify a chunk against its recorded hash, then stripe it into the
+        whole-file digest. Raises the shared ValueError wording on mismatch."""
+        current_hash = hashlib.sha256(chunk_data).hexdigest()
+        if current_hash != chunk_record.chunk_hash:
+            raise ValueError(
+                f"分片{index}哈希不匹配: 期望 {chunk_record.chunk_hash}, 实际 {current_hash}"
+            )
+        file_sha256.update(chunk_data)
+
     async def save_file(self, file: UploadFile, save_path: str):
         """
         保存文件
@@ -225,18 +250,13 @@ class SystemFileStorage(FileStorageInterface):
             async with aiofiles.open(temp_output, "wb") as out_file:
                 for i in range(chunk_info.total_chunks):
                     # 获取分片记录
-                    chunk_record = await UploadChunk.filter(upload_id=upload_id, chunk_index=i).first()
-                    if not chunk_record:
-                        raise ValueError(f"分片{i}记录不存在")
+                    chunk_record = await self._load_chunk_record(upload_id, i)
                     chunk_path = chunk_base_dir / f"{i}.part"
                     if not chunk_path.exists():
                         raise ValueError(f"分片{i}文件不存在")
                     async with aiofiles.open(chunk_path, "rb") as in_file:
                         chunk_data = await in_file.read()
-                        current_hash = hashlib.sha256(chunk_data).hexdigest()
-                        if current_hash != chunk_record.chunk_hash:
-                            raise ValueError(f"分片{i}哈希不匹配: 期望 {chunk_record.chunk_hash}, 实际 {current_hash}")
-                        file_sha256.update(chunk_data)
+                        self._verify_and_hash_chunk(i, chunk_record, chunk_data, file_sha256)
                         await out_file.write(chunk_data)
             # 原子重命名
             temp_output.rename(output_path)
@@ -464,9 +484,7 @@ class S3FileStorage(FileStorageInterface):
                 # 按顺序读取、验证并上传每个分片
                 for i in range(chunk_info.total_chunks):
                     chunk_key = f"{chunk_dir}/{i}.part"
-                    chunk_record = await UploadChunk.filter(upload_id=upload_id, chunk_index=i).first()
-                    if not chunk_record:
-                        raise ValueError(f"分片{i}记录不存在")
+                    chunk_record = await self._load_chunk_record(upload_id, i)
 
                     try:
                         response = await s3.get_object(
@@ -477,11 +495,7 @@ class S3FileStorage(FileStorageInterface):
                     except Exception as e:
                         raise ValueError(f"分片{i}文件不存在: {e}")
 
-                    current_hash = hashlib.sha256(chunk_data).hexdigest()
-                    if current_hash != chunk_record.chunk_hash:
-                        raise ValueError(f"分片{i}哈希不匹配: 期望 {chunk_record.chunk_hash}, 实际 {current_hash}")
-
-                    file_sha256.update(chunk_data)
+                    self._verify_and_hash_chunk(i, chunk_record, chunk_data, file_sha256)
 
                     # 上传分片到 multipart upload
                     part_response = await s3.upload_part(
@@ -822,20 +836,14 @@ class OneDriveFileStorage(FileStorageInterface):
             async with aiofiles.open(temp_path, 'wb') as out_file:
                 for i in range(chunk_info.total_chunks):
                     chunk_path = f"{chunk_dir}/{i}.part"
-                    chunk_record = await UploadChunk.filter(upload_id=upload_id, chunk_index=i).first()
-                    if not chunk_record:
-                        raise ValueError(f"分片{i}记录不存在")
+                    chunk_record = await self._load_chunk_record(upload_id, i)
 
                     try:
                         chunk_data = await asyncio.to_thread(self._read_chunk, chunk_path)
                     except Exception as e:
                         raise ValueError(f"分片{i}文件不存在: {e}")
 
-                    current_hash = hashlib.sha256(chunk_data).hexdigest()
-                    if current_hash != chunk_record.chunk_hash:
-                        raise ValueError(f"分片{i}哈希不匹配: 期望 {chunk_record.chunk_hash}, 实际 {current_hash}")
-
-                    file_sha256.update(chunk_data)
+                    self._verify_and_hash_chunk(i, chunk_record, chunk_data, file_sha256)
                     await out_file.write(chunk_data)
                     del chunk_data  # 释放内存
 
@@ -988,20 +996,14 @@ class OpenDALFileStorage(FileStorageInterface):
             async with aiofiles.open(temp_path, 'wb') as out_file:
                 for i in range(chunk_info.total_chunks):
                     chunk_path = f"{chunk_dir}/{i}.part"
-                    chunk_record = await UploadChunk.filter(upload_id=upload_id, chunk_index=i).first()
-                    if not chunk_record:
-                        raise ValueError(f"分片{i}记录不存在")
+                    chunk_record = await self._load_chunk_record(upload_id, i)
 
                     try:
                         chunk_data = await self.operator.read(chunk_path)
                     except Exception as e:
                         raise ValueError(f"分片{i}文件不存在: {e}")
 
-                    current_hash = hashlib.sha256(chunk_data).hexdigest()
-                    if current_hash != chunk_record.chunk_hash:
-                        raise ValueError(f"分片{i}哈希不匹配: 期望 {chunk_record.chunk_hash}, 实际 {current_hash}")
-
-                    file_sha256.update(chunk_data)
+                    self._verify_and_hash_chunk(i, chunk_record, chunk_data, file_sha256)
                     await out_file.write(chunk_data)
                     del chunk_data  # 释放内存
 
@@ -1263,9 +1265,7 @@ class WebDAVFileStorage(FileStorageInterface):
                         chunk_url = self._build_url(chunk_path)
 
                         # 获取分片记录
-                        chunk_record = await UploadChunk.filter(upload_id=upload_id, chunk_index=i).first()
-                        if not chunk_record:
-                            raise ValueError(f"分片{i}记录不存在")
+                        chunk_record = await self._load_chunk_record(upload_id, i)
 
                         # 下载分片数据
                         async with session.get(chunk_url) as resp:
@@ -1274,11 +1274,7 @@ class WebDAVFileStorage(FileStorageInterface):
                             chunk_data = await resp.read()
 
                         # 验证哈希
-                        current_hash = hashlib.sha256(chunk_data).hexdigest()
-                        if current_hash != chunk_record.chunk_hash:
-                            raise ValueError(f"分片{i}哈希不匹配: 期望 {chunk_record.chunk_hash}, 实际 {current_hash}")
-
-                        file_sha256.update(chunk_data)
+                        self._verify_and_hash_chunk(i, chunk_record, chunk_data, file_sha256)
                         await out_file.write(chunk_data)
                         del chunk_data  # 释放内存
 
