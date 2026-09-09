@@ -20,7 +20,7 @@ from apps.base.utils import get_expire_info, get_file_path_name
 from apps.base.quota import release_storage, reserve_storage
 from fastapi import HTTPException
 from core.settings import data_root
-from core.utils import get_now, hash_password, is_password_hashed
+from core.utils import get_now, hash_password, is_password_hashed, validate_background_url
 
 
 class FileService:
@@ -1598,6 +1598,11 @@ class ConfigService:
                 status_code=400,
                 detail="storageLimit 不能小于 0",
             )
+
+        try:
+            validate_background_url(next_config.get("background", ""))
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc))
 
         if admin_password_changed:
             next_config["jwt_secret"] = generate_jwt_secret()

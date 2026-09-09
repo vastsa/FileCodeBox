@@ -25,6 +25,27 @@ async def get_random_num():
 r_s = string.ascii_uppercase + string.digits
 
 
+def validate_background_url(value) -> str:
+    """Validate the site background config before it reaches the theme template.
+
+    Themes inject this value into inline CSS ``url('...')`` where html escaping
+    cannot neutralize a single-quote breakout, so only well-formed http(s) URLs
+    (or an empty string) are accepted.
+    """
+    value = str(value or "").strip()
+    if not value:
+        return ""
+    from urllib.parse import urlparse
+
+    parsed = urlparse(value)
+    if parsed.scheme not in ("http", "https") or not parsed.netloc:
+        raise ValueError("background 必须是 http(s) 完整 URL 或留空")
+    # quote()/whitespace would break out of the CSS url('') quoting context
+    if any(ch in value for ch in ("'", '"', "(", ")", " ", "\\", ";")):
+        raise ValueError("background URL 含有不允许的字符")
+    return value
+
+
 async def get_random_string():
     """
     获取随机字符串
