@@ -84,6 +84,8 @@ DEFAULT_CONFIG = {
     "showAdminAddr": 0,
     "robotsText": "User-agent: *\nDisallow: /",
     "trustedProxies": [],
+    "chunk_expire_hours": 24,
+    "opendal_scheme": "s3",
 }
 
 
@@ -106,6 +108,14 @@ class Settings:
             super().__setattr__(key, value)
         else:
             self.user_config[key] = value
+
+    def unknown_keys(self, config: dict) -> list[str]:
+        """Keys in `config` that DEFAULT_CONFIG does not define.
+
+        Unknown keys silently fall through __getattr__ and crash later at the
+        usage site; callers (refresh_settings) surface them at load time.
+        """
+        return sorted(k for k in config if k not in self.default_config)
 
     def items(self):
         return {**self.default_config, **self.user_config}.items()

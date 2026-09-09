@@ -78,6 +78,9 @@ async def refresh_settings() -> None:
     """从数据库读取最新配置并应用到运行时。"""
     config_record = await KeyValue.filter(key="settings").first()
     settings.user_config = config_record.value if config_record and config_record.value else {}
+    unknown = settings.unknown_keys(settings.user_config)
+    if unknown:
+        logger.warning("配置中存在未登记的键（将被忽略其类型语义，仅透传）: %s", unknown)
     _sync_ip_limits()
 
 
