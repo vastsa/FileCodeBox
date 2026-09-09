@@ -31,6 +31,8 @@ from apps.admin.schemas import (
 )
 from core.response import APIResponse
 from apps.base.models import FileCodes, KeyValue
+from tortoise.expressions import Q
+from tortoise.functions import Count, Sum
 from apps.admin.dependencies import (
     create_token,
     get_admin_session_expire_seconds,
@@ -116,55 +118,74 @@ async def build_dashboard_recent_file(file_code: FileCodes) -> dict:
     }
 
 
+def _expired_predicate(now: datetime.datetime) -> Q:
+    """SQL version of FileCodes.is_expired:
+    expired_at IS NOT NULL AND ((expired_count < 0 AND expired_at < now) OR expired_count = 0)
+    """
+    return Q(expired_at__isnull=False) & (
+        Q(expired_count__lt=0, expired_at__lt=now) | Q(expired_count=0)
+    )
+
+
+async def _sum_size(queryset) -> int:
+    rows = await queryset.annotate(total=Sum("size")).values("total")
+    return rows[0]["total"] or 0
+
+
 @admin_api.get("/dashboard")
 async def dashboard(file_service: FileService = Depends(get_file_service)):
-    all_codes = await FileCodes.all()
-    all_size = sum([code.size for code in all_codes])
     sys_start = await KeyValue.filter(key="sys_start").first()
     now = await get_now()
     today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
     yesterday_start = today_start - datetime.timedelta(days=1)
     yesterday_end = today_start - datetime.timedelta(microseconds=1)
-    yesterday_codes = FileCodes.filter(
-        created_at__gte=yesterday_start, created_at__lte=yesterday_end
-    )
-    today_codes = FileCodes.filter(created_at__gte=today_start)
-    yesterday_file_codes = await yesterday_codes
-    today_file_codes = await today_codes
-    expired_count = 0
-    for file_code in all_codes:
-        if await file_code.is_expired():
-            expired_count += 1
-    health_summary = await file_service.build_file_health_summary(all_codes, now=now)
 
-    text_count = sum(1 for file_code in all_codes if file_code.text is not None)
-    chunked_count = sum(1 for file_code in all_codes if file_code.is_chunked)
-    used_count = sum([file_code.used_count for file_code in all_codes])
-    suffix_counter = Counter(
-        "Text" if file_code.text is not None else (file_code.suffix or "file")
-        for file_code in all_codes
+    # 简单计数全部走 SQL 聚合，避免整表载入内存（D3）。
+    # 健康摘要依赖逐行 rules engine（_build_file_status_insights），保留一次遍历。
+    total_files = await FileCodes.all().count()
+    expired_count = await FileCodes.filter(_expired_predicate(now)).count()
+    all_size = await _sum_size(FileCodes.all())
+    used_count = (
+        await FileCodes.all().annotate(total=Sum("used_count")).values("total")
+    )[0]["total"] or 0
+    text_count = await FileCodes.filter(text__isnull=False).count()
+    chunked_count = await FileCodes.filter(is_chunked=True).count()
+    yesterday_count = await FileCodes.filter(
+        created_at__gte=yesterday_start, created_at__lte=yesterday_end
+    ).count()
+    yesterday_size = await _sum_size(
+        FileCodes.filter(created_at__gte=yesterday_start, created_at__lte=yesterday_end)
     )
-    recent_file_codes = sorted(
-        all_codes,
-        key=lambda file_code: file_code.created_at.timestamp()
-        if file_code.created_at
-        else 0,
-        reverse=True,
-    )[:8]
+    today_count = await FileCodes.filter(created_at__gte=today_start).count()
+    today_size = await _sum_size(FileCodes.filter(created_at__gte=today_start))
+
+    suffix_rows = (
+        await FileCodes.filter(text__isnull=True)
+        .annotate(count=Count("id"))
+        .values("suffix", "count")
+    )
+    suffix_counter = Counter(
+        {((row["suffix"] or "file") or "file"): row["count"] for row in suffix_rows}
+    )
+
+    recent_file_codes = await FileCodes.all().order_by("-created_at").limit(8)
+    health_summary = await file_service.build_file_health_summary(
+        await FileCodes.all(), now=now
+    )
     recent_activities = await file_service.list_admin_activities(limit=8)
     return APIResponse(
         detail={
-            "totalFiles": len(all_codes),
+            "totalFiles": total_files,
             "storageUsed": str(all_size),
             "sysUptime": sys_start.value if sys_start else None,
-            "yesterdayCount": len(yesterday_file_codes),
-            "yesterdaySize": str(sum([code.size for code in yesterday_file_codes])),
-            "todayCount": len(today_file_codes),
-            "todaySize": str(sum([code.size for code in today_file_codes])),
-            "activeCount": len(all_codes) - expired_count,
+            "yesterdayCount": yesterday_count,
+            "yesterdaySize": str(yesterday_size),
+            "todayCount": today_count,
+            "todaySize": str(today_size),
+            "activeCount": total_files - expired_count,
             "expiredCount": expired_count,
             "textCount": text_count,
-            "fileCount": len(all_codes) - text_count,
+            "fileCount": total_files - text_count,
             "chunkedCount": chunked_count,
             "usedCount": used_count,
             "storageBackend": settings.file_storage,
