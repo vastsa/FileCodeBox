@@ -36,8 +36,9 @@ from apps.admin.dependencies import (
     get_admin_session_expire_seconds,
     verify_token,
 )
+from core.logger import logger
 from core.settings import settings
-from core.utils import get_now, verify_password
+from core.utils import get_now, hash_password, password_needs_rehash, verify_password
 from apps.base.utils import ip_limit
 
 admin_api = APIRouter(
@@ -59,6 +60,20 @@ async def login(data: LoginData, ip: str = Depends(ip_limit["login"])):
     if not verify_password(data.password, settings.admin_token):
         ip_limit["login"].add_ip(ip)
         raise HTTPException(status_code=401, detail="密码错误")
+
+    # 透明重哈希：存量 sha256/明文口令在登录成功（已证明持有口令）时升级为 scrypt
+    if password_needs_rehash(settings.admin_token):
+        try:
+            record = await KeyValue.filter(key="settings").first()
+            if record:
+                stored = dict(record.value or {})
+                stored["admin_token"] = hash_password(data.password)
+                record.value = stored
+                await record.save()
+                settings.admin_token = stored["admin_token"]
+                logger.info("管理员口令已升级为 scrypt 哈希")
+        except Exception:
+            logger.warning("口令哈希升级失败，保持旧格式", exc_info=True)
 
     expires_in = get_admin_session_expire_seconds()
     token = create_token({"is_admin": True}, expires_in=expires_in)
