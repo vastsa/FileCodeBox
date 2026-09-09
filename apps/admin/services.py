@@ -13,7 +13,7 @@ from core.settings import (
     ADMIN_SESSION_EXPIRE_MIN,
     settings,
 )
-from core.config import refresh_settings
+from apps.base.config import refresh_settings
 from core.security import INTERNAL_CONFIG_KEYS, generate_jwt_secret
 from apps.base.models import FileCodes, KeyValue
 from apps.base.utils import get_expire_info, get_file_path_name

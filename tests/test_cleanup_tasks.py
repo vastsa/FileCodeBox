@@ -19,7 +19,7 @@ from apps.base.models import (
     StorageReservation,
     UploadChunk,
 )
-from core.tasks import (
+from apps.base.tasks import (
     clean_expired_presign_sessions,
     clean_incomplete_uploads,
     delete_expire_files,
@@ -38,9 +38,9 @@ class _OneRoundMixin(SettingsOverrideMixin):
         def _sleep(seconds):
             raise SleepSentinel
 
-        with patch("core.tasks.data_root", Path(tmpdir)), patch(
+        with patch("apps.base.tasks.data_root", Path(tmpdir)), patch(
             "core.storage.data_root", Path(tmpdir)
-        ), patch("core.tasks.asyncio.sleep", side_effect=_sleep):
+        ), patch("apps.base.tasks.asyncio.sleep", side_effect=_sleep):
             try:
                 await task_coro_factory()
             except SleepSentinel:

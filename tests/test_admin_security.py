@@ -5,7 +5,7 @@ import unittest
 import apps.admin.services as admin_services
 import apps.admin.views as admin_views
 import apps.admin.dependencies as admin_dependencies
-import core.config as core_config
+import apps.base.config as core_config
 from apps.admin.dependencies import create_token, verify_token
 from apps.admin.schemas import LoginData
 from apps.admin.services import ConfigService

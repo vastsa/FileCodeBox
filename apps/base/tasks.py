@@ -15,7 +15,7 @@ from apps.base.models import (
     UploadChunk,
 )
 from apps.base.utils import ip_limit, get_chunk_file_path_name
-from core.config import refresh_settings
+from apps.base.config import refresh_settings
 from core.logger import logger
 from core.settings import settings, data_root
 from core.storage import FileStorageInterface, storages

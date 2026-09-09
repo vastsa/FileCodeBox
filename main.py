@@ -17,7 +17,7 @@ from tortoise.contrib.fastapi import register_tortoise
 from apps.admin.views import admin_api
 from apps.base.models import KeyValue
 from apps.base.views import share_api, chunk_api, presign_api
-from core.config import (
+from apps.base.config import (
     ensure_security_settings,
     ensure_settings_row,
     initialize_system,
@@ -28,7 +28,7 @@ from core.database import db_startup_lock, get_db_config, init_db
 from core.logger import get_log_level_name, is_access_log_enabled, logger
 from core.response import APIResponse
 from core.settings import settings, BASE_DIR, DEFAULT_CONFIG
-from core.tasks import (
+from apps.base.tasks import (
     clean_expired_presign_sessions,
     clean_incomplete_uploads,
     delete_expire_files,
