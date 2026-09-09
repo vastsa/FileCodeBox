@@ -22,7 +22,9 @@ class FileCodes(models.Model):
     size = fields.BigIntField(default=0)
     text = fields.TextField(null=True)
     expired_at = fields.DatetimeField(null=True)
-    expired_count = fields.IntField(default=0)
+    # -1 = 时间式（看 expired_at），<=0 的 0 = 次数耗尽。默认 -1 而非 0：
+    # 0 语义是"次数已用完即过期"，忘传该字段的创建路径会得到立即过期的记录。
+    expired_count = fields.IntField(default=-1)
     used_count = fields.IntField(default=0)
     created_at = fields.DatetimeField(auto_now_add=True)
     file_hash = fields.CharField(max_length=64, null=True)

@@ -73,3 +73,28 @@ class DashboardQuotaAggregationTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class ExpiredCountDefaultTests(unittest.TestCase):
+    """D4 回归：默认 expired_count 不再是 0（0 语义 = 次数耗尽即过期）。"""
+
+    def test_record_without_explicit_count_is_not_instantly_expired(self):
+        async def scenario():
+            async def _run():
+                record = await FileCodes.create(code="d4", size=1)
+                return record, await record.is_expired()
+
+            return await _run()
+
+        async def wrapper():
+            from tests.helpers import init_memory_db
+            await init_memory_db()
+            try:
+                return await scenario()
+            finally:
+                from tests.helpers import close_db
+                await close_db()
+
+        record, expired = asyncio.run(wrapper())
+        self.assertEqual(record.expired_count, -1)
+        self.assertFalse(expired, "未显式设置过期方式的记录不应立即过期")
