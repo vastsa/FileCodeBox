@@ -15,6 +15,7 @@ from tortoise.expressions import Case, F, Q, When
 from apps.admin.dependencies import share_required_login
 from apps.base.models import FileCodes, UploadChunk, PresignUploadSession
 from apps.base.quota import release_storage, reserve_storage
+from apps.base.services import FileUploadService, rollback_saved_file
 from core.logger import logger
 from apps.base.schemas import (
     SelectFileModel,
@@ -24,7 +25,6 @@ from apps.base.schemas import (
 )
 from apps.base.file_validation import validate_file_type, validate_upload_file, validate_header_bytes
 from apps.base.utils import (
-    build_file_path,
     get_expire_info,
     get_file_path_name,
     ip_limit,
@@ -45,44 +45,6 @@ share_api = APIRouter(prefix="/share", tags=["分享"])
 
 
 # ============ 公共服务层 ============
-class FileUploadService:
-    """统一的文件上传服务"""
-
-    @staticmethod
-    async def generate_file_path(
-        file_name: str, upload_id: Optional[str] = None
-    ) -> tuple[str, str, str, str, str]:
-        """Delegates path generation to apps.base.utils.build_file_path."""
-        return await build_file_path(file_name, upload_id or uuid.uuid4().hex)
-
-    @staticmethod
-    async def create_file_record(
-        file_name: str,
-        file_size: int,
-        file_path: str,
-        expire_value: int,
-        expire_style: str,
-        **extra_fields,
-    ) -> str:
-        """统一创建FileCodes记录，返回code"""
-        expired_at, expired_count, used_count, code = await get_expire_info(
-            expire_value, expire_style
-        )
-        prefix, suffix = os.path.splitext(file_name)
-
-        await FileCodes.create(
-            code=code,
-            prefix=prefix,
-            suffix=suffix,
-            uuid_file_name=file_name,
-            file_path=file_path,
-            size=file_size,
-            expired_at=expired_at,
-            expired_count=expired_count,
-            used_count=used_count,
-            **extra_fields,
-        )
-        return code
 
 
 async def validate_file_size(file: UploadFile, max_size: int) -> int:
@@ -174,12 +136,9 @@ async def share_file(
             used_count=used_count,
         )
     except Exception:
-        try:
-            await file_storage.delete_file(
-                FileCodes(file_path=path, uuid_file_name=uuid_file_name)
-            )
-        except Exception:
-            logger.warning("分享上传：记录创建失败，回滚删除已保存文件失败", exc_info=True)
+        await rollback_saved_file(
+            file_storage, path, uuid_file_name, context="分享上传"
+        )
         raise
     finally:
         await release_storage(reservation_token)
