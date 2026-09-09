@@ -124,7 +124,7 @@ async def share_file(
         expired_at, expired_count, used_count, code = await get_expire_info(
             expire_value, expire_style
         )
-        await file_storage.save_file(file, save_path)
+        await file_storage.save_file(file.file, save_path, file.content_type)
         await create_file_code(
             code=code,
             prefix=prefix,
@@ -767,7 +767,7 @@ async def presign_upload_proxy(
 
     storage: FileStorageInterface = storages[settings.file_storage]()
     try:
-        await storage.save_file(file, session.save_path)
+        await storage.save_file(file.file, session.save_path, file.content_type)
     except Exception as e:
         raise HTTPException(500, f"文件保存失败: {str(e)}")
 

@@ -8,7 +8,7 @@ import os
 import tempfile
 from core.logger import logger
 import shutil
-from typing import Optional
+from typing import BinaryIO, Optional
 from urllib.parse import quote, unquote
 
 import aiofiles
@@ -20,7 +20,6 @@ from dataclasses import dataclass
 import re
 import aioboto3
 from botocore.config import Config
-from fastapi import UploadFile
 from core.errors import StorageError
 from core.settings import data_root, settings
 from core.utils import get_file_url, sanitize_filename
@@ -96,10 +95,10 @@ class FileStorageInterface:
             )
         file_sha256.update(chunk_data)
 
-    async def save_file(self, file: UploadFile, save_path: str):
-        """
-        保存文件
-        """
+    async def save_file(
+        self, stream: BinaryIO, save_path: str, content_type: Optional[str] = None
+    ):
+        """Save a binary stream (caller owns closing the stream)."""
         raise NotImplementedError
 
     async def delete_file(self, file_code: StoredFile):
@@ -198,7 +197,9 @@ class SystemFileStorage(FileStorageInterface):
                 f.write(chunk)
                 chunk = file.read(self.chunk_size)
 
-    async def save_file(self, file: UploadFile, save_path: str):
+    async def save_file(
+        self, stream: BinaryIO, save_path: str, content_type: Optional[str] = None
+    ):
         path_obj = Path(str(save_path).replace("\\", "/"))
         directory = str(path_obj.parent).replace("\\", "/").lstrip("/")
         # 提取原始文件名并进行清理
@@ -208,7 +209,7 @@ class SystemFileStorage(FileStorageInterface):
         # 确保目录存在
         if not safe_save_path.parent.exists():
             safe_save_path.parent.mkdir(parents=True)
-        await asyncio.to_thread(self._save, file.file, safe_save_path)
+        await asyncio.to_thread(self._save, stream, safe_save_path)
 
     async def delete_file(self, file_code: StoredFile):
         save_path = self._resolve_safe_path(file_code.get_file_path())
@@ -381,14 +382,16 @@ class S3FileStorage(FileStorageInterface):
             config=self._client_config(),
         )
 
-    async def save_file(self, file: UploadFile, save_path: str):
+    async def save_file(
+        self, stream: BinaryIO, save_path: str, content_type: Optional[str] = None
+    ):
         async with self._client() as s3:
             # 使用 upload_fileobj 流式上传，避免将整个文件加载到内存
             await s3.upload_fileobj(
-                file.file,
+                stream,
                 self.bucket_name,
                 save_path,
-                ExtraArgs={"ContentType": file.content_type or "application/octet-stream"},
+                ExtraArgs={"ContentType": content_type or "application/octet-stream"},
             )
 
     async def delete_file(self, file_code: StoredFile):
@@ -703,14 +706,32 @@ class OneDriveFileStorage(FileStorageInterface):
         path[-1] = path[-1].split(".")[0]
         return "/".join(path)
 
-    def _save(self, file, save_path):
-        content = file.file.read()
-        name = save_path(file.filename)
-        path = self._get_path_str(save_path)
-        self.root_path.get_by_path(path).upload(name, content).execute_query()
+    async def save_file(
+        self, stream: BinaryIO, save_path: str, content_type: Optional[str] = None
+    ):
+        """保存文件（自动创建目录；修复旧实现把 save_path 字符串当函数调用的崩溃）"""
+        content = await asyncio.to_thread(stream.read)
+        normalized = str(save_path).replace("\\", "/")
+        name = await sanitize_filename(Path(normalized).name)
+        dir_path = "/".join(normalized.split("/")[:-1])
 
-    async def save_file(self, file: UploadFile, save_path: str):
-        await asyncio.to_thread(self._save, file, save_path)
+        current_folder = self.root_path
+        for part in dir_path.split("/"):
+            if not part:
+                continue
+            try:
+                current_folder = current_folder.get_by_path(part).get().execute_query()
+            except self._ClientRequestException as e:
+                if e.code == "itemNotFound":
+                    current_folder = current_folder.create_folder(part).execute_query()
+                else:
+                    raise e
+
+        await asyncio.to_thread(
+            lambda: current_folder.get_by_path(name)
+            .upload(name, content)
+            .execute_query()
+        )
 
     def _delete(self, save_path):
         path = self._get_path_str(save_path)
@@ -950,9 +971,11 @@ class OpenDALFileStorage(FileStorageInterface):
             settings.opendal_scheme, **service_settings
         )
 
-    async def save_file(self, file: UploadFile, save_path: str):
+    async def save_file(
+        self, stream: BinaryIO, save_path: str, content_type: Optional[str] = None
+    ):
         # 使用 asyncio.to_thread 避免阻塞事件循环
-        content = await asyncio.to_thread(file.file.read)
+        content = await asyncio.to_thread(stream.read)
         await self.operator.write(save_path, content)
 
     async def delete_file(self, file_code: StoredFile):
@@ -1147,7 +1170,9 @@ class WebDAVFileStorage(FileStorageInterface):
 
             current_path = current_path.parent
 
-    async def save_file(self, file: UploadFile, save_path: str):
+    async def save_file(
+        self, stream: BinaryIO, save_path: str, content_type: Optional[str] = None
+    ):
         """保存文件（自动创建目录，流式上传）"""
         path_obj = Path(save_path)
         directory_path = str(path_obj.parent)
@@ -1166,7 +1191,7 @@ class WebDAVFileStorage(FileStorageInterface):
                 """流式读取文件内容"""
                 chunk_size = 256 * 1024  # 256KB chunks
                 while True:
-                    chunk = await asyncio.to_thread(file.file.read, chunk_size)
+                    chunk = await asyncio.to_thread(stream.read, chunk_size)
                     if not chunk:
                         break
                     yield chunk
@@ -1175,7 +1200,7 @@ class WebDAVFileStorage(FileStorageInterface):
                 async with session.put(
                         url,
                         data=file_sender(),
-                        headers={"Content-Type": file.content_type or "application/octet-stream"}
+                        headers={"Content-Type": content_type or "application/octet-stream"}
                 ) as resp:
                     if resp.status not in (200, 201, 204):
                         content = await resp.text()

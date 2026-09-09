@@ -1,4 +1,5 @@
 import hashlib
+import io
 from pathlib import Path
 import os
 import time
@@ -1479,14 +1480,14 @@ class FileService:
         reservation_token = f"local:{uuid.uuid4().hex}"
         await reserve_storage(reservation_token, local_file.size, ttl_seconds=3600)
         try:
-            text = await local_file.read()
+            data = await local_file.read()  # bytes（read 内部用 with 关闭句柄）
             expired_at, expired_count, used_count, code = await get_expire_info(
                 item.expire_value, item.expire_style
             )
             path, suffix, prefix, uuid_file_name, save_path = await get_file_path_name(
                 item
             )
-            await self.file_storage.save_file(text, save_path)
+            await self.file_storage.save_file(io.BytesIO(data), save_path)
             try:
                 await FileCodes.create(
                     code=code,
@@ -1673,8 +1674,9 @@ class LocalFileClass:
             self.ctime = None
             self.size = None
 
-    async def read(self):
-        return open(self.path, "rb")
+    async def read(self) -> bytes:
+        with open(self.path, "rb") as fh:
+            return fh.read()
 
     async def write(self, data):
         with open(self.path, "w") as f:
