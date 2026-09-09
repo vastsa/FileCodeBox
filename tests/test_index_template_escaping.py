@@ -3,7 +3,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-import main
+import apps.base.pages as pages
 from core.settings import settings
 
 
@@ -17,7 +17,7 @@ class IndexTemplateEscapingTests(unittest.TestCase):
 
     def setUp(self):
         self._original_user_config = dict(settings.user_config)
-        self._original_resolve_theme_file = main.resolve_theme_file
+        self._original_resolve_theme_file = pages.resolve_theme_file
         tmp = tempfile.NamedTemporaryFile(
             "w", suffix=".html", delete=False, encoding="utf-8"
         )
@@ -31,14 +31,14 @@ class IndexTemplateEscapingTests(unittest.TestCase):
 
     def tearDown(self):
         settings.user_config = self._original_user_config
-        main.resolve_theme_file = self._original_resolve_theme_file
+        pages.resolve_theme_file = self._original_resolve_theme_file
         self._template_path.unlink()
 
     def _patch_template(self):
-        main.resolve_theme_file = lambda *args, **kwargs: self._template_path
+        pages.resolve_theme_file = lambda *args, **kwargs: self._template_path
 
     def _render_index_html(self) -> str:
-        return asyncio.run(main.index()).body.decode("utf-8")
+        return asyncio.run(pages.index()).body.decode("utf-8")
 
     def test_malicious_site_config_is_escaped(self):
         self._patch_template()

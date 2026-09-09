@@ -10,7 +10,7 @@ from core.storage import StoredDownload
 from tests.helpers import close_db, init_memory_db
 from core.settings import DEFAULT_CONFIG, settings
 from core.utils import get_now, get_select_token
-from main import build_setup_page, parse_setup_options
+from apps.base.setup_wizard import build_setup_page, parse_setup_options
 
 
 class FakeStorage:

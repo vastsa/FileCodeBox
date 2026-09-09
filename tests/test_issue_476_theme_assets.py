@@ -4,7 +4,7 @@ import unittest
 from fastapi import HTTPException
 
 from core.settings import BASE_DIR, settings
-from main import index, resolve_theme_file
+from apps.base.pages import index, resolve_theme_file
 from tests.helpers import SettingsOverrideMixin
 
 # themes/ is produced by the Dockerfile frontend build (see .gitignore); a bare checkout has no such directory

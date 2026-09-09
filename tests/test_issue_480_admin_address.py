@@ -1,7 +1,7 @@
 import unittest
 
 from core.settings import settings
-from main import build_public_config, build_public_meta
+from apps.base.pages import build_public_config, build_public_meta
 
 
 class AdminAddressPublicConfigTests(unittest.TestCase):

@@ -10,7 +10,7 @@ from apps.admin.dependencies import create_token, verify_token
 from apps.admin.schemas import LoginData
 from apps.admin.services import ConfigService
 from fastapi import HTTPException
-from main import parse_setup_options
+from apps.base.setup_wizard import parse_setup_options
 from core.security import (
     LEGACY_DEFAULT_ADMIN_TOKEN,
     is_config_initialized,
