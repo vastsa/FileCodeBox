@@ -13,7 +13,13 @@ from core.settings import (
 )
 from apps.base.config import refresh_settings
 from apps.base.services import get_stored_download, response_from_download, stored_file_of
-from core.security import INTERNAL_CONFIG_KEYS, generate_jwt_secret
+from core.security import (
+    INTERNAL_CONFIG_KEYS,
+    OUTBOUND_ENDPOINT_CONFIG_KEYS,
+    generate_jwt_secret,
+    validate_outbound_endpoint,
+    validate_outbound_hostname,
+)
 from apps.base.models import FileCodes, KeyValue
 from apps.base.utils import get_expire_info
 from apps.base.local_share import (
@@ -1568,6 +1574,27 @@ class ConfigService:
         if candidate_background != current_background:
             try:
                 validate_background_url(candidate_background)
+            except ValueError as exc:
+                raise HTTPException(status_code=400, detail=str(exc))
+
+        # 只校验"发生变化"的值：企业内网 minio/webdav 是正当场景，存量部署历史
+        # 合法写入的内网 endpoint 若每次保存都重新校验，会连无关设置都保存不了
+        # （background 曾有同款回归，上游 #528 修复过——本处沿用同一语义）。
+        # s3_hostname 是裸主机名（存储层按 https://{hostname} 拼接），单独分档校验。
+        for endpoint_key in OUTBOUND_ENDPOINT_CONFIG_KEYS:
+            if endpoint_key not in next_config:
+                continue
+            candidate = str(next_config[endpoint_key] or "")
+            current = str(getattr(settings, endpoint_key, "") or "")
+            if candidate == current:
+                continue
+            validator = (
+                validate_outbound_hostname
+                if endpoint_key == "s3_hostname"
+                else validate_outbound_endpoint
+            )
+            try:
+                validator(candidate)
             except ValueError as exc:
                 raise HTTPException(status_code=400, detail=str(exc))
 
