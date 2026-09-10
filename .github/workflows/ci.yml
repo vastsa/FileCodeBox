@@ -1,0 +1,63 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - master
+      - dev
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Lint and test
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          # The hashed lockfile is the deploy artifact; install from it with
+          # --require-hashes so CI fails on lockfile drift, exactly like the
+          # Docker build does.
+          pip install --require-hashes -r requirements.lock.txt
+          pip install pytest pytest-asyncio httpx
+
+      - name: Ruff
+        run: pipx run ruff==0.16.6 check .
+
+      - name: Verify lockfile matches requirements.txt
+        # Dependabot bumps requirements.txt but cannot regenerate the hashed
+        # lockfile; without this check a stale lockfile would silently keep
+        # the Docker build on old versions.
+        run: |
+          python - <<'PY'
+          import re, sys
+          pins = dict(re.findall(r'^([\w-]+)==([\w.]+)$', open('requirements.txt').read(), re.M))
+          lock = open('requirements.lock.txt').read()
+          stale = []
+          for name, ver in pins.items():
+              m = re.search(rf'(?mi)^{re.escape(name)}==([\w.]+)\b', lock)
+              if m is None or m.group(1) != ver:
+                  stale.append((name, ver, m.group(1) if m else 'ABSENT'))
+          for name, req_ver, lock_ver in stale:
+              print(f'STALE LOCKFILE: {name} requirements.txt={req_ver} lock={lock_ver}')
+          sys.exit(1 if stale else 0)
+          PY
+
+      - name: Run tests
+        run: pytest -q
