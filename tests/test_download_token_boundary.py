@@ -49,3 +49,19 @@ class TestDownloadTokenBoundary:
             "/share/download", params={"key": foreign_token, "code": code}
         )
         assert response.status_code == 403
+
+
+@pytest.mark.asyncio
+class TestDownloadTokenMalformedInput:
+    async def test_non_ascii_key_rejected_not_500(self, initialized_client):
+        """compare_digest(str) 会在非 ASCII 输入时抛 TypeError——必须以字节比较。"""
+        share = await initialized_client.post(
+            "/share/text", data={"text": "token fixture", "expire_style": "day"}
+        )
+        assert share.status_code == 200
+        code = share.json()["detail"]["code"]
+
+        response = await initialized_client.get(
+            "/share/download", params={"key": "密钥" * 32, "code": code}
+        )
+        assert response.status_code == 403

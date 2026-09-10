@@ -250,7 +250,10 @@ async def download_file(key: str, code: str, ip: str = Depends(ip_limit["error"]
         await get_select_token(normalized_code, offset=0),
         await get_select_token(normalized_code, offset=1),
     ]
-    if not any(hmac.compare_digest(key, candidate) for candidate in valid_keys):
+    if not any(
+        hmac.compare_digest(key.encode(), candidate.encode())
+        for candidate in valid_keys
+    ):
         ip_limit["error"].add_ip(ip)
         raise HTTPException(status_code=403, detail="下载鉴权失败")
     has, file_code = await get_code_file_by_code(normalized_code)
