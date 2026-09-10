@@ -27,10 +27,10 @@ FileCodeBox 提供了功能完善的管理面板，让管理员可以方便地�
 
 | 配置项 | 类型 | 默认值 | 说明 |
 |--------|------|--------|------|
-| `showAdminAddr` | int | `0` | 是否在首页显示管理入口（1=显示，0=隐藏） |
+| `show_admin_addr` | int | `0` | 是否在首页显示管理入口（1=显示，0=隐藏） |
 
 ::: warning 安全建议
-在公开服务中，建议保持 `showAdminAddr` 为 `0`，通过直接访问 `/admin` 路径进入管理面板，减少被恶意扫描的风险。
+在公开服务中，建议保持 `show_admin_addr` 为 `0`，通过直接访问 `/admin` 路径进入管理面板，减少被恶意扫描的风险。
 :::
 
 ### 认证机制
@@ -239,15 +239,15 @@ FileCodeBox 提供了功能完善的管理面板，让管理员可以方便地�
 | 类别 | 配置项示例 |
 |------|------------|
 | 基础设置 | `name`, `description`, `keywords`, `notify_title`, `notify_content` |
-| 上传设置 | `uploadSize`, `uploadMinute`, `uploadCount`, `openUpload`, `enableChunk` |
-| 过期设置 | `expireStyle`, `max_save_seconds` |
-| 主题设置 | `themesSelect`, `opacity`, `background` |
-| 安全设置 | `admin_token`, `showAdminAddr`, `errorMinute`, `errorCount` |
+| 上传设置 | `upload_size`, `upload_minute`, `upload_count`, `open_upload`, `enable_chunk` |
+| 过期设置 | `expire_style`, `max_save_seconds` |
+| 主题设置 | `themes_select`, `opacity`, `background` |
+| 安全设置 | `admin_token`, `show_admin_addr`, `error_minute`, `error_count` |
 | 存储设置 | `file_storage`, `storage_path` 及各存储后端的配置 |
 
 ::: warning 注意
 - `admin_token`（管理员密码）不能设置为空
-- `themesChoices`（主题列表）不可通过管理面板修改
+- `themes_choices`（主题列表）不可通过管理面板修改
 - 修改存储设置后，已有文件不会自动迁移
 :::
 
@@ -381,7 +381,7 @@ Content-Type: application/json
 
 {
     "admin_token": "new-password",
-    "uploadSize": 52428800
+    "upload_size": 52428800
 }
 ```
 

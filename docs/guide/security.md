@@ -34,14 +34,14 @@ FileCodeBox 首次启动时不会生成默认管理员密码。请在浏览器�
 
 ### 隐藏管理入口
 
-默认情况下，管理面板入口是隐藏的。您可以通过 `showAdminAddr` 配置控制是否在首页显示管理入口：
+默认情况下，管理面板入口是隐藏的。您可以通过 `show_admin_addr` 配置控制是否在首页显示管理入口：
 
 | 配置项 | 类型 | 默认值 | 说明 |
 |--------|------|--------|------|
-| `showAdminAddr` | int | `0` | 是否显示管理入口（1=显示，0=隐藏） |
+| `show_admin_addr` | int | `0` | 是否显示管理入口（1=显示，0=隐藏） |
 
 ::: tip 建议
-在公开服务中，建议保持 `showAdminAddr` 为 `0`，通过直接访问 `/admin` 路径进入管理面板。
+在公开服务中，建议保持 `show_admin_addr` 为 `0`，通过直接访问 `/admin` 路径进入管理面板。
 :::
 
 ## IP 速率限制
@@ -54,12 +54,12 @@ FileCodeBox 内置了基于 IP 的速率限制机制，可以有效防止滥用�
 
 | 配置项 | 类型 | 默认值 | 说明 |
 |--------|------|--------|------|
-| `uploadMinute` | int | `1` | 上传限制的时间窗口（分钟） |
-| `uploadCount` | int | `10` | 在时间窗口内允许的最大上传次数 |
+| `upload_minute` | int | `1` | 上传限制的时间窗口（分钟） |
+| `upload_count` | int | `10` | 在时间窗口内允许的最大上传次数 |
 
 **工作原理：**
 - 系统记录每个 IP 的上传请求
-- 当某 IP 在 `uploadMinute` 分钟内的上传次数达到 `uploadCount` 时
+- 当某 IP 在 `upload_minute` 分钟内的上传次数达到 `upload_count` 时
 - 该 IP 的后续上传请求将被拒绝，返回 HTTP 423 错误
 - 等待时间窗口过期后，计数器重置
 
@@ -68,14 +68,14 @@ FileCodeBox 内置了基于 IP 的速率限制机制，可以有效防止滥用�
 ```python
 # 宽松配置：5分钟内最多上传20次
 {
-    "uploadMinute": 5,
-    "uploadCount": 20
+    "upload_minute": 5,
+    "upload_count": 20
 }
 
 # 严格配置：1分钟内最多上传3次
 {
-    "uploadMinute": 1,
-    "uploadCount": 3
+    "upload_minute": 1,
+    "upload_count": 3
 }
 ```
 
@@ -85,13 +85,13 @@ FileCodeBox 内置了基于 IP 的速率限制机制，可以有效防止滥用�
 
 | 配置项 | 类型 | 默认值 | 说明 |
 |--------|------|--------|------|
-| `errorMinute` | int | `1` | 错误限制的时间窗口（分钟） |
-| `errorCount` | int | `10` | 在时间窗口内允许的最大错误次数 |
+| `error_minute` | int | `1` | 错误限制的时间窗口（分钟） |
+| `error_count` | int | `10` | 在时间窗口内允许的最大错误次数 |
 
 **工作原理：**
 - 当用户输入错误的提取码时，系统记录该 IP 的错误次数
-- 当错误次数达到 `errorCount` 时，该 IP 将被暂时锁定
-- 锁定时间为 `errorMinute` 分钟
+- 当错误次数达到 `error_count` 时，该 IP 将被暂时锁定
+- 锁定时间为 `error_minute` 分钟
 - 锁定期间，该 IP 的所有提取请求都将被拒绝
 
 **配置示例：**
@@ -99,8 +99,8 @@ FileCodeBox 内置了基于 IP 的速率限制机制，可以有效防止滥用�
 ```python
 # 防暴力破解配置：5分钟内最多允许3次错误
 {
-    "errorMinute": 5,
-    "errorCount": 3
+    "error_minute": 5,
+    "error_count": 3
 }
 ```
 
@@ -114,8 +114,8 @@ FileCodeBox 内置了基于 IP 的速率限制机制，可以有效防止滥用�
 
 | 配置项 | 类型 | 默认值 | 说明 |
 |--------|------|--------|------|
-| `uploadSize` | int | `10485760` | 单文件最大上传大小（字节），默认 10MB |
-| `openUpload` | int | `1` | 是否开启上传功能（1=开启，0=关闭） |
+| `upload_size` | int | `10485760` | 单文件最大上传大小（字节），默认 10MB |
+| `open_upload` | int | `1` | 是否开启上传功能（1=开启，0=关闭） |
 
 **常用大小换算：**
 - 10MB = 10 * 1024 * 1024 = `10485760`
@@ -129,7 +129,7 @@ FileCodeBox 内置了基于 IP 的速率限制机制，可以有效防止滥用�
 
 | 配置项 | 类型 | 默认值 | 说明 |
 |--------|------|--------|------|
-| `expireStyle` | list | `["day","hour","minute","forever","count"]` | 可选的过期方式 |
+| `expire_style` | list | `["day","hour","minute","forever","count"]` | 可选的过期方式 |
 | `max_save_seconds` | int | `0` | 文件最大保存时间（秒），0 表示不限制 |
 
 **过期方式说明：**
@@ -149,7 +149,7 @@ FileCodeBox 内置了基于 IP 的速率限制机制，可以有效防止滥用�
 ```python
 # 公开服务推荐配置
 {
-    "expireStyle": ["hour", "minute", "count"],
+    "expire_style": ["hour", "minute", "count"],
     "max_save_seconds": 86400  # 最长保存1天
 }
 ```
@@ -160,7 +160,7 @@ FileCodeBox 内置了基于 IP 的速率限制机制，可以有效防止滥用�
 
 ```python
 {
-    "openUpload": 0  # 关闭上传功能
+    "open_upload": 0  # 关闭上传功能
 }
 ```
 
@@ -196,7 +196,7 @@ server {
     add_header X-XSS-Protection "1; mode=block" always;
     add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
     
-    # 限制请求体大小（与 uploadSize 配置一致）
+    # 限制请求体大小（与 upload_size 配置一致）
     client_max_body_size 100M;
     
     # 传递真实 IP
@@ -235,7 +235,7 @@ proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
 
 **2. 请求体大小限制**
 
-Nginx 的 `client_max_body_size` 应该与 FileCodeBox 的 `uploadSize` 配置一致或略大：
+Nginx 的 `client_max_body_size` 应该与 FileCodeBox 的 `upload_size` 配置一致或略大：
 
 ```nginx
 client_max_body_size 100M;  # 允许上传最大 100MB
@@ -268,7 +268,7 @@ your-domain.com {
 部署 FileCodeBox 前，请确认以下安全配置：
 
 - [ ] 已完成首次初始化并设置管理员密码 `admin_token`
-- [ ] 已隐藏管理入口 `showAdminAddr: 0`
+- [ ] 已隐藏管理入口 `show_admin_addr: 0`
 - [ ] 已配置合适的上传频率限制
 - [ ] 已配置错误次数限制防止暴力破解
 - [ ] 已设置合理的文件大小限制
@@ -284,15 +284,15 @@ your-domain.com {
 ```python
 {
     "admin_token": "your-very-secure-password",
-    "showAdminAddr": 0,
-    "uploadSize": 10485760,           # 10MB
-    "uploadMinute": 1,
-    "uploadCount": 5,
-    "errorMinute": 5,
-    "errorCount": 3,
-    "expireStyle": ["hour", "minute", "count"],
+    "show_admin_addr": 0,
+    "upload_size": 10485760,           # 10MB
+    "upload_minute": 1,
+    "upload_count": 5,
+    "error_minute": 5,
+    "error_count": 3,
+    "expire_style": ["hour", "minute", "count"],
     "max_save_seconds": 86400,        # 最长1天
-    "openUpload": 1
+    "open_upload": 1
 }
 ```
 
@@ -301,15 +301,15 @@ your-domain.com {
 ```python
 {
     "admin_token": "internal-secure-password",
-    "showAdminAddr": 1,
-    "uploadSize": 104857600,          # 100MB
-    "uploadMinute": 5,
-    "uploadCount": 50,
-    "errorMinute": 1,
-    "errorCount": 5,
-    "expireStyle": ["day", "hour", "forever"],
+    "show_admin_addr": 1,
+    "upload_size": 104857600,          # 100MB
+    "upload_minute": 5,
+    "upload_count": 50,
+    "error_minute": 1,
+    "error_count": 5,
+    "expire_style": ["day", "hour", "forever"],
     "max_save_seconds": 0,            # 不限制
-    "openUpload": 1
+    "open_upload": 1
 }
 ```
 

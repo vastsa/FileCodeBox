@@ -34,14 +34,14 @@ Change the admin password through the admin panel:
 
 ### Hide Admin Entry
 
-By default, the admin panel entry is hidden. You can control whether to show the admin entry on the homepage via the `showAdminAddr` configuration:
+By default, the admin panel entry is hidden. You can control whether to show the admin entry on the homepage via the `show_admin_addr` configuration:
 
 | Setting | Type | Default | Description |
 |---------|------|---------|-------------|
-| `showAdminAddr` | int | `0` | Show admin entry (1=show, 0=hide) |
+| `show_admin_addr` | int | `0` | Show admin entry (1=show, 0=hide) |
 
 ::: tip Recommendation
-For public services, it's recommended to keep `showAdminAddr` at `0` and access the admin panel directly via the `/admin` path.
+For public services, it's recommended to keep `show_admin_addr` at `0` and access the admin panel directly via the `/admin` path.
 :::
 
 ## IP Rate Limiting
@@ -54,12 +54,12 @@ Limit the number of uploads from a single IP within a specified time:
 
 | Setting | Type | Default | Description |
 |---------|------|---------|-------------|
-| `uploadMinute` | int | `1` | Upload limit time window (minutes) |
-| `uploadCount` | int | `10` | Maximum uploads allowed within the time window |
+| `upload_minute` | int | `1` | Upload limit time window (minutes) |
+| `upload_count` | int | `10` | Maximum uploads allowed within the time window |
 
 **How it works:**
 - System records upload requests from each IP
-- When an IP's upload count reaches `uploadCount` within `uploadMinute` minutes
+- When an IP's upload count reaches `upload_count` within `upload_minute` minutes
 - Subsequent upload requests from that IP will be rejected with HTTP 423 error
 - Counter resets after the time window expires
 
@@ -68,14 +68,14 @@ Limit the number of uploads from a single IP within a specified time:
 ```python
 # Relaxed configuration: Max 20 uploads in 5 minutes
 {
-    "uploadMinute": 5,
-    "uploadCount": 20
+    "upload_minute": 5,
+    "upload_count": 20
 }
 
 # Strict configuration: Max 3 uploads in 1 minute
 {
-    "uploadMinute": 1,
-    "uploadCount": 3
+    "upload_minute": 1,
+    "upload_count": 3
 }
 ```
 
@@ -86,13 +86,13 @@ Limit the number of error attempts from a single IP to prevent brute-force attac
 
 | Setting | Type | Default | Description |
 |---------|------|---------|-------------|
-| `errorMinute` | int | `1` | Error limit time window (minutes) |
-| `errorCount` | int | `10` | Maximum errors allowed within the time window |
+| `error_minute` | int | `1` | Error limit time window (minutes) |
+| `error_count` | int | `10` | Maximum errors allowed within the time window |
 
 **How it works:**
 - When a user enters an incorrect extraction code, the system records the error count for that IP
-- When error count reaches `errorCount`, that IP will be temporarily locked
-- Lock duration is `errorMinute` minutes
+- When error count reaches `error_count`, that IP will be temporarily locked
+- Lock duration is `error_minute` minutes
 - During lockout, all extraction requests from that IP will be rejected
 
 **Configuration example:**
@@ -100,8 +100,8 @@ Limit the number of error attempts from a single IP to prevent brute-force attac
 ```python
 # Anti-brute-force configuration: Max 3 errors in 5 minutes
 {
-    "errorMinute": 5,
-    "errorCount": 3
+    "error_minute": 5,
+    "error_count": 3
 }
 ```
 
@@ -115,8 +115,8 @@ The default allows up to 10 errors per IP each minute. Public services can tight
 
 | Setting | Type | Default | Description |
 |---------|------|---------|-------------|
-| `uploadSize` | int | `10485760` | Maximum single file upload size (bytes), default 10MB |
-| `openUpload` | int | `1` | Enable upload functionality (1=enabled, 0=disabled) |
+| `upload_size` | int | `10485760` | Maximum single file upload size (bytes), default 10MB |
+| `open_upload` | int | `1` | Enable upload functionality (1=enabled, 0=disabled) |
 
 **Common size conversions:**
 - 10MB = 10 * 1024 * 1024 = `10485760`
@@ -130,7 +130,7 @@ Through file expiration mechanisms, you can automatically clean up expired files
 
 | Setting | Type | Default | Description |
 |---------|------|---------|-------------|
-| `expireStyle` | list | `["day","hour","minute","forever","count"]` | Available expiration methods |
+| `expire_style` | list | `["day","hour","minute","forever","count"]` | Available expiration methods |
 | `max_save_seconds` | int | `0` | Maximum file retention time (seconds), 0 means no limit |
 
 **Expiration methods explained:**
@@ -150,7 +150,7 @@ For public services, it's recommended to:
 ```python
 # Recommended configuration for public services
 {
-    "expireStyle": ["hour", "minute", "count"],
+    "expire_style": ["hour", "minute", "count"],
     "max_save_seconds": 86400  # Max retention 1 day
 }
 ```
@@ -161,7 +161,7 @@ In some cases, you may need to temporarily disable upload functionality:
 
 ```python
 {
-    "openUpload": 0  # Disable upload functionality
+    "open_upload": 0  # Disable upload functionality
 }
 ```
 
@@ -197,7 +197,7 @@ server {
     add_header X-XSS-Protection "1; mode=block" always;
     add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
     
-    # Limit request body size (match uploadSize configuration)
+    # Limit request body size (match upload_size configuration)
     client_max_body_size 100M;
     
     # Pass real IP
@@ -236,7 +236,7 @@ proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
 
 **2. Request Body Size Limit**
 
-Nginx's `client_max_body_size` should match or be slightly larger than FileCodeBox's `uploadSize` configuration:
+Nginx's `client_max_body_size` should match or be slightly larger than FileCodeBox's `upload_size` configuration:
 
 ```nginx
 client_max_body_size 100M;  # Allow max 100MB uploads
@@ -269,7 +269,7 @@ your-domain.com {
 Before deploying FileCodeBox, confirm the following security configurations:
 
 - [ ] Completed first-run setup and set the admin password `admin_token`
-- [ ] Hidden admin entry `showAdminAddr: 0`
+- [ ] Hidden admin entry `show_admin_addr: 0`
 - [ ] Configured appropriate upload rate limiting
 - [ ] Configured error rate limiting to prevent brute-force attacks
 - [ ] Set reasonable file size limits
@@ -285,15 +285,15 @@ Before deploying FileCodeBox, confirm the following security configurations:
 ```python
 {
     "admin_token": "your-very-secure-password",
-    "showAdminAddr": 0,
-    "uploadSize": 10485760,           # 10MB
-    "uploadMinute": 1,
-    "uploadCount": 5,
-    "errorMinute": 5,
-    "errorCount": 3,
-    "expireStyle": ["hour", "minute", "count"],
+    "show_admin_addr": 0,
+    "upload_size": 10485760,           # 10MB
+    "upload_minute": 1,
+    "upload_count": 5,
+    "error_minute": 5,
+    "error_count": 3,
+    "expire_style": ["hour", "minute", "count"],
     "max_save_seconds": 86400,        # Max 1 day
-    "openUpload": 1
+    "open_upload": 1
 }
 ```
 
@@ -302,15 +302,15 @@ Before deploying FileCodeBox, confirm the following security configurations:
 ```python
 {
     "admin_token": "internal-secure-password",
-    "showAdminAddr": 1,
-    "uploadSize": 104857600,          # 100MB
-    "uploadMinute": 5,
-    "uploadCount": 50,
-    "errorMinute": 1,
-    "errorCount": 5,
-    "expireStyle": ["day", "hour", "forever"],
+    "show_admin_addr": 1,
+    "upload_size": 104857600,          # 100MB
+    "upload_minute": 5,
+    "upload_count": 50,
+    "error_minute": 1,
+    "error_count": 5,
+    "expire_style": ["day", "hour", "forever"],
     "max_save_seconds": 0,            # No limit
-    "openUpload": 1
+    "open_upload": 1
 }
 ```
 

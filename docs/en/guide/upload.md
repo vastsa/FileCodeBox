@@ -51,7 +51,7 @@ Paste upload only supports image formats, not other file types. Specific support
 
 | Setting | Default | Description |
 |---------|---------|-------------|
-| `uploadSize` | 10MB | Maximum single file upload size |
+| `upload_size` | 10MB | Maximum single file upload size |
 
 ### Modify Upload Limits
 
@@ -59,11 +59,11 @@ Administrators can modify upload size limits through the admin panel or configur
 
 ```python
 # Set maximum upload size to 100MB
-uploadSize = 104857600  # 100 * 1024 * 1024
+upload_size = 104857600  # 100 * 1024 * 1024
 ```
 
 ::: info Note
-`uploadSize` is in bytes. Common conversions:
+`upload_size` is in bytes. Common conversions:
 - 10MB = 10485760
 - 50MB = 52428800
 - 100MB = 104857600
@@ -147,7 +147,7 @@ curl -L "http://localhost:12345/share/select/?code=YOUR_CODE" -o downloaded_file
 ```
 
 ::: tip When Authentication Required
-If guest upload is disabled in admin panel (`openUpload=0`), you need to login first:
+If guest upload is disabled in admin panel (`open_upload=0`), you need to login first:
 
 ```bash
 # 1. Login to get token
@@ -175,7 +175,7 @@ curl -X POST "http://localhost:12345/share/text/" \
 For large files, FileCodeBox supports chunked upload functionality. Chunked upload splits large files into multiple small chunks for separate uploading, supporting resume capability.
 
 ::: warning Prerequisite
-Chunked upload functionality requires administrator enablement: `enableChunk=1`
+Chunked upload functionality requires administrator enablement: `enable_chunk=1`
 :::
 
 ### Chunked Upload Flow
@@ -363,7 +363,7 @@ await fetch(`/chunk/upload/complete/${upload_id}`, {
 
 | HTTP Status | Error Message | Cause | Solution |
 |-------------|---------------|-------|----------|
-| 403 | Size exceeds limit | File exceeds `uploadSize` limit | Reduce file size or contact administrator to adjust limit |
+| 403 | Size exceeds limit | File exceeds `upload_size` limit | Reduce file size or contact administrator to adjust limit |
 | 403 | Upload rate limit | Exceeded IP upload rate limit | Wait for limit time window before retrying |
 | 400 | Invalid expiration type | `expire_style` value not in allowed list | Use a valid expiration method |
 | 404 | Upload session not found | `upload_id` invalid or expired | Re-initialize upload |
@@ -376,8 +376,8 @@ The system has rate limits on upload operations to prevent abuse:
 
 | Setting | Default | Description |
 |---------|---------|-------------|
-| `uploadMinute` | 1 | Limit time window (minutes) |
-| `uploadCount` | 10 | Maximum uploads within time window |
+| `upload_minute` | 1 | Limit time window (minutes) |
+| `upload_count` | 10 | Maximum uploads within time window |
 
 When rate limit is exceeded, you need to wait for the time window to pass before continuing uploads.
 
@@ -395,26 +395,26 @@ When rate limit is exceeded, you need to wait for the time window to pass before
 
 | Setting | Type | Default | Description |
 |---------|------|---------|-------------|
-| `openUpload` | int | 1 | Enable upload (1=enabled, 0=disabled) |
-| `uploadSize` | int | 10485760 | Maximum upload size (bytes) |
-| `enableChunk` | int | 0 | Enable chunked upload (1=enabled, 0=disabled) |
-| `uploadMinute` | int | 1 | Upload rate limit time window (minutes) |
-| `uploadCount` | int | 10 | Maximum uploads within time window |
-| `expireStyle` | list | ["day","hour","minute","forever","count"] | Allowed expiration methods |
+| `open_upload` | int | 1 | Enable upload (1=enabled, 0=disabled) |
+| `upload_size` | int | 10485760 | Maximum upload size (bytes) |
+| `enable_chunk` | int | 0 | Enable chunked upload (1=enabled, 0=disabled) |
+| `upload_minute` | int | 1 | Upload rate limit time window (minutes) |
+| `upload_count` | int | 10 | Maximum uploads within time window |
+| `expire_style` | list | ["day","hour","minute","forever","count"] | Allowed expiration methods |
 
 ### Configuration Example
 
 ```python
 # Allow 100MB file uploads, enable chunked upload
-uploadSize = 104857600
-enableChunk = 1
+upload_size = 104857600
+enable_chunk = 1
 
 # Relax upload rate limit: max 50 uploads per 5 minutes
-uploadMinute = 5
-uploadCount = 50
+upload_minute = 5
+upload_count = 50
 
 # Only allow expiration by days and count
-expireStyle = ["day", "count"]
+expire_style = ["day", "count"]
 ```
 
 ## Next Steps
