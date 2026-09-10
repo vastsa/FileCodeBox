@@ -620,38 +620,12 @@ async def update_file(
     data: UpdateFileData,
     file_service: FileService = Depends(get_file_service),
 ):
-    file_code = await FileCodes.filter(id=data.id).first()
-    if not file_code:
-        raise HTTPException(status_code=404, detail="文件不存在")
-    target_name = file_service._build_file_activity_name(file_code)
-    update_data = {}
-
-    if data.code is not None and data.code != file_code.code:
-        # 判断code是否存在
-        if await FileCodes.filter(code=data.code).first():
-            raise HTTPException(status_code=400, detail="code已存在")
-        update_data["code"] = data.code
-    if data.prefix is not None and data.prefix != file_code.prefix:
-        update_data["prefix"] = data.prefix
-    if data.suffix is not None and data.suffix != file_code.suffix:
-        update_data["suffix"] = data.suffix
-    if (
-        data.expired_at is not None
-        and data.expired_at != ""
-        and data.expired_at != file_code.expired_at
-    ):
-        update_data["expired_at"] = data.expired_at
-    if data.expired_count is not None and data.expired_count != file_code.expired_count:
-        update_data["expired_count"] = data.expired_count
-
-    await file_code.update_from_dict(update_data).save()
-    if update_data:
-        await file_service.record_admin_activity(
-            action="file.update",
-            target_type="file",
-            target_id=data.id,
-            target_name=target_name,
-            count=1,
-            meta={"fields": sorted(update_data.keys())},
-        )
+    await file_service.update_file(
+        file_id=data.id,
+        code=data.code,
+        prefix=data.prefix,
+        suffix=data.suffix,
+        expired_at=data.expired_at,
+        expired_count=data.expired_count,
+    )
     return APIResponse(detail="更新成功")

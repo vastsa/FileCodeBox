@@ -212,6 +212,46 @@ class FileService:
             "failed": failed,
         }
 
+    async def update_file(
+        self,
+        file_id: int,
+        code: Optional[str] = None,
+        prefix: Optional[str] = None,
+        suffix: Optional[str] = None,
+        expired_at: Optional[Any] = None,
+        expired_count: Optional[int] = None,
+    ) -> dict[str, Any]:
+        file_code = await FileCodes.filter(id=file_id).first()
+        if not file_code:
+            raise HTTPException(status_code=404, detail="文件不存在")
+
+        update_data: dict[str, Any] = {}
+        if code is not None and code != file_code.code:
+            if await FileCodes.filter(code=code).first():
+                raise HTTPException(status_code=400, detail="code已存在")
+            update_data["code"] = code
+        if prefix is not None and prefix != file_code.prefix:
+            update_data["prefix"] = prefix
+        if suffix is not None and suffix != file_code.suffix:
+            update_data["suffix"] = suffix
+        if expired_at is not None and expired_at != "" and expired_at != file_code.expired_at:
+            update_data["expired_at"] = expired_at
+        if expired_count is not None and expired_count != file_code.expired_count:
+            update_data["expired_count"] = expired_count
+
+        if update_data:
+            target_name = self._build_file_activity_name(file_code)
+            await file_code.update_from_dict(update_data).save()
+            await self.record_admin_activity(
+                action="file.update",
+                target_type="file",
+                target_id=file_id,
+                target_name=target_name,
+                count=1,
+                meta={"fields": sorted(update_data.keys())},
+            )
+        return {"updated": bool(update_data), "fields": sorted(update_data.keys())}
+
     async def apply_file_policy_action(
         self,
         file_id: int,
