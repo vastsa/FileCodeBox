@@ -65,6 +65,20 @@ class StoredFile:
         return f"{self.file_path}/{self.uuid_file_name}"
 
 
+
+def build_attachment_headers(filename: str, content_length=None) -> dict:
+    """所有存储后端统一的下载响应头。
+
+    Content-Disposition: attachment 是防御存储型 XSS 的关键——同源下载路径
+    （/share/download）因此永不内联渲染 HTML/SVG。此函数是唯一构造点，
+    新增后端必须复用（tests/test_attachment_guard.py 有源码级 tripwire）。
+    """
+    encoded_filename = quote(filename, safe="")
+    headers = {"Content-Disposition": f"attachment; filename*=UTF-8''{encoded_filename}"}
+    if content_length is not None:
+        headers["Content-Length"] = str(content_length)
+    return headers
+
 class FileStorageInterface:
 
     @staticmethod
@@ -224,17 +238,11 @@ class SystemFileStorage(FileStorageInterface):
         if not file_path.exists():
             raise StorageError(status_code=404, detail="文件已过期删除")
         filename = f"{file_code.prefix}{file_code.suffix}"
-        encoded_filename = quote(filename, safe='')
-        content_disposition = f"attachment; filename*=UTF-8''{encoded_filename}"
-        
-        # 尝试获取文件系统大小，如果成功则设置 Content-Length
-        headers = {"Content-Disposition": content_disposition}
         try:
-            content_length = file_path.stat().st_size
-            headers["Content-Length"] = str(content_length)
-        except Exception:
-            # 如果获取文件大小失败，则不提供 Content-Length
-            pass
+            headers = build_attachment_headers(filename, file_path.stat().st_size)
+        except OSError:
+            # 文件大小不可得时省略 Content-Length
+            headers = build_attachment_headers(filename)
         
         return StoredDownload(
             filename=filename,
@@ -451,12 +459,7 @@ class S3FileStorage(FileStorageInterface):
                 finally:
                     await session.close()
             
-            encoded_filename = quote(filename, safe='')
-            headers = {
-                "Content-Disposition": f"attachment; filename*=UTF-8''{encoded_filename}"
-            }
-            if content_length is not None:
-                headers["Content-Length"] = str(content_length)
+            headers = build_attachment_headers(filename, content_length)
             return StoredDownload(
                 filename=filename,
                 headers=headers,
@@ -803,12 +806,7 @@ class OneDriveFileStorage(FileStorageInterface):
                 finally:
                     await session.close()
             
-            encoded_filename = quote(filename, safe='')
-            headers = {
-                "Content-Disposition": f"attachment; filename*=UTF-8''{encoded_filename}"
-            }
-            if content_length is not None:
-                headers["Content-Length"] = str(content_length)
+            headers = build_attachment_headers(filename, content_length)
             return StoredDownload(
                 filename=filename,
                 headers=headers,
@@ -1007,12 +1005,7 @@ class OpenDALFileStorage(FileStorageInterface):
             except AttributeError:
                 # 如果 reader 方法不存在，回退到全量读取（兼容旧版本）
                 content = await self.operator.read(file_code.get_file_path())
-                encoded_filename = quote(filename, safe='')
-                headers = {
-                    "Content-Disposition": f"attachment; filename*=UTF-8''{encoded_filename}"
-                }
-                if content_length is not None:
-                    headers["Content-Length"] = str(content_length)
+                headers = build_attachment_headers(filename, content_length)
                 return StoredDownload(
                     filename=filename,
                     headers=headers,
@@ -1027,12 +1020,7 @@ class OpenDALFileStorage(FileStorageInterface):
                         break
                     yield chunk
             
-            encoded_filename = quote(filename, safe='')
-            headers = {
-                "Content-Disposition": f"attachment; filename*=UTF-8''{encoded_filename}"
-            }
-            if content_length is not None:
-                headers["Content-Length"] = str(content_length)
+            headers = build_attachment_headers(filename, content_length)
             return StoredDownload(
                 filename=filename,
                 headers=headers,
@@ -1275,12 +1263,7 @@ class WebDAVFileStorage(FileStorageInterface):
                 finally:
                     await session.close()
             
-            encoded_filename = quote(filename, safe='')
-            headers = {
-                "Content-Disposition": f"attachment; filename*=UTF-8''{encoded_filename}"
-            }
-            if content_length is not None:
-                headers["Content-Length"] = str(content_length)
+            headers = build_attachment_headers(filename, content_length)
             return StoredDownload(
                 filename=filename,
                 headers=headers,
