@@ -19,7 +19,7 @@ class AdminAddressPublicConfigTests(unittest.TestCase):
                 settings.show_admin_addr = configured_value
 
                 public_value = build_public_config()["show_admin_address"]
-                feature_value = build_public_meta()["features"]["adminAddressVisible"]
+                feature_value = build_public_meta()["features"]["admin_address_visible"]
 
                 self.assertIs(type(public_value), int)
                 self.assertEqual(public_value, expected_value)
