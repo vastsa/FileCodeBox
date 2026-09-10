@@ -15,7 +15,13 @@ from tortoise.expressions import Case, F, Q, When
 from apps.admin.dependencies import share_required_login
 from apps.base.models import FileCodes, UploadChunk, PresignUploadSession
 from apps.base.quota import release_storage, reserve_storage
-from apps.base.services import FileUploadService, response_from_download, rollback_saved_file, stored_file_of
+from apps.base.services import (
+    PRESIGN_SESSION_EXPIRES,
+    FileUploadService,
+    response_from_download,
+    stored_file_of,
+    validate_file_size,
+)
 from core.storage import StoredFile
 from core.logger import logger
 from apps.base.schemas import (
@@ -26,8 +32,6 @@ from apps.base.schemas import (
 )
 from apps.base.file_validation import validate_file_type, validate_upload_file, validate_header_bytes
 from apps.base.utils import (
-    get_expire_info,
-    get_file_path_name,
     ip_limit,
     get_chunk_file_path_name,
     validate_expire_style,
@@ -48,26 +52,6 @@ share_api = APIRouter(prefix="/share", tags=["分享"])
 # ============ 公共服务层 ============
 
 
-async def validate_file_size(file: UploadFile, max_size: int) -> int:
-    size = file.size
-    if size is None:
-        await file.seek(0, 2)  # type: ignore[arg-type]
-        size = file.file.tell()
-        await file.seek(0)
-    if size > max_size:
-        max_size_mb = max_size / (1024 * 1024)
-        raise HTTPException(
-            status_code=403, detail=f"大小超过限制,最大为{max_size_mb:.2f} MB"
-        )
-    return size
-
-
-
-
-async def create_file_code(code, **kwargs):
-    return await FileCodes.create(code=code, **kwargs)
-
-
 def normalize_share_code(code: str) -> str:
     return str(code or "").strip()
 
@@ -85,23 +69,7 @@ async def share_text(
     if text_size > max_txt_size:
         raise HTTPException(status_code=403, detail="内容过多,建议采用文件形式")
 
-    reservation_token = f"text:{uuid.uuid4().hex}"
-    await reserve_storage(reservation_token, text_size, ttl_seconds=300)
-    try:
-        expired_at, expired_count, used_count, code = await get_expire_info(
-            expire_value, expire_style
-        )
-        await create_file_code(
-            code=code,
-            text=text,
-            expired_at=expired_at,
-            expired_count=expired_count,
-            used_count=used_count,
-            size=text_size,
-            prefix="Text",
-        )
-    finally:
-        await release_storage(reservation_token)
+    code = await FileUploadService.create_text_share(text, expire_value, expire_style)
     ip_limit["upload"].add_ip(ip)
     return APIResponse(detail={"code": code})
 
@@ -116,35 +84,11 @@ async def share_file(
     file_size = await validate_file_size(file, settings.upload_size)
     await validate_upload_file(file)
     validate_expire_style(expire_style)
-    path, suffix, prefix, uuid_file_name, save_path = await get_file_path_name(file)
-    reservation_token = f"file:{uuid.uuid4().hex}"
-    await reserve_storage(reservation_token, file_size, ttl_seconds=3600)
-    file_storage: FileStorageInterface = storages[settings.file_storage]()
-    try:
-        expired_at, expired_count, used_count, code = await get_expire_info(
-            expire_value, expire_style
-        )
-        await file_storage.save_file(file.file, save_path, file.content_type)
-        await create_file_code(
-            code=code,
-            prefix=prefix,
-            suffix=suffix,
-            uuid_file_name=uuid_file_name,
-            file_path=path,
-            size=file_size,
-            expired_at=expired_at,
-            expired_count=expired_count,
-            used_count=used_count,
-        )
-    except Exception:
-        await rollback_saved_file(
-            file_storage, path, uuid_file_name, context="分享上传"
-        )
-        raise
-    finally:
-        await release_storage(reservation_token)
+    detail = await FileUploadService.create_file_share(
+        file, size=file_size, expire_value=expire_value, expire_style=expire_style
+    )
     ip_limit["upload"].add_ip(ip)
-    return APIResponse(detail={"code": code, "name": file.filename})
+    return APIResponse(detail=detail)
 
 
 async def get_code_file_by_code(
@@ -579,89 +523,15 @@ async def complete_upload(
     if not chunk_info:
         raise HTTPException(status.HTTP_404_NOT_FOUND, detail="上传会话不存在")
     validate_expire_style(data.expire_style)
-    await reserve_storage(
-        f"chunk:{upload_id}",
-        chunk_info.file_size,
-        ttl_seconds=max(1, int(getattr(settings, "chunk_expire_hours", 24))) * 3600,
+    detail = await FileUploadService.complete_chunked_upload(
+        upload_id, chunk_info, data.expire_value, data.expire_style
     )
-
-    storage = storages[settings.file_storage]()
-    # 验证所有分片
-    completed_chunks_list = await UploadChunk.filter(
-        upload_id=upload_id, completed=True
-    ).all()
-    if len(completed_chunks_list) != chunk_info.total_chunks:
-        raise HTTPException(status.HTTP_400_BAD_REQUEST, detail="分片不完整")
-
-    # 用分片数 * chunk_size 校验最大可能大小
-    max_total_size = len(completed_chunks_list) * chunk_info.chunk_size
-    if max_total_size > settings.upload_size:
-        save_path = chunk_info.save_path
-        if save_path:
-            try:
-                await storage.clean_chunks(upload_id, save_path)
-            except Exception:
-                logger.warning("分片超限中止：清理分片文件失败 upload_id=%s", upload_id, exc_info=True)
-        await UploadChunk.filter(upload_id=upload_id).delete()
-        await release_storage(f"chunk:{upload_id}")
-        max_size_mb = settings.upload_size / (1024 * 1024)
-        raise HTTPException(
-            status_code=403, detail=f"实际上传大小超过限制，最大为 {max_size_mb:.2f} MB"
-        )
-
-    save_path = chunk_info.save_path
-    path = os.path.dirname(save_path) if save_path else ""
-    safe_file_name = os.path.basename(save_path) if save_path else ""
-    prefix, suffix = os.path.splitext(safe_file_name)
-
-    try:
-        # 合并文件并计算哈希
-        records = {r.chunk_index: r for r in completed_chunks_list}
-        _, file_hash = await storage.merge_chunks(
-            upload_id, chunk_info.total_chunks, chunk_info.chunk_size, save_path, records
-        )
-        # 创建文件记录
-        expired_at, expired_count, used_count, code = await get_expire_info(
-            data.expire_value, data.expire_style
-        )
-        await FileCodes.create(
-            code=code,
-            file_hash=file_hash,  # 使用合并后计算的哈希
-            is_chunked=True,
-            upload_id=upload_id,
-            size=chunk_info.file_size,
-            expired_at=expired_at,
-            expired_count=expired_count,
-            used_count=used_count,
-            file_path=path,
-            uuid_file_name=safe_file_name,
-            prefix=prefix,
-            suffix=suffix,
-        )
-        # 清理临时文件
-        await storage.clean_chunks(upload_id, save_path)
-        # 清理数据库中的分片记录
-        await UploadChunk.filter(upload_id=upload_id).delete()
-        await release_storage(f"chunk:{upload_id}")
-        ip_limit["upload"].add_ip(ip)
-        return APIResponse(detail={"code": code, "name": safe_file_name})
-    except ValueError as e:
-        raise HTTPException(status.HTTP_400_BAD_REQUEST, detail=str(e))
-    except Exception as e:
-        # 合并失败时清理临时文件
-        try:
-            await storage.clean_chunks(upload_id, save_path)
-        except Exception:
-            logger.warning("分片合并失败：清理临时分片文件失败 upload_id=%s", upload_id, exc_info=True)
-        raise HTTPException(
-            status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"文件合并失败: {str(e)}"
-        )
+    ip_limit["upload"].add_ip(ip)
+    return APIResponse(detail=detail)
 
 
 # ============ 预签名上传API ============
 presign_api = APIRouter(prefix="/presign", tags=["预签名上传"])
-
-PRESIGN_SESSION_EXPIRES = 900  # 15分钟
 
 
 def build_proxy_upload_urls(upload_id: str) -> dict:
@@ -754,43 +624,7 @@ async def presign_upload_proxy(
 ):
     """代理模式上传，服务器转存到存储后端"""
     session = await _get_valid_session(upload_id, expected_mode="proxy")
-    await reserve_storage(
-        f"presign:{upload_id}",
-        session.file_size,
-        ttl_seconds=PRESIGN_SESSION_EXPIRES,
-    )
-
-    file_size = await validate_file_size(file, settings.upload_size)
-    await validate_upload_file(file)
-    if abs(file_size - session.file_size) > 1024:
-        raise HTTPException(400, "文件大小与声明不符")
-
-    storage: FileStorageInterface = storages[settings.file_storage]()
-    try:
-        await storage.save_file(file.file, session.save_path, file.content_type)
-    except Exception as e:
-        raise HTTPException(500, f"文件保存失败: {str(e)}")
-
-    try:
-        code = await FileUploadService.create_file_record(
-            session.file_name,
-            file_size,
-            os.path.dirname(session.save_path),
-            session.expire_value,
-            session.expire_style,
-        )
-    except Exception:
-        await rollback_saved_file(
-            storage,
-            os.path.dirname(session.save_path),
-            os.path.basename(session.save_path),
-            context="预签名代理上传：记录创建失败",
-            upload_id=session.upload_id,
-        )
-        raise
-
-    await session.delete()
-    await release_storage(f"presign:{upload_id}")
+    code = await FileUploadService.commit_proxy_upload(session, file)
     ip_limit["upload"].add_ip(ip)
     return APIResponse(detail={"code": code, "name": session.file_name})
 
@@ -801,51 +635,7 @@ async def presign_upload_proxy(
 async def presign_upload_confirm(upload_id: str, ip: str = Depends(ip_limit["upload"])):
     """直传确认，客户端完成S3直传后调用获取分享码"""
     session = await _get_valid_session(upload_id, expected_mode="direct")
-    try:
-        await reserve_storage(
-            f"presign:{upload_id}",
-            session.file_size,
-            ttl_seconds=PRESIGN_SESSION_EXPIRES,
-        )
-    except HTTPException:
-        storage: FileStorageInterface = storages[settings.file_storage]()
-        try:
-            if await storage.file_exists(session.save_path):
-                await storage.delete_file(
-                    StoredFile(
-                        file_path=os.path.dirname(session.save_path),
-                        uuid_file_name=os.path.basename(session.save_path),
-                    )
-                )
-        finally:
-            await session.delete()
-            await release_storage(f"presign:{upload_id}")
-        raise
-
-    storage: FileStorageInterface = storages[settings.file_storage]()
-    if not await storage.file_exists(session.save_path):
-        raise HTTPException(404, "文件未上传或上传失败")
-
-    try:
-        code = await FileUploadService.create_file_record(
-            session.file_name,
-            session.file_size,
-            os.path.dirname(session.save_path),
-            session.expire_value,
-            session.expire_style,
-        )
-    except Exception:
-        await rollback_saved_file(
-            storage,
-            os.path.dirname(session.save_path),
-            os.path.basename(session.save_path),
-            context="预签名确认：记录创建失败",
-            upload_id=session.upload_id,
-        )
-        raise
-
-    await session.delete()
-    await release_storage(f"presign:{upload_id}")
+    code = await FileUploadService.confirm_direct_upload(session)
     ip_limit["upload"].add_ip(ip)
     return APIResponse(detail={"code": code, "name": session.file_name})
 
