@@ -76,7 +76,6 @@ Content-Type: application/json
     "upload_id": "a1b2c3d4e5f6...",
     "upload_url": "https://bucket.s3.amazonaws.com/path?X-Amz-Signature=...",
     "mode": "direct",
-    "save_path": "share/data/2024/01/01/uuid/document.pdf",
     "expires_in": 900
   }
 }
@@ -89,7 +88,6 @@ Content-Type: application/json
 | upload_id  | string  | 上传会话 ID，后续操作需要                             |
 | upload_url | string  | 上传目标 URL                                          |
 | mode       | string  | 上传模式：`direct`（直传 S3）或 `proxy`（服务器代理） |
-| save_path  | string  | 文件存储路径                                          |
 | expires_in | integer | URL 有效期（秒），默认 900 秒（15 分钟）              |
 
 **错误响应**
@@ -308,7 +306,6 @@ interface PresignInitResponse {
   upload_id: string
   upload_url: string
   mode: 'direct' | 'proxy'
-  save_path: string
   expires_in: number
 }
 
@@ -448,7 +445,7 @@ async function upload() {
 ## 注意事项
 
 1. **会话有效期**: 上传会话默认 15 分钟后过期，请在有效期内完成上传
-2. **文件大小限制**: 受系统配置 `uploadSize` 限制
+2. **文件大小限制**: 受系统配置 `upload_size` 限制
 3. **过期类型**: 支持 `day`、`hour`、`minute`、`forever`、`count`
 4. **CORS**: 直传模式下，S3 需要配置正确的 CORS 策略
 5. **重试机制**: 建议实现上传失败重试逻辑

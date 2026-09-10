@@ -1,6 +1,6 @@
 # FileCodeBox API Documentation
 
-## API Version: 2.1.0
+## API Version: 2.5.6
 
 ## Table of Contents
 - [Authentication](#authentication)
@@ -30,7 +30,7 @@ curl -X POST "http://localhost:12345/admin/login" \
 ```json
 {
   "code": 200,
-  "msg": "success",
+  "message": "success",
   "detail": {
     "token": "xxx.xxx.xxx",
     "token_type": "Bearer"
@@ -74,7 +74,7 @@ curl -X POST "http://localhost:12345/share/text/" \
 ```json
 {
   "code": 200,
-  "msg": "success",
+  "message": "success",
   "detail": {
     "code": "abc123"
   }
@@ -125,7 +125,7 @@ curl -X POST "http://localhost:12345/share/file/" \
 ```json
 {
   "code": 200,
-  "msg": "success",
+  "message": "success",
   "detail": {
     "code": "abc123",
     "name": "example.txt"
@@ -157,7 +157,7 @@ curl -L "http://localhost:12345/share/select/?code=abc123" -o downloaded_file
 ```json
 {
   "code": 200,
-  "msg": "success",
+  "message": "success",
   "detail": {
     "code": "abc123",
     "name": "example.txt",
@@ -184,7 +184,7 @@ Select file by share code.
 ```json
 {
   "code": 200,
-  "msg": "success",
+  "message": "success",
   "detail": {
     "code": "abc123",
     "name": "example.txt",
@@ -232,15 +232,15 @@ Get system dashboard data.
 ```json
 {
   "code": 200,
-  "msg": "success",
+  "message": "success",
   "detail": {
-    "totalFiles": 100,
-    "storageUsed": "1.5GB",
-    "sysUptime": "10 days",
-    "yesterdayCount": 50,
-    "yesterdaySize": "500MB",
-    "todayCount": 30,
-    "todaySize": "300MB"
+    "total_files": 100,
+    "storage_used": "1610612736",
+    "sys_uptime": 1725489600.0,
+    "yesterday_count": 50,
+    "yesterday_size": "524288000",
+    "today_count": 30,
+    "today_size": "314572800",
   }
 }
 ```
@@ -258,13 +258,15 @@ Get system file list.
 | page | integer | No | 1 | Current page |
 | size | integer | No | 10 | Page size |
 | keyword | string | No | "" | Search keyword |
+| sort_by | string | No | "created_at" | Sort field(created_at/expired_at/name/size/used_count/code) |
+| sort_order | string | No | "desc" | Sort direction(asc/desc) |
 
 **Response Example:**
 
 ```json
 {
   "code": 200,
-  "msg": "success",
+  "message": "success",
   "detail": {
     "page": 1,
     "size": 10,

@@ -1,6 +1,6 @@
 # FileCodeBox API 文档
 
-## API 版本: 2.1.0
+## API 版本: 2.5.6
 
 ## 目录
 - [认证](#认证)
@@ -30,7 +30,7 @@ curl -X POST "http://localhost:12345/admin/login" \
 ```json
 {
   "code": 200,
-  "msg": "success",
+  "message": "success",
   "detail": {
     "token": "xxx.xxx.xxx",
     "token_type": "Bearer"
@@ -74,7 +74,7 @@ curl -X POST "http://localhost:12345/share/text/" \
 ```json
 {
   "code": 200,
-  "msg": "success",
+  "message": "success",
   "detail": {
     "code": "abc123"
   }
@@ -125,7 +125,7 @@ curl -X POST "http://localhost:12345/share/file/" \
 ```json
 {
   "code": 200,
-  "msg": "success",
+  "message": "success",
   "detail": {
     "code": "abc123",
     "name": "example.txt"
@@ -157,7 +157,7 @@ curl -L "http://localhost:12345/share/select/?code=abc123" -o downloaded_file
 ```json
 {
   "code": 200,
-  "msg": "success",
+  "message": "success",
   "detail": {
     "code": "abc123",
     "name": "example.txt",
@@ -184,7 +184,7 @@ curl -L "http://localhost:12345/share/select/?code=abc123" -o downloaded_file
 ```json
 {
   "code": 200,
-  "msg": "success",
+  "message": "success",
   "detail": {
     "code": "abc123",
     "name": "example.txt",
@@ -232,15 +232,15 @@ curl -L "http://localhost:12345/share/select/?code=abc123" -o downloaded_file
 ```json
 {
   "code": 200,
-  "msg": "success",
+  "message": "success",
   "detail": {
-    "totalFiles": 100,
-    "storageUsed": "1.5GB",
-    "sysUptime": "10天",
-    "yesterdayCount": 50,
-    "yesterdaySize": "500MB",
-    "todayCount": 30,
-    "todaySize": "300MB"
+    "total_files": 100,
+    "storage_used": "1610612736",
+    "sys_uptime": 1725489600.0,
+    "yesterday_count": 50,
+    "yesterday_size": "524288000",
+    "today_count": 30,
+    "today_size": "314572800",
   }
 }
 ```
@@ -258,13 +258,15 @@ curl -L "http://localhost:12345/share/select/?code=abc123" -o downloaded_file
 | page | integer | 否 | 1 | 当前页码 |
 | size | integer | 否 | 10 | 每页数量 |
 | keyword | string | 否 | "" | 搜索关键词 |
+| sort_by | string | 否 | "created_at" | 排序字段(created_at/expired_at/name/size/used_count/code) |
+| sort_order | string | 否 | "desc" | 排序方向(asc/desc) |
 
 **响应示例：**
 
 ```json
 {
   "code": 200,
-  "msg": "success",
+  "message": "success",
   "detail": {
     "page": 1,
     "size": 10,

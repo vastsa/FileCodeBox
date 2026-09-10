@@ -205,6 +205,7 @@ export default defineConfig({
               text: 'API Reference',
               items: [
                 { text: 'API Overview', link: '/en/api/' },
+                { text: 'Presigned Upload', link: '/en/api/presign-upload' },
                 { text: 'Share API', link: '/en/api/#share-api' },
                 { text: 'Admin API', link: '/en/api/#admin-api' },
                 { text: 'Error Response', link: '/en/api/#error-response' },
