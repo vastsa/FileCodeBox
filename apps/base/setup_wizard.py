@@ -35,7 +35,7 @@ def build_public_config() -> dict:
         "description": settings.description,
         "explain": settings.page_explain,
         "upload_size": settings.upload_size,
-        "allowedFileTypes": settings.allowed_file_types,
+        "allowed_file_types": settings.allowed_file_types,
         "expire_style": settings.expire_style,
         "enable_chunk": settings.enable_chunk,
         "open_upload": settings.open_upload,
@@ -50,22 +50,22 @@ def build_public_meta() -> dict:
     return {
         "version": APP_VERSION,
         "api": {
-            "legacyConfig": "/",
-            "publicConfig": "/api/v1/config",
+            "legacy_config": "/",
+            "public_config": "/api/v1/config",
             "health": "/health",
         },
         "features": {
-            "chunkUpload": bool(settings.enable_chunk),
-            "guestUpload": bool(settings.open_upload),
-            "adminAddressVisible": bool(normalize_public_flag(settings.show_admin_addr)),
-            "expirationModes": settings.expire_style,
+            "chunk_upload": bool(settings.enable_chunk),
+            "guest_upload": bool(settings.open_upload),
+            "admin_address_visible": bool(normalize_public_flag(settings.show_admin_addr)),
+            "expiration_modes": settings.expire_style,
         },
         "limits": {
             "upload_size": settings.upload_size,
-            "allowedFileTypes": settings.allowed_file_types,
-            "maxSaveSeconds": settings.max_save_seconds,
-            "uploadWindowMinutes": settings.upload_minute,
-            "uploadWindowCount": settings.upload_count,
+            "allowed_file_types": settings.allowed_file_types,
+            "max_save_seconds": settings.max_save_seconds,
+            "upload_window_minutes": settings.upload_minute,
+            "upload_window_count": settings.upload_count,
         },
     }
 
