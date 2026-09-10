@@ -39,21 +39,18 @@ class BatchUpdateFileData(BaseModel):
     ids: list[int]
     expired_at: Optional[Union[datetime.datetime, str]] = None
     expired_count: Optional[int] = None
-    clearExpiredAt: Optional[bool] = None
     clear_expired_at: Optional[bool] = None
 
 
 class FilePolicyActionData(BaseModel):
     id: int
     action: str
-    downloadLimit: Optional[int] = None
     download_limit: Optional[int] = None
 
 
 class BatchFilePolicyActionData(BaseModel):
     ids: list[int]
     action: str
-    downloadLimit: Optional[int] = None
     download_limit: Optional[int] = None
 
 

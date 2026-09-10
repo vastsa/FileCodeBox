@@ -110,11 +110,11 @@ async def build_dashboard_recent_file(file_code: FileCodes) -> dict:
         "suffix": file_code.suffix,
         "size": file_code.size,
         "text": file_code.text is not None,
-        "expiredAt": file_code.expired_at,
-        "expiredCount": file_code.expired_count,
-        "usedCount": file_code.used_count,
-        "createdAt": file_code.created_at,
-        "isExpired": is_expired,
+        "expired_at": file_code.expired_at,
+        "expired_count": file_code.expired_count,
+        "used_count": file_code.used_count,
+        "created_at": file_code.created_at,
+        "is_expired": is_expired,
     }
 
 
@@ -175,35 +175,34 @@ async def dashboard(file_service: FileService = Depends(get_file_service)):
     recent_activities = await file_service.list_admin_activities(limit=8)
     return APIResponse(
         detail={
-            "totalFiles": total_files,
-            "storageUsed": str(all_size),
-            "sysUptime": sys_start.value if sys_start else None,
-            "yesterdayCount": yesterday_count,
-            "yesterdaySize": str(yesterday_size),
-            "todayCount": today_count,
-            "todaySize": str(today_size),
-            "activeCount": total_files - expired_count,
-            "expiredCount": expired_count,
-            "textCount": text_count,
-            "fileCount": total_files - text_count,
-            "chunkedCount": chunked_count,
-            "usedCount": used_count,
-            "storageBackend": settings.file_storage,
-            "uploadSizeLimit": settings.upload_size,
+            "total_files": total_files,
+            "storage_used": str(all_size),
+            "sys_uptime": sys_start.value if sys_start else None,
+            "yesterday_count": yesterday_count,
+            "yesterday_size": str(yesterday_size),
+            "today_count": today_count,
+            "today_size": str(today_size),
+            "active_count": total_files - expired_count,
+            "expired_count": expired_count,
+            "text_count": text_count,
+            "file_count": total_files - text_count,
+            "chunked_count": chunked_count,
+            "used_count": used_count,
+            "storage_backend": settings.file_storage,
+            "upload_size_limit": settings.upload_size,
             "open_upload": settings.open_upload,
             "enable_chunk": settings.enable_chunk,
-            "maxSaveSeconds": settings.max_save_seconds,
+            "max_save_seconds": settings.max_save_seconds,
             **health_summary,
-            "healthSummary": health_summary,
-            "topSuffixes": [
+            "health_summary": health_summary,
+            "top_suffixes": [
                 {"suffix": suffix, "count": count}
                 for suffix, count in suffix_counter.most_common(8)
             ],
-            "recentFiles": [
+            "recent_files": [
                 await build_dashboard_recent_file(file_code)
                 for file_code in recent_file_codes
             ],
-            "recentActivities": recent_activities["activities"],
             "recent_activities": recent_activities["activities"],
         }
     )
@@ -271,7 +270,7 @@ async def batch_update_files(
 
     update_data = {}
     fields_set = data.model_fields_set
-    should_clear_expired_at = bool(data.clearExpiredAt or data.clear_expired_at)
+    should_clear_expired_at = bool(data.clear_expired_at)
 
     if should_clear_expired_at:
         update_data["expired_at"] = None
@@ -313,9 +312,7 @@ async def apply_file_policy_action(
     data: FilePolicyActionData,
     file_service: FileService,
 ):
-    download_limit = data.downloadLimit
-    if download_limit is None:
-        download_limit = data.download_limit
+    download_limit = data.download_limit
 
     detail = await file_service.apply_file_policy_action(
         file_id=data.id,
@@ -348,9 +345,7 @@ async def apply_batch_file_policy_action(
     if not data.ids:
         raise HTTPException(status_code=400, detail="请选择要更新的文件")
 
-    download_limit = data.downloadLimit
-    if download_limit is None:
-        download_limit = data.download_limit
+    download_limit = data.download_limit
 
     result = await file_service.apply_files_policy_action(
         file_ids=data.ids,
@@ -384,8 +379,8 @@ async def file_list(
     status: str = "",
     type: str = "",
     health: str = "",
-    sortBy: str = "created_at",
-    sortOrder: str = "desc",
+    sort_by: str = "created_at",
+    sort_order: str = "desc",
     file_service: FileService = Depends(get_file_service),
 ):
     page = max(page, 1)
@@ -397,8 +392,8 @@ async def file_list(
         status=status,
         file_type=type,
         health=health,
-        sort_by=sortBy,
-        sort_order=sortOrder,
+        sort_by=sort_by,
+        sort_order=sort_order,
     )
     return APIResponse(
         detail={
@@ -563,10 +558,10 @@ async def file_download(
 @admin_api.get("/file/preview")
 async def file_preview(
     id: int,
-    maxChars: int = 4000,
+    max_chars: int = 4000,
     file_service: FileService = Depends(get_file_service),
 ):
-    preview = await file_service.preview_file(id, maxChars)
+    preview = await file_service.preview_file(id, max_chars)
     return APIResponse(detail=preview)
 
 
@@ -608,7 +603,7 @@ async def share_local_file(
         target_name=item.filename,
         count=1,
         meta={
-            "expireValue": item.expire_value,
+            "expire_value": item.expire_value,
             "expire_style": item.expire_style,
         },
     )

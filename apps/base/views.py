@@ -139,7 +139,6 @@ def build_file_metadata(file_code: FileCodes) -> dict:
         "is_text": is_text,
         "created_at": file_code.created_at,
         "expired_at": file_code.expired_at,
-        "expires_at": file_code.expired_at,
         "expired_count": file_code.expired_count,
         "used_count": file_code.used_count,
         "remaining_downloads": remaining_downloads,

@@ -54,13 +54,13 @@ class DashboardQuotaAggregationTests(unittest.TestCase):
 
             detail = (await dashboard(FileService())).detail
 
-            self.assertEqual(detail["totalFiles"], 5)
-            self.assertEqual(detail["storageUsed"], "1050")
-            self.assertEqual(detail["expiredCount"], 2, "时间过期+次数耗尽都算过期")
-            self.assertEqual(detail["activeCount"], 3)
-            self.assertEqual(detail["textCount"], 1)
-            self.assertEqual(detail["fileCount"], 4)
-            self.assertEqual(detail["usedCount"], 0)
+            self.assertEqual(detail["total_files"], 5)
+            self.assertEqual(detail["storage_used"], "1050")
+            self.assertEqual(detail["expired_count"], 2, "时间过期+次数耗尽都算过期")
+            self.assertEqual(detail["active_count"], 3)
+            self.assertEqual(detail["text_count"], 1)
+            self.assertEqual(detail["file_count"], 4)
+            self.assertEqual(detail["used_count"], 0)
 
             usage = await get_storage_usage()
             self.assertEqual(usage["used"], 1050, "配额聚合应与手工求和一致")

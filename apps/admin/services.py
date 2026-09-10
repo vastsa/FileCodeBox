@@ -139,24 +139,19 @@ class FileService:
                 target_type="file",
                 count=len(deleted),
                 meta={
-                    "requestedCount": len(file_ids),
-                    "uniqueCount": len(unique_ids),
+                    "requested_count": len(file_ids),
+                    "unique_count": len(unique_ids),
                     "deleted": deleted,
                     "missing": missing,
-                    "failedCount": len(failed),
+                    "failed_count": len(failed),
                 },
             )
 
         return {
-            "requestedCount": len(file_ids),
             "requested_count": len(file_ids),
-            "uniqueCount": len(unique_ids),
             "unique_count": len(unique_ids),
-            "deletedCount": len(deleted),
             "deleted_count": len(deleted),
-            "missingCount": len(missing),
             "missing_count": len(missing),
-            "failedCount": len(failed),
             "failed_count": len(failed),
             "deleted": deleted,
             "missing": missing,
@@ -188,24 +183,19 @@ class FileService:
                 count=len(updated),
                 meta={
                     "fields": sorted(update_data.keys()),
-                    "requestedCount": len(file_ids),
-                    "uniqueCount": len(unique_ids),
+                    "requested_count": len(file_ids),
+                    "unique_count": len(unique_ids),
                     "updated": updated,
                     "missing": missing,
-                    "failedCount": len(failed),
+                    "failed_count": len(failed),
                 },
             )
 
         return {
-            "requestedCount": len(file_ids),
             "requested_count": len(file_ids),
-            "uniqueCount": len(unique_ids),
             "unique_count": len(unique_ids),
-            "updatedCount": len(updated),
             "updated_count": len(updated),
-            "missingCount": len(missing),
             "missing_count": len(missing),
-            "failedCount": len(failed),
             "failed_count": len(failed),
             "updated": updated,
             "missing": missing,
@@ -278,7 +268,7 @@ class FileService:
             target_id=file_id,
             target_name=self._build_file_activity_name(file_code),
             count=1,
-            meta={"policyAction": action},
+            meta={"policy_action": action},
         )
         return await self.get_file_detail(file_id)
 
@@ -307,7 +297,6 @@ class FileService:
 
         now = await get_now()
         updated_at = now.isoformat()
-        next_metadata["updatedAt"] = updated_at
         next_metadata["updated_at"] = updated_at
         await KeyValue.update_or_create(
             key=self._file_metadata_key(file_id),
@@ -320,9 +309,9 @@ class FileService:
             target_name=self._build_file_activity_name(file_code),
             count=1,
             meta={
-                "updateNote": update_note,
-                "updateTags": update_tags,
-                "tagCount": len(next_metadata["tags"]),
+                "update_note": update_note,
+                "update_tags": update_tags,
+                "tag_count": len(next_metadata["tags"]),
             },
         )
         return await self.get_file_detail(file_id)
@@ -331,7 +320,6 @@ class FileService:
         presets = await self._get_file_view_presets()
         return {
             "presets": presets,
-            "items": presets,
             "total": len(presets),
         }
 
@@ -359,8 +347,6 @@ class FileService:
                     **preset,
                     "name": normalized_name,
                     "filters": normalized_filters,
-                    "params": normalized_filters,
-                    "updatedAt": updated_at,
                     "updated_at": updated_at,
                 }
                 presets[target_index] = next_preset
@@ -371,10 +357,7 @@ class FileService:
                     "id": preset_id or self._build_file_view_preset_id(normalized_name, now),
                     "name": normalized_name,
                     "filters": normalized_filters,
-                    "params": normalized_filters,
-                    "createdAt": updated_at,
                     "created_at": updated_at,
-                    "updatedAt": updated_at,
                     "updated_at": updated_at,
                 }
                 presets.append(next_preset)
@@ -414,8 +397,6 @@ class FileService:
             count=1,
         )
         return {
-            "deleted": preset_id,
-            "deletedPresetId": preset_id,
             "deleted_preset_id": preset_id,
             "total": len(next_presets),
         }
@@ -465,25 +446,20 @@ class FileService:
                 target_type="file",
                 count=len(updated),
                 meta={
-                    "policyAction": action,
-                    "requestedCount": len(file_ids),
-                    "uniqueCount": len(unique_ids),
+                    "policy_action": action,
+                    "requested_count": len(file_ids),
+                    "unique_count": len(unique_ids),
                     "updated": updated,
                     "missing": missing,
-                    "failedCount": len(failed),
+                    "failed_count": len(failed),
                 },
             )
 
         return {
-            "requestedCount": len(file_ids),
             "requested_count": len(file_ids),
-            "uniqueCount": len(unique_ids),
             "unique_count": len(unique_ids),
-            "updatedCount": len(updated),
             "updated_count": len(updated),
-            "missingCount": len(missing),
             "missing_count": len(missing),
-            "failedCount": len(failed),
             "failed_count": len(failed),
             "action": action,
             "updated": updated,
@@ -515,29 +491,29 @@ class FileService:
         now = await get_now()
         enriched_files = []
         summary = {
-            "totalFiles": len(all_files),
-            "activeCount": 0,
-            "expiredCount": 0,
-            "textCount": 0,
-            "fileCount": 0,
-            "chunkedCount": 0,
+            "total_files": len(all_files),
+            "active_count": 0,
+            "expired_count": 0,
+            "text_count": 0,
+            "file_count": 0,
+            "chunked_count": 0,
             **self._empty_health_summary(),
-            "storageUsed": sum(file_code.size for file_code in all_files),
-            "usedCount": sum(file_code.used_count for file_code in all_files),
+            "storage_used": sum(file_code.size for file_code in all_files),
+            "used_count": sum(file_code.used_count for file_code in all_files),
         }
 
         for file_code in all_files:
             item = await self._build_admin_file_item(file_code, now=now)
-            if item["isExpired"]:
-                summary["expiredCount"] += 1
+            if item["is_expired"]:
+                summary["expired_count"] += 1
             else:
-                summary["activeCount"] += 1
-            if item["isText"]:
-                summary["textCount"] += 1
+                summary["active_count"] += 1
+            if item["is_text"]:
+                summary["text_count"] += 1
             else:
-                summary["fileCount"] += 1
-            if item["isChunked"]:
-                summary["chunkedCount"] += 1
+                summary["file_count"] += 1
+            if item["is_chunked"]:
+                summary["chunked_count"] += 1
             self._accumulate_health_summary(summary, item)
 
             if not self._match_admin_file(item, keyword, status, file_type, health):
@@ -553,38 +529,38 @@ class FileService:
 
     def _empty_health_summary(self) -> dict[str, int]:
         return {
-            "healthAttentionCount": 0,
-            "healthDangerCount": 0,
-            "healthWarningCount": 0,
-            "expiringSoonCount": 0,
-            "storageIssueCount": 0,
-            "neverRetrievedCount": 0,
-            "healthyCount": 0,
-            "permanentCount": 0,
+            "health_attention_count": 0,
+            "health_danger_count": 0,
+            "health_warning_count": 0,
+            "expiring_soon_count": 0,
+            "storage_issue_count": 0,
+            "never_retrieved_count": 0,
+            "healthy_count": 0,
+            "permanent_count": 0,
         }
 
     def _accumulate_health_summary(self, summary: dict[str, Any], item: dict[str, Any]) -> None:
-        status_insights = item.get("statusInsights") or {}
+        status_insights = item.get("status_insights") or {}
         reasons = status_insights.get("reasons") or []
         severity = status_insights.get("severity")
         state = status_insights.get("state")
 
         if severity in {"danger", "warning"}:
-            summary["healthAttentionCount"] += 1
+            summary["health_attention_count"] += 1
         if severity == "danger":
-            summary["healthDangerCount"] += 1
+            summary["health_danger_count"] += 1
         if severity == "warning":
-            summary["healthWarningCount"] += 1
+            summary["health_warning_count"] += 1
         if severity == "success":
-            summary["healthyCount"] += 1
+            summary["healthy_count"] += 1
         if state == "permanent":
-            summary["permanentCount"] += 1
+            summary["permanent_count"] += 1
         if "expires_soon" in reasons:
-            summary["expiringSoonCount"] += 1
+            summary["expiring_soon_count"] += 1
         if "storage_metadata_incomplete" in reasons:
-            summary["storageIssueCount"] += 1
+            summary["storage_issue_count"] += 1
         if "never_retrieved" in reasons:
-            summary["neverRetrievedCount"] += 1
+            summary["never_retrieved_count"] += 1
 
     async def build_file_health_summary(
         self, file_codes: list[FileCodes], now: Optional[datetime] = None
@@ -633,21 +609,13 @@ class FileService:
                 "name": name,
                 "type": "text" if is_text else "file",
                 "status": "expired" if is_expired else "active",
-                "isText": is_text,
                 "is_text": is_text,
-                "isExpired": is_expired,
                 "is_expired": is_expired,
-                "isChunked": file_code.is_chunked,
                 "is_chunked": file_code.is_chunked,
-                "remainingDownloads": remaining_downloads,
                 "remaining_downloads": remaining_downloads,
-                "usedCount": file_code.used_count,
                 "used_count": file_code.used_count,
-                "createdAt": file_code.created_at,
                 "created_at": file_code.created_at,
-                "expiredAt": file_code.expired_at,
                 "expired_at": file_code.expired_at,
-                "fileHash": file_code.file_hash,
                 "file_hash": file_code.file_hash,
             }
         )
@@ -661,7 +629,6 @@ class FileService:
         )
         data.update(
             {
-                "statusInsights": status_insights,
                 "status_insights": status_insights,
             }
         )
@@ -699,54 +666,32 @@ class FileService:
         detail.update(
             {
                 "filename": detail["name"],
-                "displayName": detail["name"],
                 "display_name": detail["name"],
-                "isPermanent": is_permanent,
                 "is_permanent": is_permanent,
-                "hasDownloadLimit": has_download_limit,
                 "has_download_limit": has_download_limit,
-                "hasExpirationTime": file_code.expired_at is not None,
                 "has_expiration_time": file_code.expired_at is not None,
-                "textLength": text_length,
                 "text_length": text_length,
-                "canPreviewText": is_text,
                 "can_preview_text": is_text,
-                "canDownload": can_download,
                 "can_download": can_download,
-                "storageBackend": settings.file_storage,
                 "storage_backend": settings.file_storage,
-                "filePath": file_code.file_path,
                 "file_path": file_code.file_path,
-                "uuidFileName": file_code.uuid_file_name,
                 "uuid_file_name": file_code.uuid_file_name,
-                "uploadId": file_code.upload_id,
                 "upload_id": file_code.upload_id,
                 "policy": {
-                    "expiredAt": file_code.expired_at,
                     "expired_at": file_code.expired_at,
-                    "expiredCount": file_code.expired_count,
                     "expired_count": file_code.expired_count,
-                    "remainingDownloads": detail["remainingDownloads"],
                     "remaining_downloads": detail["remaining_downloads"],
-                    "isExpired": detail["isExpired"],
                     "is_expired": detail["is_expired"],
-                    "isPermanent": is_permanent,
                     "is_permanent": is_permanent,
                 },
                 "storage": {
                     "backend": settings.file_storage,
-                    "filePath": file_code.file_path,
                     "file_path": file_code.file_path,
-                    "uuidFileName": file_code.uuid_file_name,
                     "uuid_file_name": file_code.uuid_file_name,
-                    "fileHash": file_code.file_hash,
                     "file_hash": file_code.file_hash,
-                    "isChunked": file_code.is_chunked,
                     "is_chunked": file_code.is_chunked,
-                    "uploadId": file_code.upload_id,
                     "upload_id": file_code.upload_id,
                 },
-                "statusInsights": status_insights,
                 "status_insights": status_insights,
                 "timeline": timeline,
             }
@@ -755,10 +700,8 @@ class FileService:
         detail.update(
             {
                 "metadata": metadata,
-                "meta": metadata,
                 "note": metadata["note"],
                 "tags": metadata["tags"],
-                "metadataUpdatedAt": metadata["updatedAt"],
                 "metadata_updated_at": metadata["updated_at"],
             }
         )
@@ -797,11 +740,10 @@ class FileService:
         if not isinstance(metadata, dict):
             metadata = {}
 
-        updated_at = metadata.get("updatedAt") or metadata.get("updated_at")
+        updated_at = metadata.get("updated_at") or metadata.get("updatedAt")
         return {
             "note": self._normalize_metadata_note(metadata.get("note")),
             "tags": self._normalize_metadata_tags(metadata.get("tags")),
-            "updatedAt": updated_at,
             "updated_at": updated_at,
         }
 
@@ -829,23 +771,18 @@ class FileService:
         )
         visible_activities = filtered_activities[:limit]
         action_options = self._build_admin_activity_options(activities, "action")
-        target_type_options = self._build_admin_activity_options(activities, "targetType")
+        target_type_options = self._build_admin_activity_options(activities, "target_type")
         return {
             "activities": visible_activities,
-            "items": visible_activities,
             "total": len(filtered_activities),
-            "storedTotal": len(activities),
             "stored_total": len(activities),
             "limit": limit,
             "filters": {
                 "action": normalized_action,
-                "targetType": normalized_target_type,
                 "target_type": normalized_target_type,
                 "keyword": normalized_keyword,
             },
-            "actionOptions": action_options,
             "action_options": action_options,
-            "targetTypeOptions": target_type_options,
             "target_type_options": target_type_options,
         }
 
@@ -871,15 +808,11 @@ class FileService:
                         timestamp=now,
                     ),
                     "action": action,
-                    "targetType": target_type,
                     "target_type": target_type,
-                    "targetId": target_id,
                     "target_id": target_id,
-                    "targetName": target_name,
                     "target_name": target_name,
                     "count": count,
                     "meta": meta or {},
-                    "createdAt": created_at,
                     "created_at": created_at,
                 }
             )
@@ -918,7 +851,7 @@ class FileService:
             if len(activities) >= self.MAX_ADMIN_ACTIVITIES:
                 break
 
-        activities.sort(key=lambda item: item.get("createdAt") or "", reverse=True)
+        activities.sort(key=lambda item: item.get("created_at") or "", reverse=True)
         return activities
 
     async def _save_admin_activities(self, activities: list[dict[str, Any]]) -> None:
@@ -933,24 +866,24 @@ class FileService:
 
         action = self._normalize_admin_activity_text(activity.get("action"))
         target_type = self._normalize_admin_activity_text(
-            activity.get("targetType") or activity.get("target_type") or "system"
+            activity.get("target_type") or activity.get("targetType") or "system"
         )
         if not action:
             return None
 
         target_name = self._normalize_admin_activity_text(
-            activity.get("targetName") or activity.get("target_name")
+            activity.get("target_name") or activity.get("targetName")
         )
-        created_at = activity.get("createdAt") or activity.get("created_at")
+        created_at = activity.get("created_at") or activity.get("createdAt")
         if isinstance(created_at, datetime):
             created_at = created_at.isoformat()
         created_at = str(created_at or "")
         if not created_at:
             return None
 
-        target_id = activity.get("targetId")
+        target_id = activity.get("target_id")
         if target_id is None:
-            target_id = activity.get("target_id")
+            target_id = activity.get("targetId")
 
         count = activity.get("count", 1)
         try:
@@ -976,15 +909,11 @@ class FileService:
         return {
             "id": activity_id,
             "action": action,
-            "targetType": target_type,
             "target_type": target_type,
-            "targetId": target_id,
             "target_id": target_id,
-            "targetName": target_name,
             "target_name": target_name,
             "count": count,
             "meta": meta,
-            "createdAt": created_at,
             "created_at": created_at,
         }
 
@@ -1002,7 +931,7 @@ class FileService:
         for activity in activities:
             if action and str(activity.get("action") or "").lower() != action:
                 continue
-            if target_type and str(activity.get("targetType") or "").lower() != target_type:
+            if target_type and str(activity.get("target_type") or "").lower() != target_type:
                 continue
             if keyword and not self._activity_matches_keyword(activity, keyword):
                 continue
@@ -1012,11 +941,11 @@ class FileService:
     def _activity_matches_keyword(self, activity: dict[str, Any], keyword: str) -> bool:
         searchable_values = [
             activity.get("action"),
-            activity.get("targetType"),
             activity.get("target_type"),
-            activity.get("targetId"),
+            activity.get("target_type"),
             activity.get("target_id"),
-            activity.get("targetName"),
+            activity.get("target_id"),
+            activity.get("target_name"),
             activity.get("target_name"),
         ]
         meta = activity.get("meta")
@@ -1115,17 +1044,14 @@ class FileService:
 
         filters = preset.get("filters") or preset.get("params") or {}
         normalized_filters = self._normalize_file_view_preset_filters(filters)
-        created_at = preset.get("createdAt") or preset.get("created_at")
-        updated_at = preset.get("updatedAt") or preset.get("updated_at")
+        created_at = preset.get("created_at")
+        updated_at = preset.get("updated_at") or preset.get("updatedAt")
 
         return {
             "id": preset_id,
             "name": name,
             "filters": normalized_filters,
-            "params": normalized_filters,
-            "createdAt": created_at,
             "created_at": created_at,
-            "updatedAt": updated_at,
             "updated_at": updated_at,
         }
 
@@ -1168,8 +1094,8 @@ class FileService:
             "health": self._normalize_file_view_preset_choice(
                 filters.get("health"), self.VIEW_PRESET_HEALTH_VALUES
             ),
-            "sortBy": sort_by,
-            "sortOrder": sort_order,
+            "sort_by": sort_by,
+            "sort_order": sort_order,
             "size": min(max(size, 1), 100),
         }
 
@@ -1195,12 +1121,12 @@ class FileService:
         is_permanent: bool,
         can_download: bool,
     ) -> dict[str, Any]:
-        remaining_downloads = detail["remainingDownloads"]
+        remaining_downloads = detail["remaining_downloads"]
         seconds_until_expiration = self._seconds_between(now, file_code.expired_at)
         age_seconds = self._seconds_between(file_code.created_at, now)
         reasons = []
 
-        if detail["isExpired"]:
+        if detail["is_expired"]:
             reasons.append("expired")
         if has_download_limit and remaining_downloads == 0:
             reasons.append("download_limit_exhausted")
@@ -1216,7 +1142,7 @@ class FileService:
         severity = "success"
         state = "available"
         next_action = "monitor"
-        if detail["isExpired"] or (has_download_limit and remaining_downloads == 0):
+        if detail["is_expired"] or (has_download_limit and remaining_downloads == 0):
             severity = "danger"
             state = "expired"
             next_action = "extend_or_delete"
@@ -1235,17 +1161,12 @@ class FileService:
         return {
             "severity": severity,
             "state": state,
-            "nextAction": next_action,
             "next_action": next_action,
             "reasons": reasons,
             "metrics": {
-                "ageSeconds": max(age_seconds or 0, 0),
                 "age_seconds": max(age_seconds or 0, 0),
-                "secondsUntilExpiration": seconds_until_expiration,
                 "seconds_until_expiration": seconds_until_expiration,
-                "remainingDownloads": remaining_downloads,
                 "remaining_downloads": remaining_downloads,
-                "usedCount": file_code.used_count,
                 "used_count": file_code.used_count,
             },
         }
@@ -1259,7 +1180,7 @@ class FileService:
         is_permanent: bool,
         is_text: bool,
     ) -> list[dict[str, Any]]:
-        remaining_downloads = detail["remainingDownloads"]
+        remaining_downloads = detail["remaining_downloads"]
         seconds_until_expiration = self._seconds_between(now, file_code.expired_at)
         timeline = [
             {
@@ -1402,15 +1323,15 @@ class FileService:
         file_type: str,
         health: str,
     ) -> bool:
-        if status == "active" and item["isExpired"]:
+        if status == "active" and item["is_expired"]:
             return False
-        if status == "expired" and not item["isExpired"]:
+        if status == "expired" and not item["is_expired"]:
             return False
-        if file_type == "text" and not item["isText"]:
+        if file_type == "text" and not item["is_text"]:
             return False
-        if file_type == "file" and item["isText"]:
+        if file_type == "file" and item["is_text"]:
             return False
-        if file_type == "chunked" and not item["isChunked"]:
+        if file_type == "chunked" and not item["is_chunked"]:
             return False
         if not self._match_admin_file_health(item, health):
             return False
@@ -1422,7 +1343,7 @@ class FileService:
             item.get("name"),
             item.get("prefix"),
             item.get("suffix"),
-            item.get("fileHash"),
+            item.get("file_hash"),
             item.get("text"),
         ]
         return any(keyword in str(value).lower() for value in search_values if value)
@@ -1431,7 +1352,7 @@ class FileService:
         if not health or health == "all":
             return True
 
-        status_insights = item.get("statusInsights") or {}
+        status_insights = item.get("status_insights") or {}
         severity = status_insights.get("severity")
         state = status_insights.get("state")
         reasons = set(status_insights.get("reasons") or [])
@@ -1443,7 +1364,7 @@ class FileService:
         if health == "warning":
             return severity == "warning"
         if health == "expired":
-            return state == "expired" or item.get("isExpired") is True
+            return state == "expired" or item.get("is_expired") is True
         if health == "expiring_soon":
             return "expires_soon" in reasons
         if health == "storage_issue":
@@ -1472,14 +1393,14 @@ class FileService:
             return 0
 
         sort_map = {
-            "created_at": date_value(item.get("createdAt")),
-            "createdat": date_value(item.get("createdAt")),
-            "expired_at": date_value(item.get("expiredAt")),
-            "expiredat": date_value(item.get("expiredAt")),
+            "created_at": date_value(item.get("created_at")),
+            "createdat": date_value(item.get("created_at")),
+            "expired_at": date_value(item.get("expired_at")),
+            "expiredat": date_value(item.get("expired_at")),
             "name": item.get("name") or "",
             "size": item.get("size") or 0,
-            "used_count": item.get("usedCount") or 0,
-            "usedcount": item.get("usedCount") or 0,
+            "used_count": item.get("used_count") or 0,
+            "usedcount": item.get("used_count") or 0,
             "code": item.get("code") or "",
         }
         return sort_map.get(sort_by)
@@ -1510,14 +1431,10 @@ class FileService:
             "type": "text",
             "content": preview,
             "length": len(content),
-            "previewLength": len(preview),
             "preview_length": len(preview),
             "truncated": len(content) > max_chars,
-            "maxChars": max_chars,
             "max_chars": max_chars,
-            "createdAt": file_code.created_at,
             "created_at": file_code.created_at,
-            "expiredAt": file_code.expired_at,
             "expired_at": file_code.expired_at,
         }
 
