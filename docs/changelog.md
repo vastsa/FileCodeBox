@@ -1,5 +1,13 @@
 # Changelog
 
+## [2.6.1](https://github.com/vastsa/FileCodeBox/compare/v2.6.0...v2.6.1) (2026-09-14)
+
+
+### Bug Fixes
+
+* don't let a legacy background value block settings saves ([eb2db8f](https://github.com/vastsa/FileCodeBox/commit/eb2db8f507e3198e0ae45b976bdd90eab2f7d1ed))
+* 存量 background 值不再阻塞后台设置保存（[#514](https://github.com/vastsa/FileCodeBox/issues/514) 升级回归） ([0d82fbe](https://github.com/vastsa/FileCodeBox/commit/0d82fbe26ad06ca77af7b2b5aa05f514e8362295))
+
 ## [2.6.0](https://github.com/vastsa/FileCodeBox/compare/v2.5.6...v2.6.0) (2026-09-14)
 
 
