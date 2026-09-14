@@ -807,9 +807,9 @@ starlette==1.6.0 \
     # via
     #   -r requirements.lock.tmp
     #   fastapi
-tortoise-orm==0.25.3 \
-    --hash=sha256:3c52a53c41f4137aee9ffb3f3de01f30b52ad7767157f9bd9586a910fe839ca3 \
-    --hash=sha256:b6dedd388393624628ec46228c93df361533ceb3925986fa2d1d22debc838a7d
+tortoise-orm==1.1.8 \
+    --hash=sha256:09e27be9db148824dacea470d01018ab571676f94aa5428a05bcaec44c413ec7 \
+    --hash=sha256:3f771365c54297543b3b2b7fab4ecb03e89de0a68a41328d2e171c043e08e911
     # via -r requirements.lock.tmp
 typing-extensions==4.16.0 \
     --hash=sha256:481caa481374e813c1b176ada14e97f1f67a4539ce9cfeb3f350d78d6370c2e8 \
