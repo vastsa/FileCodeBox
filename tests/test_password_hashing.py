@@ -53,6 +53,11 @@ class PasswordHashSchemeTests(unittest.TestCase):
         self.assertFalse(verify_password("x", "scrypt$n$r$p$salt$zzz"))
         self.assertFalse(verify_password("x", "sha256$only-two"))
         self.assertFalse(verify_password("x", ""))
+        # 超范围的 n/r/p：解释器抛 TypeError/ValueError（部分构建抛 OverflowError），
+        # 都必须被吞掉并判为不匹配，而不是让登录及每个请求 500
+        self.assertFalse(
+            verify_password("x", "scrypt$99999999999999999999999999$8$1$aa$bb")
+        )
 
 
 class TransparentRehashTests(SettingsOverrideMixin, unittest.TestCase):

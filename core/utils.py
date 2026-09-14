@@ -174,7 +174,9 @@ def verify_password(password: str, hashed: str) -> bool:
                 p=int(p),
                 maxmem=_SCRYPT_MAXMEM,
             ).hex()
-        except (ValueError, TypeError):
+        # 默认解释器对超范围的 n/r/p 抛 TypeError/ValueError；部分构建会抛
+        # OverflowError，一并视为校验失败，避免坏掉的存量哈希影响登录路径。
+        except (ValueError, TypeError, OverflowError):
             return False
         return hmac.compare_digest(password_hash, stored_hash)
 

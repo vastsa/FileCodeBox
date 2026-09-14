@@ -1567,10 +1567,16 @@ class ConfigService:
                 detail="storage_limit 不能小于 0",
             )
 
-        try:
-            validate_background_url(next_config.get("background", ""))
-        except ValueError as exc:
-            raise HTTPException(status_code=400, detail=str(exc))
+        # 只校验"发生变化"的值：升级前存入的旧格式 background（相对路径、含空格
+        # 或括号）在旧版本是合法的，若每次保存都重新校验，存量部署会连无关设置项
+        # 都保存不了（一律 400）。渲染侧仍然 html 转义，而任何修改都必须通过校验。
+        current_background = str(settings.background or "")
+        candidate_background = str(next_config.get("background") or "")
+        if candidate_background != current_background:
+            try:
+                validate_background_url(candidate_background)
+            except ValueError as exc:
+                raise HTTPException(status_code=400, detail=str(exc))
 
         if admin_password_changed:
             next_config["jwt_secret"] = generate_jwt_secret()
