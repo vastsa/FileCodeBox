@@ -73,5 +73,63 @@ class ConfigServiceBackgroundGuardTests(SettingsOverrideMixin, unittest.TestCase
             await close_db()
 
 
+class LegacyBackgroundUpgradeTests(SettingsOverrideMixin, unittest.TestCase):
+    """存量部署升级：旧版本合法、新校验不接受的值，不得阻塞设置保存。"""
+
+    def test_unchanged_legacy_background_does_not_block_unrelated_save(self):
+        asyncio.run(self._unchanged_legacy_allows_save())
+
+    async def _unchanged_legacy_allows_save(self):
+        await init_memory_db()
+        try:
+            from apps.base.config import refresh_settings
+            from apps.base.models import KeyValue
+
+            # 旧版本合法（相对路径 + 空格），新的 http(s) 校验会拒绝
+            legacy = "/static/bg image.png"
+            await KeyValue.create(
+                key="settings", value={"background": legacy, "name": "old"}
+            )
+            await refresh_settings(force=True)
+
+            service = ConfigService()
+            # 修复前这里会 400，导致存量部署连无关设置项都保存不了
+            await service.update_config({"name": "new"})
+
+            record = await KeyValue.filter(key="settings").first()
+            self.assertEqual(record.value.get("background"), legacy, "旧值应原样保留")
+            self.assertEqual(record.value.get("name"), "new")
+        finally:
+            await close_db()
+
+    def test_changing_background_is_still_validated(self):
+        asyncio.run(self._change_still_validated())
+
+    async def _change_still_validated(self):
+        await init_memory_db()
+        try:
+            from fastapi import HTTPException
+
+            from apps.base.config import refresh_settings
+            from apps.base.models import KeyValue
+
+            await KeyValue.create(key="settings", value={"background": "/legacy/bg.png"})
+            await refresh_settings(force=True)
+
+            service = ConfigService()
+            # 修改为恶意值仍然被拒
+            with self.assertRaises(HTTPException) as ctx:
+                await service.update_config(
+                    {"background": "x') ;background:url(https://evil.com/)"}
+                )
+            self.assertEqual(ctx.exception.status_code, 400)
+            # 修改为合法值可以通过
+            await service.update_config({"background": "https://ok.example/bg.png"})
+            record = await KeyValue.filter(key="settings").first()
+            self.assertEqual(record.value.get("background"), "https://ok.example/bg.png")
+        finally:
+            await close_db()
+
+
 if __name__ == "__main__":
     unittest.main()
