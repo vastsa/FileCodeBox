@@ -2,6 +2,7 @@ import datetime
 
 from fastapi import HTTPException
 from tortoise import connections
+from tortoise.functions import Sum
 
 from apps.base.models import FileCodes, StorageReservation
 from core.settings import settings
@@ -47,20 +48,21 @@ def _sql_placeholders(count: int) -> list[str]:
 
 def get_storage_limit() -> int:
     try:
-        return max(0, int(getattr(settings, "storageLimit", 0)))
+        return max(0, int(getattr(settings, "storage_limit", 0)))
     except (TypeError, ValueError):
         return 0
 
 
 async def get_storage_usage() -> dict[str, int | None]:
     now = await get_now()
-    used = await FileCodes.all().values_list("size", flat=True)
-    reserved = await StorageReservation.filter(expires_at__gt=now).values_list(
-        "size", flat=True
-    )
+    # SQL 聚合：此函数在每次上传配额检查时调用，禁止全表拉取（D3）
+    used_rows = await FileCodes.all().annotate(total=Sum("size")).values("total")
+    reserved_rows = await StorageReservation.filter(expires_at__gt=now).annotate(
+        total=Sum("size")
+    ).values("total")
     limit = get_storage_limit()
-    used_bytes = sum(used)
-    reserved_bytes = sum(reserved)
+    used_bytes = used_rows[0]["total"] or 0
+    reserved_bytes = reserved_rows[0]["total"] or 0
     return {
         "limit": limit,
         "used": used_bytes,

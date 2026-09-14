@@ -1,6 +1,5 @@
 import asyncio
 from io import BytesIO
-import os
 import tempfile
 import unittest
 from pathlib import Path
@@ -11,13 +10,13 @@ from starlette.datastructures import UploadFile
 from tortoise import Tortoise
 
 from apps.base import views
-from apps.admin import dependencies as admin_dependencies
 from apps.admin.dependencies import create_token, verify_token
 from apps.admin.services import LocalFileClass
 from apps.base.models import FileCodes, UploadChunk
 from apps.base.schemas import CompleteUploadModel, InitChunkUploadModel
 from apps.base.utils import get_chunk_file_path_name
-from core.settings import data_root, settings
+from tests.helpers import init_memory_db
+from core.settings import settings
 from core.storage import SystemFileStorage
 from core.utils import hash_password, verify_password
 
@@ -127,25 +126,7 @@ class ChunkUploadMetadataTests(unittest.TestCase):
             settings.file_storage = "local"
             settings.allowed_file_types = ["*"]
             with patch("core.storage.data_root", Path(tmpdir.name)):
-                await Tortoise.init(
-                    config={
-                        "connections": {
-                            "default": {
-                                "engine": "tortoise.backends.sqlite",
-                                "credentials": {"file_path": ":memory:"},
-                            }
-                        },
-                        "apps": {
-                            "models": {
-                                "models": ["apps.base.models"],
-                                "default_connection": "default",
-                            }
-                        },
-                        "use_tz": False,
-                        "timezone": "Asia/Shanghai",
-                    }
-                )
-                await Tortoise.generate_schemas()
+                await init_memory_db()
                 try:
                     raw_name = "../../../../../../filecodebox.db"
                     payload = b"chunk payload"

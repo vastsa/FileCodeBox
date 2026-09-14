@@ -51,7 +51,7 @@ FileCodeBox 支持以下几种上传方式：
 
 | 配置项 | 默认值 | 说明 |
 |--------|--------|------|
-| `uploadSize` | 10MB | 单文件最大上传大小 |
+| `upload_size` | 10MB | 单文件最大上传大小 |
 
 ### 修改上传限制
 
@@ -59,11 +59,11 @@ FileCodeBox 支持以下几种上传方式：
 
 ```python
 # 设置最大上传大小为 100MB
-uploadSize = 104857600  # 100 * 1024 * 1024
+upload_size = 104857600  # 100 * 1024 * 1024
 ```
 
 ::: info 说明
-`uploadSize` 的单位是字节。常用换算：
+`upload_size` 的单位是字节。常用换算：
 - 10MB = 10485760
 - 50MB = 52428800
 - 100MB = 104857600
@@ -147,7 +147,7 @@ curl -L "http://localhost:12345/share/select/?code=取件码" -o downloaded_file
 ```
 
 ::: tip 需要认证时
-如果管理面板关闭了游客上传（`openUpload=0`），需要先登录获取 token：
+如果管理面板关闭了游客上传（`open_upload=0`），需要先登录获取 token：
 
 ```bash
 # 1. 登录获取 token
@@ -174,7 +174,7 @@ curl -X POST "http://localhost:12345/share/text/" \
 对于大文件，FileCodeBox 支持分片上传功能。分片上传将大文件分割成多个小块分别上传，支持断点续传。
 
 ::: warning 前提条件
-分片上传功能需要管理员启用：`enableChunk=1`
+分片上传功能需要管理员启用：`enable_chunk=1`
 :::
 
 ### 分片上传流程
@@ -362,7 +362,7 @@ await fetch(`/chunk/upload/complete/${upload_id}`, {
 
 | HTTP 状态码 | 错误信息 | 原因 | 解决方案 |
 |-------------|----------|------|----------|
-| 403 | 大小超过限制 | 文件超过 `uploadSize` 限制 | 减小文件大小或联系管理员调整限制 |
+| 403 | 大小超过限制 | 文件超过 `upload_size` 限制 | 减小文件大小或联系管理员调整限制 |
 | 403 | 上传频率限制 | 超过 IP 上传频率限制 | 等待限制时间窗口后重试 |
 | 400 | 过期时间类型错误 | `expire_style` 值不在允许列表中 | 使用有效的过期方式 |
 | 404 | 上传会话不存在 | `upload_id` 无效或已过期 | 重新初始化上传 |
@@ -375,8 +375,8 @@ await fetch(`/chunk/upload/complete/${upload_id}`, {
 
 | 配置项 | 默认值 | 说明 |
 |--------|--------|------|
-| `uploadMinute` | 1 | 限制时间窗口（分钟） |
-| `uploadCount` | 10 | 时间窗口内最大上传次数 |
+| `upload_minute` | 1 | 限制时间窗口（分钟） |
+| `upload_count` | 10 | 时间窗口内最大上传次数 |
 
 当超过频率限制时，需要等待时间窗口过后才能继续上传。
 
@@ -394,26 +394,26 @@ await fetch(`/chunk/upload/complete/${upload_id}`, {
 
 | 配置项 | 类型 | 默认值 | 说明 |
 |--------|------|--------|------|
-| `openUpload` | int | 1 | 是否开放上传（1=开放，0=关闭） |
-| `uploadSize` | int | 10485760 | 最大上传大小（字节） |
-| `enableChunk` | int | 0 | 是否启用分片上传（1=启用，0=禁用） |
-| `uploadMinute` | int | 1 | 上传频率限制时间窗口（分钟） |
-| `uploadCount` | int | 10 | 时间窗口内最大上传次数 |
-| `expireStyle` | list | ["day","hour","minute","forever","count"] | 允许的过期方式 |
+| `open_upload` | int | 1 | 是否开放上传（1=开放，0=关闭） |
+| `upload_size` | int | 10485760 | 最大上传大小（字节） |
+| `enable_chunk` | int | 0 | 是否启用分片上传（1=启用，0=禁用） |
+| `upload_minute` | int | 1 | 上传频率限制时间窗口（分钟） |
+| `upload_count` | int | 10 | 时间窗口内最大上传次数 |
+| `expire_style` | list | ["day","hour","minute","forever","count"] | 允许的过期方式 |
 
 ### 配置示例
 
 ```python
 # 允许上传 100MB 文件，启用分片上传
-uploadSize = 104857600
-enableChunk = 1
+upload_size = 104857600
+enable_chunk = 1
 
 # 放宽上传频率限制：每 5 分钟最多 50 次
-uploadMinute = 5
-uploadCount = 50
+upload_minute = 5
+upload_count = 50
 
 # 只允许按天和按次数过期
-expireStyle = ["day", "count"]
+expire_style = ["day", "count"]
 ```
 
 ## 下一步

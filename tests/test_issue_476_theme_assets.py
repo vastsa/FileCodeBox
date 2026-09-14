@@ -4,15 +4,14 @@ import unittest
 from fastapi import HTTPException
 
 from core.settings import BASE_DIR, settings
-from main import index, resolve_theme_file
+from apps.base.pages import index, resolve_theme_file
+from tests.helpers import SettingsOverrideMixin
 
-
-class SettingsOverrideMixin:
-    def setUp(self):
-        self._original_user_config = dict(settings.user_config)
-
-    def tearDown(self):
-        settings.user_config = self._original_user_config
+# themes/ is produced by the Dockerfile frontend build (see .gitignore); the test
+# switches between both bundled themes, so it needs both to exist locally.
+THEMES_BUILT = all(
+    BASE_DIR.joinpath(f"themes/{year}/assets").is_dir() for year in ("2023", "2024")
+)
 
 
 class ThemeAssetTests(SettingsOverrideMixin, unittest.TestCase):
@@ -21,13 +20,14 @@ class ThemeAssetTests(SettingsOverrideMixin, unittest.TestCase):
         self.assertTrue(assets, f"{theme} 缺少 index JS 资源")
         return assets[0].name
 
+    @unittest.skipUnless(THEMES_BUILT, "themes/ exists only after the Docker frontend build; skip in bare checkouts")
     def test_resolves_assets_from_current_theme(self):
-        settings.themesSelect = "themes/2023"
+        settings.themes_select = "themes/2023"
         theme_2023_asset = resolve_theme_file(
             "assets", self.get_theme_index_asset("themes/2023")
         )
 
-        settings.themesSelect = "themes/2024"
+        settings.themes_select = "themes/2024"
         theme_2024_asset = resolve_theme_file(
             "assets", self.get_theme_index_asset("themes/2024")
         )
@@ -36,15 +36,16 @@ class ThemeAssetTests(SettingsOverrideMixin, unittest.TestCase):
         self.assertIn("themes/2024/assets", str(theme_2024_asset))
 
     def test_rejects_theme_asset_path_traversal(self):
-        settings.themesSelect = "themes/2024"
+        settings.themes_select = "themes/2024"
 
         with self.assertRaises(HTTPException) as error:
             resolve_theme_file("assets", "..", "..", "core", "settings.py")
 
         self.assertEqual(error.exception.status_code, 404)
 
+    @unittest.skipUnless(THEMES_BUILT, "themes/ exists only after the Docker frontend build; skip in bare checkouts")
     def test_index_keeps_absolute_asset_urls(self):
-        settings.themesSelect = "themes/2023"
+        settings.themes_select = "themes/2023"
 
         response = asyncio.run(index())
         html = response.body.decode("utf-8")

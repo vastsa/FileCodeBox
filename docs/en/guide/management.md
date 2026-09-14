@@ -27,10 +27,10 @@ By default, the admin panel entry is not shown on the homepage. You can control 
 
 | Setting | Type | Default | Description |
 |---------|------|---------|-------------|
-| `showAdminAddr` | int | `0` | Show admin entry on homepage (1=show, 0=hide) |
+| `show_admin_addr` | int | `0` | Show admin entry on homepage (1=show, 0=hide) |
 
 ::: warning Security Recommendation
-For public services, it's recommended to keep `showAdminAddr` at `0` and access the admin panel directly via the `/admin` path to reduce the risk of malicious scanning.
+For public services, it's recommended to keep `show_admin_addr` at `0` and access the admin panel directly via the `/admin` path to reduce the risk of malicious scanning.
 :::
 
 ### Authentication Mechanism
@@ -240,15 +240,15 @@ Administrators can modify most configurations through the admin panel:
 | Category | Example Settings |
 |----------|------------------|
 | Basic Settings | `name`, `description`, `keywords`, `notify_title`, `notify_content` |
-| Upload Settings | `uploadSize`, `uploadMinute`, `uploadCount`, `openUpload`, `enableChunk` |
-| Expiration Settings | `expireStyle`, `max_save_seconds` |
-| Theme Settings | `themesSelect`, `opacity`, `background` |
-| Security Settings | `admin_token`, `showAdminAddr`, `errorMinute`, `errorCount` |
+| Upload Settings | `upload_size`, `upload_minute`, `upload_count`, `open_upload`, `enable_chunk` |
+| Expiration Settings | `expire_style`, `max_save_seconds` |
+| Theme Settings | `themes_select`, `opacity`, `background` |
+| Security Settings | `admin_token`, `show_admin_addr`, `error_minute`, `error_count` |
 | Storage Settings | `file_storage`, `storage_path` and storage backend-specific configurations |
 
 ::: warning Note
 - `admin_token` (admin password) cannot be set to empty
-- `themesChoices` (theme list) cannot be modified through the admin panel
+- `themes_choices` (theme list) cannot be modified through the admin panel
 - After modifying storage settings, existing files will not be automatically migrated
 :::
 
@@ -382,7 +382,7 @@ Content-Type: application/json
 
 {
     "admin_token": "new-password",
-    "uploadSize": 52428800
+    "upload_size": 52428800
 }
 ```
 

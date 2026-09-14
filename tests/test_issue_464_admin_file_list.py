@@ -6,12 +6,7 @@ from apps.admin.services import FileService
 from core.settings import settings
 
 
-class SettingsOverrideMixin:
-    def setUp(self):
-        self._original_user_config = dict(settings.user_config)
-
-    def tearDown(self):
-        settings.user_config = self._original_user_config
+from tests.helpers import SettingsOverrideMixin
 
 
 class FakeFileCode:
@@ -47,11 +42,11 @@ class AdminFileItemTests(SettingsOverrideMixin, unittest.TestCase):
         self.assertEqual(item["id"], 1)
         self.assertEqual(item["name"], "report.txt")
         self.assertEqual(item["type"], "file")
-        self.assertFalse(item["isExpired"])
-        self.assertEqual(item["remainingDownloads"], 3)
+        self.assertFalse(item["is_expired"])
+        self.assertEqual(item["remaining_downloads"], 3)
         self.assertEqual(item["file_path"], "share/data/2026/01/01/abc")
-        self.assertIn("never_retrieved", item["statusInsights"]["reasons"])
-        self.assertEqual(item["statusInsights"]["metrics"]["ageSeconds"], 3600)
+        self.assertIn("never_retrieved", item["status_insights"]["reasons"])
+        self.assertEqual(item["status_insights"]["metrics"]["age_seconds"], 3600)
 
     def test_build_admin_file_item_marks_expiring_soon(self):
         settings.file_storage = "local"
@@ -61,5 +56,5 @@ class AdminFileItemTests(SettingsOverrideMixin, unittest.TestCase):
 
         item = asyncio.run(service._build_admin_file_item(file_code, now=now))
 
-        self.assertEqual(item["statusInsights"]["severity"], "warning")
-        self.assertIn("expires_soon", item["statusInsights"]["reasons"])
+        self.assertEqual(item["status_insights"]["severity"], "warning")
+        self.assertIn("expires_soon", item["status_insights"]["reasons"])

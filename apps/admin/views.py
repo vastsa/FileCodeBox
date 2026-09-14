@@ -31,13 +31,16 @@ from apps.admin.schemas import (
 )
 from core.response import APIResponse
 from apps.base.models import FileCodes, KeyValue
+from tortoise.expressions import Q
+from tortoise.functions import Count, Sum
 from apps.admin.dependencies import (
     create_token,
     get_admin_session_expire_seconds,
     verify_token,
 )
+from core.logger import logger
 from core.settings import settings
-from core.utils import get_now, verify_password
+from core.utils import get_now, hash_password, password_needs_rehash, verify_password
 from apps.base.utils import ip_limit
 
 admin_api = APIRouter(
@@ -55,10 +58,24 @@ def _pick_query_text(*values: Optional[str]) -> Optional[str]:
 
 @admin_api.post("/login")
 async def login(data: LoginData, ip: str = Depends(ip_limit["login"])):
-    # 登录失败计入 IP 频率限制，超过 loginCount/loginMinute 后暂时锁定
+    # 登录失败计入 IP 频率限制，超过 login_count/login_minute 后暂时锁定
     if not verify_password(data.password, settings.admin_token):
         ip_limit["login"].add_ip(ip)
         raise HTTPException(status_code=401, detail="密码错误")
+
+    # 透明重哈希：存量 sha256/明文口令在登录成功（已证明持有口令）时升级为 scrypt
+    if password_needs_rehash(settings.admin_token):
+        try:
+            record = await KeyValue.filter(key="settings").first()
+            if record:
+                stored = dict(record.value or {})
+                stored["admin_token"] = hash_password(data.password)
+                record.value = stored
+                await record.save()
+                settings.admin_token = stored["admin_token"]
+                logger.info("管理员口令已升级为 scrypt 哈希")
+        except Exception:
+            logger.warning("口令哈希升级失败，保持旧格式", exc_info=True)
 
     expires_in = get_admin_session_expire_seconds()
     token = create_token({"is_admin": True}, expires_in=expires_in)
@@ -93,81 +110,99 @@ async def build_dashboard_recent_file(file_code: FileCodes) -> dict:
         "suffix": file_code.suffix,
         "size": file_code.size,
         "text": file_code.text is not None,
-        "expiredAt": file_code.expired_at,
-        "expiredCount": file_code.expired_count,
-        "usedCount": file_code.used_count,
-        "createdAt": file_code.created_at,
-        "isExpired": is_expired,
+        "expired_at": file_code.expired_at,
+        "expired_count": file_code.expired_count,
+        "used_count": file_code.used_count,
+        "created_at": file_code.created_at,
+        "is_expired": is_expired,
     }
+
+
+def _expired_predicate(now: datetime.datetime) -> Q:
+    """SQL version of FileCodes.is_expired:
+    expired_at IS NOT NULL AND ((expired_count < 0 AND expired_at < now) OR expired_count = 0)
+    """
+    return Q(expired_at__isnull=False) & (
+        Q(expired_count__lt=0, expired_at__lt=now) | Q(expired_count=0)
+    )
+
+
+async def _sum_size(queryset) -> int:
+    rows = await queryset.annotate(total=Sum("size")).values("total")
+    return rows[0]["total"] or 0
 
 
 @admin_api.get("/dashboard")
 async def dashboard(file_service: FileService = Depends(get_file_service)):
-    all_codes = await FileCodes.all()
-    all_size = sum([code.size for code in all_codes])
     sys_start = await KeyValue.filter(key="sys_start").first()
     now = await get_now()
     today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
     yesterday_start = today_start - datetime.timedelta(days=1)
     yesterday_end = today_start - datetime.timedelta(microseconds=1)
-    yesterday_codes = FileCodes.filter(
-        created_at__gte=yesterday_start, created_at__lte=yesterday_end
-    )
-    today_codes = FileCodes.filter(created_at__gte=today_start)
-    yesterday_file_codes = await yesterday_codes
-    today_file_codes = await today_codes
-    expired_count = 0
-    for file_code in all_codes:
-        if await file_code.is_expired():
-            expired_count += 1
-    health_summary = await file_service.build_file_health_summary(all_codes, now=now)
 
-    text_count = sum(1 for file_code in all_codes if file_code.text is not None)
-    chunked_count = sum(1 for file_code in all_codes if file_code.is_chunked)
-    used_count = sum([file_code.used_count for file_code in all_codes])
-    suffix_counter = Counter(
-        "Text" if file_code.text is not None else (file_code.suffix or "file")
-        for file_code in all_codes
+    # 简单计数全部走 SQL 聚合，避免整表载入内存（D3）。
+    # 健康摘要依赖逐行 rules engine（_build_file_status_insights），保留一次遍历。
+    total_files = await FileCodes.all().count()
+    expired_count = await FileCodes.filter(_expired_predicate(now)).count()
+    all_size = await _sum_size(FileCodes.all())
+    used_count = (
+        await FileCodes.all().annotate(total=Sum("used_count")).values("total")
+    )[0]["total"] or 0
+    text_count = await FileCodes.filter(text__isnull=False).count()
+    chunked_count = await FileCodes.filter(is_chunked=True).count()
+    yesterday_count = await FileCodes.filter(
+        created_at__gte=yesterday_start, created_at__lte=yesterday_end
+    ).count()
+    yesterday_size = await _sum_size(
+        FileCodes.filter(created_at__gte=yesterday_start, created_at__lte=yesterday_end)
     )
-    recent_file_codes = sorted(
-        all_codes,
-        key=lambda file_code: file_code.created_at.timestamp()
-        if file_code.created_at
-        else 0,
-        reverse=True,
-    )[:8]
+    today_count = await FileCodes.filter(created_at__gte=today_start).count()
+    today_size = await _sum_size(FileCodes.filter(created_at__gte=today_start))
+
+    suffix_rows = (
+        await FileCodes.filter(text__isnull=True)
+        .annotate(count=Count("id"))
+        .values("suffix", "count")
+    )
+    suffix_counter = Counter(
+        {((row["suffix"] or "file") or "file"): row["count"] for row in suffix_rows}
+    )
+
+    recent_file_codes = await FileCodes.all().order_by("-created_at").limit(8)
+    health_summary = await file_service.build_file_health_summary(
+        await FileCodes.all(), now=now
+    )
     recent_activities = await file_service.list_admin_activities(limit=8)
     return APIResponse(
         detail={
-            "totalFiles": len(all_codes),
-            "storageUsed": str(all_size),
-            "sysUptime": sys_start.value if sys_start else None,
-            "yesterdayCount": len(yesterday_file_codes),
-            "yesterdaySize": str(sum([code.size for code in yesterday_file_codes])),
-            "todayCount": len(today_file_codes),
-            "todaySize": str(sum([code.size for code in today_file_codes])),
-            "activeCount": len(all_codes) - expired_count,
-            "expiredCount": expired_count,
-            "textCount": text_count,
-            "fileCount": len(all_codes) - text_count,
-            "chunkedCount": chunked_count,
-            "usedCount": used_count,
-            "storageBackend": settings.file_storage,
-            "uploadSizeLimit": settings.uploadSize,
-            "openUpload": settings.openUpload,
-            "enableChunk": settings.enableChunk,
-            "maxSaveSeconds": settings.max_save_seconds,
+            "total_files": total_files,
+            "storage_used": str(all_size),
+            "sys_uptime": sys_start.value if sys_start else None,
+            "yesterday_count": yesterday_count,
+            "yesterday_size": str(yesterday_size),
+            "today_count": today_count,
+            "today_size": str(today_size),
+            "active_count": total_files - expired_count,
+            "expired_count": expired_count,
+            "text_count": text_count,
+            "file_count": total_files - text_count,
+            "chunked_count": chunked_count,
+            "used_count": used_count,
+            "storage_backend": settings.file_storage,
+            "upload_size_limit": settings.upload_size,
+            "open_upload": settings.open_upload,
+            "enable_chunk": settings.enable_chunk,
+            "max_save_seconds": settings.max_save_seconds,
             **health_summary,
-            "healthSummary": health_summary,
-            "topSuffixes": [
+            "health_summary": health_summary,
+            "top_suffixes": [
                 {"suffix": suffix, "count": count}
                 for suffix, count in suffix_counter.most_common(8)
             ],
-            "recentFiles": [
+            "recent_files": [
                 await build_dashboard_recent_file(file_code)
                 for file_code in recent_file_codes
             ],
-            "recentActivities": recent_activities["activities"],
             "recent_activities": recent_activities["activities"],
         }
     )
@@ -235,7 +270,7 @@ async def batch_update_files(
 
     update_data = {}
     fields_set = data.model_fields_set
-    should_clear_expired_at = bool(data.clearExpiredAt or data.clear_expired_at)
+    should_clear_expired_at = bool(data.clear_expired_at)
 
     if should_clear_expired_at:
         update_data["expired_at"] = None
@@ -277,9 +312,7 @@ async def apply_file_policy_action(
     data: FilePolicyActionData,
     file_service: FileService,
 ):
-    download_limit = data.downloadLimit
-    if download_limit is None:
-        download_limit = data.download_limit
+    download_limit = data.download_limit
 
     detail = await file_service.apply_file_policy_action(
         file_id=data.id,
@@ -312,9 +345,7 @@ async def apply_batch_file_policy_action(
     if not data.ids:
         raise HTTPException(status_code=400, detail="请选择要更新的文件")
 
-    download_limit = data.downloadLimit
-    if download_limit is None:
-        download_limit = data.download_limit
+    download_limit = data.download_limit
 
     result = await file_service.apply_files_policy_action(
         file_ids=data.ids,
@@ -348,8 +379,8 @@ async def file_list(
     status: str = "",
     type: str = "",
     health: str = "",
-    sortBy: str = "created_at",
-    sortOrder: str = "desc",
+    sort_by: str = "created_at",
+    sort_order: str = "desc",
     file_service: FileService = Depends(get_file_service),
 ):
     page = max(page, 1)
@@ -361,8 +392,8 @@ async def file_list(
         status=status,
         file_type=type,
         health=health,
-        sort_by=sortBy,
-        sort_order=sortOrder,
+        sort_by=sort_by,
+        sort_order=sort_order,
     )
     return APIResponse(
         detail={
@@ -503,7 +534,7 @@ async def update_config(
     config_service: ConfigService = Depends(get_config_service),
     file_service: FileService = Depends(get_file_service),
 ):
-    data.pop("themesChoices", None)
+    data.pop("themes_choices", None)
     await config_service.update_config(data)
     await file_service.record_admin_activity(
         action="config.update",
@@ -527,10 +558,10 @@ async def file_download(
 @admin_api.get("/file/preview")
 async def file_preview(
     id: int,
-    maxChars: int = 4000,
+    max_chars: int = 4000,
     file_service: FileService = Depends(get_file_service),
 ):
-    preview = await file_service.preview_file(id, maxChars)
+    preview = await file_service.preview_file(id, max_chars)
     return APIResponse(detail=preview)
 
 
@@ -572,8 +603,8 @@ async def share_local_file(
         target_name=item.filename,
         count=1,
         meta={
-            "expireValue": item.expire_value,
-            "expireStyle": item.expire_style,
+            "expire_value": item.expire_value,
+            "expire_style": item.expire_style,
         },
     )
     return APIResponse(detail=share_info)
@@ -584,38 +615,12 @@ async def update_file(
     data: UpdateFileData,
     file_service: FileService = Depends(get_file_service),
 ):
-    file_code = await FileCodes.filter(id=data.id).first()
-    if not file_code:
-        raise HTTPException(status_code=404, detail="文件不存在")
-    target_name = file_service._build_file_activity_name(file_code)
-    update_data = {}
-
-    if data.code is not None and data.code != file_code.code:
-        # 判断code是否存在
-        if await FileCodes.filter(code=data.code).first():
-            raise HTTPException(status_code=400, detail="code已存在")
-        update_data["code"] = data.code
-    if data.prefix is not None and data.prefix != file_code.prefix:
-        update_data["prefix"] = data.prefix
-    if data.suffix is not None and data.suffix != file_code.suffix:
-        update_data["suffix"] = data.suffix
-    if (
-        data.expired_at is not None
-        and data.expired_at != ""
-        and data.expired_at != file_code.expired_at
-    ):
-        update_data["expired_at"] = data.expired_at
-    if data.expired_count is not None and data.expired_count != file_code.expired_count:
-        update_data["expired_count"] = data.expired_count
-
-    await file_code.update_from_dict(update_data).save()
-    if update_data:
-        await file_service.record_admin_activity(
-            action="file.update",
-            target_type="file",
-            target_id=data.id,
-            target_name=target_name,
-            count=1,
-            meta={"fields": sorted(update_data.keys())},
-        )
+    await file_service.update_file(
+        file_id=data.id,
+        code=data.code,
+        prefix=data.prefix,
+        suffix=data.suffix,
+        expired_at=data.expired_at,
+        expired_count=data.expired_count,
+    )
     return APIResponse(detail="更新成功")

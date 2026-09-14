@@ -2,7 +2,7 @@
 # @Author  : Lan
 # @File    : depends.py
 # @Software: PyCharm
-from fastapi import Header, HTTPException, Depends
+from fastapi import Header, HTTPException
 from fastapi.requests import Request
 import base64
 import hmac
@@ -27,7 +27,7 @@ def _get_jwt_secret() -> bytes:
 def get_admin_session_expire_seconds() -> int:
     try:
         expires_in = int(
-            getattr(settings, "adminSessionExpire", ADMIN_SESSION_EXPIRE_DEFAULT)
+            getattr(settings, "admin_session_expire", ADMIN_SESSION_EXPIRE_DEFAULT)
         )
     except (TypeError, ValueError):
         return ADMIN_SESSION_EXPIRE_DEFAULT
@@ -155,14 +155,14 @@ async def share_required_login(authorization: str = Header(default=None)):
     """
     验证分享上传权限
     
-    当settings.openUpload为False时，要求用户必须登录并具有管理员权限
-    当settings.openUpload为True时，允许游客上传
+    当 settings.open_upload 为False时，要求用户必须登录并具有管理员权限
+    当 settings.open_upload 为True时，允许游客上传
     
     :param authorization: 认证头信息
     :param request: 请求对象
     :return: 验证结果
     """
-    if not settings.openUpload:
+    if not settings.open_upload:
         if not authorization or not authorization.startswith("Bearer "):
             raise HTTPException(
                 status_code=403, detail="本站未开启游客上传，如需上传请先登录后台"

@@ -15,10 +15,11 @@ from apps.base.models import (
     UploadChunk,
 )
 from apps.base.utils import ip_limit, get_chunk_file_path_name
-from core.config import refresh_settings
+from apps.base.config import refresh_settings
 from core.logger import logger
 from core.settings import settings, data_root
-from core.storage import FileStorageInterface, storages
+from core.storage import FileStorageInterface, StoredFile, storages
+from apps.base.services import stored_file_of
 from core.utils import get_now
 
 
@@ -41,7 +42,7 @@ async def delete_expire_files():
             ).all()
             for exp in expire_data:
                 try:
-                    await file_storage.delete_file(exp)
+                    await file_storage.delete_file(stored_file_of(exp))
                 except Exception as e:
                     logger.error(f"删除过期文件失败 code={exp.code}: {e}")
                 try:
@@ -110,7 +111,7 @@ async def clean_expired_presign_sessions():
                     try:
                         if await storage.file_exists(session.save_path):
                             await storage.delete_file(
-                                FileCodes(
+                                StoredFile(
                                     file_path=os.path.dirname(session.save_path),
                                     uuid_file_name=os.path.basename(session.save_path),
                                 )

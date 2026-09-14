@@ -22,9 +22,9 @@ FileCodeBox 支持两种配置方式：
 | `name` | string | `文件快递柜 - FileCodeBox` | 站点名称，显示在页面标题和导航栏 |
 | `description` | string | `开箱即用的文件快传系统` | 站点描述，用于 SEO |
 | `keywords` | string | `FileCodeBox, 文件快递柜...` | 站点关键词，用于 SEO |
-| `serverHost` | string | `0.0.0.0` | 服务监听地址 |
-| `serverPort` | int | `12345` | 服务监听端口 |
-| `serverWorkers` | int | `1` | 工作进程数；SQLite 部署建议保持单进程 |
+| `server_host` | string | `0.0.0.0` | 服务监听地址 |
+| `server_port` | int | `12345` | 服务监听端口 |
+| `server_workers` | int | `1` | 工作进程数；SQLite 部署建议保持单进程 |
 
 ### 通知设置
 
@@ -33,7 +33,7 @@ FileCodeBox 支持两种配置方式：
 | `notify_title` | string | `系统通知` | 通知标题 |
 | `notify_content` | string | 欢迎信息 | 通知内容，支持 HTML |
 | `page_explain` | string | 法律声明 | 页面底部说明文字 |
-| `robotsText` | string | `User-agent: *\nDisallow: /` | robots.txt 内容 |
+| `robots_text` | string | `User-agent: *\nDisallow: /` | robots.txt 内容 |
 
 ## 上传设置
 
@@ -41,21 +41,21 @@ FileCodeBox 支持两种配置方式：
 
 | 配置项 | 类型 | 默认值 | 说明 |
 |--------|------|--------|------|
-| `openUpload` | int | `1` | 是否开启上传功能（1=开启，0=关闭） |
-| `uploadSize` | int | `10485760` | 单文件最大上传大小（字节），默认 10MB |
-| `enableChunk` | int | `0` | 是否启用分片上传（1=启用，0=禁用） |
+| `open_upload` | int | `1` | 是否开启上传功能（1=开启，0=关闭） |
+| `upload_size` | int | `10485760` | 单文件最大上传大小（字节），默认 10MB |
+| `enable_chunk` | int | `0` | 是否启用分片上传（1=启用，0=禁用） |
 | `allowed_file_types` | list | `["*"]` | 允许上传的扩展名；`*` 表示不限制 |
 
 ::: warning 注意
-`uploadSize` 的单位是字节。10MB = 10 * 1024 * 1024 = 10485760 字节
+`upload_size` 的单位是字节。10MB = 10 * 1024 * 1024 = 10485760 字节
 :::
 
 ### 上传频率限制
 
 | 配置项 | 类型 | 默认值 | 说明 |
 |--------|------|--------|------|
-| `uploadMinute` | int | `1` | 上传限制的时间窗口（分钟） |
-| `uploadCount` | int | `10` | 在时间窗口内允许的最大上传次数 |
+| `upload_minute` | int | `1` | 上传限制的时间窗口（分钟） |
+| `upload_count` | int | `10` | 在时间窗口内允许的最大上传次数 |
 
 例如：默认配置表示每 1 分钟内最多允许上传 10 次。
 
@@ -63,7 +63,7 @@ FileCodeBox 支持两种配置方式：
 
 | 配置项 | 类型 | 默认值 | 说明 |
 |--------|------|--------|------|
-| `expireStyle` | list | `["day","hour","minute","forever","count"]` | 可选的过期方式 |
+| `expire_style` | list | `["day","hour","minute","forever","count"]` | 可选的过期方式 |
 | `max_save_seconds` | int | `0` | 文件最大保存时间（秒），0 表示不限制 |
 
 过期方式说明：
@@ -79,8 +79,8 @@ FileCodeBox 支持两种配置方式：
 
 | 配置项 | 类型 | 默认值 | 说明 |
 |--------|------|--------|------|
-| `themesSelect` | string | `themes/2024` | 当前使用的主题 |
-| `themesChoices` | list | 见下方 | 可用主题列表 |
+| `themes_select` | string | `themes/2024` | 当前使用的主题 |
+| `themes_choices` | list | 见下方 | 可用主题列表 |
 
 默认可用主题：
 ```json
@@ -112,8 +112,8 @@ FileCodeBox 支持两种配置方式：
 | 配置项 | 类型 | 默认值 | 说明 |
 |--------|------|--------|------|
 | `admin_token` | string | 初始化页面设置 | 管理员登录密码（哈希存储） |
-| `showAdminAddr` | int | `0` | 是否在首页显示管理入口（1=显示，0=隐藏） |
-| `adminSessionExpire` | int | `2592000` | 管理会话有效期（秒），默认 30 天 |
+| `show_admin_addr` | int | `0` | 是否在首页显示管理入口（1=显示，0=隐藏） |
+| `admin_session_expire` | int | `2592000` | 管理会话有效期（秒），默认 30 天 |
 
 ::: danger 安全警告
 未初始化时会自动显示初始化页面。生产环境请在服务对外开放前完成初始化。
@@ -125,9 +125,9 @@ FileCodeBox 支持两种配置方式：
 
 | 配置项 | 类型 | 默认值 | 说明 |
 |--------|------|--------|------|
-| `errorMinute` | int | `1` | 错误限制的时间窗口（分钟） |
-| `errorCount` | int | `10` | 在时间窗口内允许的最大错误次数 |
-| `trustedProxies` | list | `[]` | 可信反向代理 IP；用于安全解析客户端地址 |
+| `error_minute` | int | `1` | 错误限制的时间窗口（分钟） |
+| `error_count` | int | `10` | 在时间窗口内允许的最大错误次数 |
+| `trusted_proxies` | list | `[]` | 可信反向代理 IP；用于安全解析客户端地址 |
 
 此设置用于防止暴力破解提取码。
 
@@ -139,7 +139,7 @@ FileCodeBox 支持两种配置方式：
 |--------|------|--------|------|
 | `file_storage` | string | `local` | 存储后端类型 |
 | `storage_path` | string | `""` | 自定义存储路径 |
-| `storageLimit` | int | `0` | 总存储配额（字节），0 表示不限制 |
+| `storage_limit` | int | `0` | 总存储配额（字节），0 表示不限制 |
 
 支持的存储类型：
 - `local` - 本地存储
@@ -159,11 +159,11 @@ FileCodeBox 支持两种配置方式：
 ```python
 {
     "name": "我的文件分享",
-    "uploadSize": 52428800,        # 50MB
-    "uploadMinute": 5,             # 5分钟
-    "uploadCount": 20,             # 最多20次
-    "expireStyle": ["day", "hour", "forever"],
-    "showAdminAddr": 1
+    "upload_size": 52428800,        # 50MB
+    "upload_minute": 5,             # 5分钟
+    "upload_count": 20,             # 最多20次
+    "expire_style": ["day", "hour", "forever"],
+    "show_admin_addr": 1
 }
 ```
 
@@ -174,14 +174,14 @@ FileCodeBox 支持两种配置方式：
 ```python
 {
     "name": "公共文件快递柜",
-    "uploadSize": 10485760,        # 10MB
-    "uploadMinute": 1,             # 1分钟
-    "uploadCount": 5,              # 最多5次
-    "errorMinute": 5,              # 5分钟
-    "errorCount": 3,               # 最多3次错误
-    "expireStyle": ["hour", "minute", "count"],
+    "upload_size": 10485760,        # 10MB
+    "upload_minute": 1,             # 1分钟
+    "upload_count": 5,              # 最多5次
+    "error_minute": 5,              # 5分钟
+    "error_count": 3,               # 最多3次错误
+    "expire_style": ["hour", "minute", "count"],
     "max_save_seconds": 86400,     # 最长保存1天
-    "showAdminAddr": 0
+    "show_admin_addr": 0
 }
 ```
 
@@ -192,13 +192,13 @@ FileCodeBox 支持两种配置方式：
 ```python
 {
     "name": "企业文件中转站",
-    "uploadSize": 1073741824,      # 1GB
-    "enableChunk": 1,              # 启用分片上传
-    "uploadMinute": 10,            # 10分钟
-    "uploadCount": 100,            # 最多100次
-    "expireStyle": ["day", "forever"],
+    "upload_size": 1073741824,      # 1GB
+    "enable_chunk": 1,              # 启用分片上传
+    "upload_minute": 10,            # 10分钟
+    "upload_count": 100,            # 最多100次
+    "expire_style": ["day", "forever"],
     "file_storage": "s3",          # 使用S3存储
-    "showAdminAddr": 1
+    "show_admin_addr": 1
 }
 ```
 

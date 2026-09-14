@@ -1,0 +1,18 @@
+version: 2
+updates:
+  # Runtime deps. requirements.txt pins direct deps; requirements.lock.txt is
+  # the hashed, transitive-resolved lockfile. Dependabot raises version PRs
+  # against requirements.txt; regenerate the lockfile in the same PR
+  # (uv pip compile requirements.txt --generate-hashes --universal -o requirements.lock.txt).
+  - package-ecosystem: "pip"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+  - package-ecosystem: "docker"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"

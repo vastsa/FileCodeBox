@@ -7,7 +7,7 @@ from core.settings import settings
 
 
 def _iter_trusted_proxies() -> Iterable[str]:
-    trusted_proxies = getattr(settings, "trustedProxies", [])
+    trusted_proxies = getattr(settings, "trusted_proxies", [])
     if isinstance(trusted_proxies, str):
         trusted_proxies = [item.strip() for item in trusted_proxies.split(",")]
     return [item for item in trusted_proxies if item]

@@ -66,10 +66,10 @@ Response example:
 
 ### File Size Limit
 
-The default maximum single file upload size is **10MB**. Administrators can modify this limit via the `uploadSize` configuration.
+The default maximum single file upload size is **10MB**. Administrators can modify this limit via the `upload_size` configuration.
 
 ::: tip Tip
-If you need to upload large files, contact the administrator to enable chunked upload functionality or adjust the `uploadSize` configuration.
+If you need to upload large files, contact the administrator to enable chunked upload functionality or adjust the `upload_size` configuration.
 :::
 
 ### Supported Upload Methods
@@ -116,7 +116,7 @@ FileCodeBox supports multiple flexible expiration methods:
 | By Count | `count` | File expires after specified download count |
 
 ::: info Note
-- Administrators can control available expiration methods via the `expireStyle` configuration
+- Administrators can control available expiration methods via the `expire_style` configuration
 - Administrators can limit maximum file retention time via the `max_save_seconds` configuration
 :::
 
@@ -208,7 +208,7 @@ This endpoint returns file content directly, suitable for direct browser access.
 
 ## Chunked Upload (Large Files)
 
-For large file uploads, FileCodeBox supports chunked upload functionality. This feature requires administrator enablement (`enableChunk=1`).
+For large file uploads, FileCodeBox supports chunked upload functionality. This feature requires administrator enablement (`enable_chunk=1`).
 
 ### Chunked Upload Flow
 

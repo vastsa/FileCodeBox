@@ -226,7 +226,7 @@ npm run dev
 ## ❓ FAQ
 
 ### Q: How to modify upload size limit?
-A: Change `uploadSize` in admin panel
+A: Change `upload_size` in admin panel
 
 ### Q: How to configure storage engine?
 A: Select storage engine and configure parameters in admin panel

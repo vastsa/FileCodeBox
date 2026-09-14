@@ -22,9 +22,9 @@ On first startup, the system uses default configuration from `core/settings.py`.
 | `name` | string | `文件快递柜 - FileCodeBox` | Site name, displayed in page title and navigation bar |
 | `description` | string | `开箱即用的文件快传系统` | Site description, used for SEO |
 | `keywords` | string | `FileCodeBox, 文件快递柜...` | Site keywords, used for SEO |
-| `serverHost` | string | `0.0.0.0` | Service listening address |
-| `serverPort` | int | `12345` | Service listening port |
-| `serverWorkers` | int | `1` | Worker count; keep one worker for SQLite deployments |
+| `server_host` | string | `0.0.0.0` | Service listening address |
+| `server_port` | int | `12345` | Service listening port |
+| `server_workers` | int | `1` | Worker count; keep one worker for SQLite deployments |
 
 ### Notification Settings
 
@@ -33,7 +33,7 @@ On first startup, the system uses default configuration from `core/settings.py`.
 | `notify_title` | string | `系统通知` | Notification title |
 | `notify_content` | string | Welcome message | Notification content, supports HTML |
 | `page_explain` | string | Legal disclaimer | Footer explanation text |
-| `robotsText` | string | `User-agent: *\nDisallow: /` | robots.txt content |
+| `robots_text` | string | `User-agent: *\nDisallow: /` | robots.txt content |
 
 ## Upload Settings
 
@@ -41,21 +41,21 @@ On first startup, the system uses default configuration from `core/settings.py`.
 
 | Setting | Type | Default | Description |
 |---------|------|---------|-------------|
-| `openUpload` | int | `1` | Enable upload functionality (1=enabled, 0=disabled) |
-| `uploadSize` | int | `10485760` | Maximum single file upload size (bytes), default 10MB |
-| `enableChunk` | int | `0` | Enable chunked upload (1=enabled, 0=disabled) |
+| `open_upload` | int | `1` | Enable upload functionality (1=enabled, 0=disabled) |
+| `upload_size` | int | `10485760` | Maximum single file upload size (bytes), default 10MB |
+| `enable_chunk` | int | `0` | Enable chunked upload (1=enabled, 0=disabled) |
 | `allowed_file_types` | list | `["*"]` | Allowed extensions; `*` allows every file type |
 
 ::: warning Note
-`uploadSize` is in bytes. 10MB = 10 * 1024 * 1024 = 10485760 bytes
+`upload_size` is in bytes. 10MB = 10 * 1024 * 1024 = 10485760 bytes
 :::
 
 ### Upload Rate Limiting
 
 | Setting | Type | Default | Description |
 |---------|------|---------|-------------|
-| `uploadMinute` | int | `1` | Upload limit time window (minutes) |
-| `uploadCount` | int | `10` | Maximum uploads allowed within the time window |
+| `upload_minute` | int | `1` | Upload limit time window (minutes) |
+| `upload_count` | int | `10` | Maximum uploads allowed within the time window |
 
 Example: Default configuration allows up to 10 uploads per minute.
 
@@ -64,7 +64,7 @@ Example: Default configuration allows up to 10 uploads per minute.
 
 | Setting | Type | Default | Description |
 |---------|------|---------|-------------|
-| `expireStyle` | list | `["day","hour","minute","forever","count"]` | Available expiration methods |
+| `expire_style` | list | `["day","hour","minute","forever","count"]` | Available expiration methods |
 | `max_save_seconds` | int | `0` | Maximum file retention time (seconds), 0 means no limit |
 
 Expiration methods explained:
@@ -80,8 +80,8 @@ Expiration methods explained:
 
 | Setting | Type | Default | Description |
 |---------|------|---------|-------------|
-| `themesSelect` | string | `themes/2024` | Currently active theme |
-| `themesChoices` | list | See below | Available themes list |
+| `themes_select` | string | `themes/2024` | Currently active theme |
+| `themes_choices` | list | See below | Available themes list |
 
 Default available themes:
 ```json
@@ -113,8 +113,8 @@ Default available themes:
 | Setting | Type | Default | Description |
 |---------|------|---------|-------------|
 | `admin_token` | string | Set during setup | Admin login password |
-| `showAdminAddr` | int | `0` | Show admin panel entry on homepage (1=show, 0=hide) |
-| `adminSessionExpire` | int | `2592000` | Admin session lifetime in seconds (30 days) |
+| `show_admin_addr` | int | `0` | Show admin panel entry on homepage (1=show, 0=hide) |
+| `admin_session_expire` | int | `2592000` | Admin session lifetime in seconds (30 days) |
 
 ::: danger Security Warning
 The setup page is shown automatically while the system is uninitialized. Complete setup before exposing a production service to the public internet.
@@ -126,9 +126,9 @@ The setup page is shown automatically while the system is uninitialized. Complet
 
 | Setting | Type | Default | Description |
 |---------|------|---------|-------------|
-| `errorMinute` | int | `1` | Error limit time window (minutes) |
-| `errorCount` | int | `10` | Maximum errors allowed within the time window |
-| `trustedProxies` | list | `[]` | Trusted reverse-proxy IPs used to resolve client addresses |
+| `error_minute` | int | `1` | Error limit time window (minutes) |
+| `error_count` | int | `10` | Maximum errors allowed within the time window |
+| `trusted_proxies` | list | `[]` | Trusted reverse-proxy IPs used to resolve client addresses |
 
 This setting prevents brute-force attacks on extraction codes.
 
@@ -140,7 +140,7 @@ This setting prevents brute-force attacks on extraction codes.
 |---------|------|---------|-------------|
 | `file_storage` | string | `local` | Storage backend type |
 | `storage_path` | string | `""` | Custom storage path |
-| `storageLimit` | int | `0` | Total storage quota in bytes; 0 means unlimited |
+| `storage_limit` | int | `0` | Total storage quota in bytes; 0 means unlimited |
 
 Supported storage types:
 - `local` - Local storage
@@ -160,11 +160,11 @@ Suitable for personal or small team use with relaxed limits:
 ```python
 {
     "name": "My File Share",
-    "uploadSize": 52428800,        # 50MB
-    "uploadMinute": 5,             # 5 minutes
-    "uploadCount": 20,             # Max 20 uploads
-    "expireStyle": ["day", "hour", "forever"],
-    "showAdminAddr": 1
+    "upload_size": 52428800,        # 50MB
+    "upload_minute": 5,             # 5 minutes
+    "upload_count": 20,             # Max 20 uploads
+    "expire_style": ["day", "hour", "forever"],
+    "show_admin_addr": 1
 }
 ```
 
@@ -175,14 +175,14 @@ Suitable for public services requiring stricter limits:
 ```python
 {
     "name": "Public File Box",
-    "uploadSize": 10485760,        # 10MB
-    "uploadMinute": 1,             # 1 minute
-    "uploadCount": 5,              # Max 5 uploads
-    "errorMinute": 5,              # 5 minutes
-    "errorCount": 3,               # Max 3 errors
-    "expireStyle": ["hour", "minute", "count"],
+    "upload_size": 10485760,        # 10MB
+    "upload_minute": 1,             # 1 minute
+    "upload_count": 5,              # Max 5 uploads
+    "error_minute": 5,              # 5 minutes
+    "error_count": 3,               # Max 3 errors
+    "expire_style": ["hour", "minute", "count"],
     "max_save_seconds": 86400,     # Max retention 1 day
-    "showAdminAddr": 0
+    "show_admin_addr": 0
 }
 ```
 
@@ -193,13 +193,13 @@ Suitable for enterprise internal use with large file and chunked upload support:
 ```python
 {
     "name": "Enterprise File Transfer",
-    "uploadSize": 1073741824,      # 1GB
-    "enableChunk": 1,              # Enable chunked upload
-    "uploadMinute": 10,            # 10 minutes
-    "uploadCount": 100,            # Max 100 uploads
-    "expireStyle": ["day", "forever"],
+    "upload_size": 1073741824,      # 1GB
+    "enable_chunk": 1,              # Enable chunked upload
+    "upload_minute": 10,            # 10 minutes
+    "upload_count": 100,            # Max 100 uploads
+    "expire_style": ["day", "forever"],
     "file_storage": "s3",          # Use S3 storage
-    "showAdminAddr": 1
+    "show_admin_addr": 1
 }
 ```
 

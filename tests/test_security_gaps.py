@@ -13,12 +13,7 @@ from core.settings import settings
 from core.utils import hash_password
 
 
-class SettingsOverrideMixin:
-    def setUp(self):
-        self._original_user_config = dict(settings.user_config)
-
-    def tearDown(self):
-        settings.user_config = self._original_user_config
+from tests.helpers import SettingsOverrideMixin
 
 
 class MagicBytesTests(SettingsOverrideMixin, unittest.TestCase):
@@ -58,8 +53,8 @@ class LoginRateLimitTests(SettingsOverrideMixin, unittest.TestCase):
         super().setUp()
         settings.admin_token = hash_password("correct-password-123")
         settings.jwt_secret = "j" * 48
-        settings.loginCount = 3
-        settings.loginMinute = 15
+        settings.login_count = 3
+        settings.login_minute = 15
         self._original_login_limiter = ip_limit["login"]
         ip_limit["login"] = IPRateLimit(count=3, minutes=15)
 

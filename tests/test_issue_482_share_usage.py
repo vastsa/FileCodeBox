@@ -3,13 +3,14 @@ import datetime
 import unittest
 from unittest.mock import patch
 
-from tortoise import Tortoise
 
 from apps.base.models import FileCodes
 from apps.base import views
+from core.storage import StoredDownload
+from tests.helpers import close_db, init_memory_db
 from core.settings import DEFAULT_CONFIG, settings
 from core.utils import get_now, get_select_token
-from main import build_setup_page, parse_setup_options
+from apps.base.setup_wizard import build_setup_page, parse_setup_options
 
 
 class FakeStorage:
@@ -20,7 +21,11 @@ class FakeStorage:
         return "https://storage.example/reusable-url"
 
     async def get_file_response(self, file_code):
-        return {"downloaded": file_code.code}
+        return StoredDownload(
+            filename=f"{file_code.prefix}{file_code.suffix}",
+            headers={},
+            content=f"downloaded:{file_code.code}".encode(),
+        )
 
 
 class FakeRateLimit:
@@ -35,7 +40,7 @@ class ShareUsageSecurityTests(unittest.TestCase):
     def test_new_installations_default_to_secret_codes(self):
         self.assertEqual(DEFAULT_CONFIG["code_generate_type"], "secret")
         self.assertEqual(
-            parse_setup_options({"expireStyle": ["day"]})["code_generate_type"],
+            parse_setup_options({"expire_style": ["day"]})["code_generate_type"],
             "secret",
         )
         self.assertIn('<option value="secret" selected>', build_setup_page())
@@ -48,25 +53,7 @@ class ShareUsageSecurityTests(unittest.TestCase):
         original_metadata_limit = views.ip_limit["metadata"]
         settings.file_storage = "local"
         settings.jwt_secret = "test-download-secret"
-        await Tortoise.init(
-            config={
-                "connections": {
-                    "default": {
-                        "engine": "tortoise.backends.sqlite",
-                        "credentials": {"file_path": ":memory:"},
-                    }
-                },
-                "apps": {
-                    "models": {
-                        "models": ["apps.base.models"],
-                        "default_connection": "default",
-                    }
-                },
-                "use_tz": False,
-                "timezone": "Asia/Shanghai",
-            }
-        )
-        await Tortoise.generate_schemas()
+        await init_memory_db()
         try:
             await self._assert_count_consumption_is_atomic()
             await self._assert_time_expiration_and_usage_are_atomic()
@@ -77,7 +64,7 @@ class ShareUsageSecurityTests(unittest.TestCase):
         finally:
             views.ip_limit["metadata"] = original_metadata_limit
             settings.user_config = original_config
-            await Tortoise.close_connections()
+            await close_db()
 
     async def _assert_count_consumption_is_atomic(self):
         record = await FileCodes.create(
@@ -151,7 +138,7 @@ class ShareUsageSecurityTests(unittest.TestCase):
             first = await views.download_file(key=key, code=record.code, ip="127.0.0.1")
             second = await views.download_file(key=key, code=record.code, ip="127.0.0.1")
 
-        self.assertEqual(first, {"downloaded": record.code})
+        self.assertEqual(first.body, b"downloaded:" + record.code.encode())
         self.assertEqual(second.code, 404)
         await record.refresh_from_db()
         self.assertEqual(record.expired_count, 0)

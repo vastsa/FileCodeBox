@@ -8,7 +8,7 @@ import os
 import tempfile
 from core.logger import logger
 import shutil
-from typing import Optional
+from typing import BinaryIO, Optional
 from urllib.parse import quote, unquote
 
 import aiofiles
@@ -16,33 +16,98 @@ import aiohttp
 import asyncio
 from pathlib import Path
 import datetime
+from dataclasses import dataclass
 import re
 import aioboto3
 from botocore.config import Config
-from fastapi import HTTPException, Response, UploadFile
-from core.response import APIResponse
+from core.errors import StorageError
 from core.settings import data_root, settings
-from apps.base.models import FileCodes, UploadChunk
 from core.utils import get_file_url, sanitize_filename
-from fastapi.responses import FileResponse, StreamingResponse
 from starlette.background import BackgroundTask
+
+
+@dataclass
+class StoredDownload:
+    """Framework-free description of a file download.
+
+    Backends return this; the view layer builds the starlette Response:
+    - ``path`` set -> FileResponse (local files, Range support for free)
+    - ``content`` set -> small full-read Response (legacy OpenDAL fallback)
+    - ``stream_factory`` set -> StreamingResponse(stream_factory(), ...)
+    ``background`` is an optional response-sent cleanup hook.
+    """
+
+    filename: str
+    headers: dict
+    media_type: str = "application/octet-stream"
+    path: object = None
+    content: object = None
+    stream_factory: object = None
+    background: object = None
+
+
+@dataclass
+class StoredFile:
+    """Plain, framework- and ORM-free description of a stored file.
+
+    Storage backends accept this instead of ORM models so core/ never imports
+    apps/. Callers (views/tasks/services) build it from their own records.
+    """
+
+    file_path: str
+    uuid_file_name: str
+    code: str = ""
+    prefix: str = ""
+    suffix: str = ""
+    text: str = ""
+
+    def get_file_path(self) -> str:
+        return f"{self.file_path}/{self.uuid_file_name}"
 
 
 class FileStorageInterface:
 
-    async def save_file(self, file: UploadFile, save_path: str):
+    @staticmethod
+    def _get_chunk_record(chunk_records: dict, index: int):
+        """Look up the caller-provided record for chunk `index`.
+
+        Records are plain objects exposing ``chunk_hash``; fetching them from
+        the DB is the caller's job (keeps storage ORM-free).
         """
-        保存文件
-        """
+        chunk_record = chunk_records.get(index)
+        if not chunk_record:
+            raise ValueError(f"分片{index}记录不存在")
+        return chunk_record
+
+    def _verify_and_hash_chunk(
+        self,
+        index: int,
+        chunk_record,
+        chunk_data: bytes,
+        file_sha256,
+    ) -> None:
+        """Verify a chunk against its recorded hash, then stripe it into the
+        whole-file digest. Raises the shared ValueError wording on mismatch."""
+        current_hash = hashlib.sha256(chunk_data).hexdigest()
+        if current_hash != chunk_record.chunk_hash:
+            raise ValueError(
+                f"分片{index}哈希不匹配: 期望 {chunk_record.chunk_hash}, 实际 {current_hash}"
+            )
+        file_sha256.update(chunk_data)
+
+    async def save_file(
+        self, stream: BinaryIO, save_path: str, content_type: Optional[str] = None
+    ):
+        """Save a binary stream (caller owns closing the stream)."""
         raise NotImplementedError
 
-    async def delete_file(self, file_code: FileCodes):
+    async def delete_file(self, file_code: StoredFile):
         """
         删除文件
         """
         raise NotImplementedError
 
-    async def get_file_url(self, file_code: FileCodes):
+    async def get_file_url(self, file_code: StoredFile):
         """
         获取文件分享的url
 
@@ -51,7 +116,7 @@ class FileStorageInterface:
         """
         raise NotImplementedError
 
-    async def get_file_response(self, file_code: FileCodes):
+    async def get_file_response(self, file_code: StoredFile):
         """
         获取文件响应
 
@@ -71,7 +136,7 @@ class FileStorageInterface:
         """
         raise NotImplementedError
 
-    async def merge_chunks(self, upload_id: str, chunk_info: UploadChunk, save_path: str) -> tuple[str, str]:
+    async def merge_chunks(self, upload_id: str, total_chunks: int, chunk_size: int, save_path: str, chunk_records: dict) -> tuple[str, str]:
         """
         合并分片文件并返回文件路径和完整哈希值
         :param upload_id: 上传会话ID
@@ -132,7 +197,9 @@ class SystemFileStorage(FileStorageInterface):
                 f.write(chunk)
                 chunk = file.read(self.chunk_size)
 
-    async def save_file(self, file: UploadFile, save_path: str):
+    async def save_file(
+        self, stream: BinaryIO, save_path: str, content_type: Optional[str] = None
+    ):
         path_obj = Path(str(save_path).replace("\\", "/"))
         directory = str(path_obj.parent).replace("\\", "/").lstrip("/")
         # 提取原始文件名并进行清理
@@ -142,20 +209,20 @@ class SystemFileStorage(FileStorageInterface):
         # 确保目录存在
         if not safe_save_path.parent.exists():
             safe_save_path.parent.mkdir(parents=True)
-        await asyncio.to_thread(self._save, file.file, safe_save_path)
+        await asyncio.to_thread(self._save, stream, safe_save_path)
 
-    async def delete_file(self, file_code: FileCodes):
-        save_path = self._resolve_safe_path(await file_code.get_file_path())
+    async def delete_file(self, file_code: StoredFile):
+        save_path = self._resolve_safe_path(file_code.get_file_path())
         if save_path.exists():
             save_path.unlink()
 
-    async def get_file_url(self, file_code: FileCodes):
+    async def get_file_url(self, file_code: StoredFile):
         return await get_file_url(file_code.code)
 
-    async def get_file_response(self, file_code: FileCodes):
-        file_path = self._resolve_safe_path(await file_code.get_file_path())
+    async def get_file_response(self, file_code: StoredFile):
+        file_path = self._resolve_safe_path(file_code.get_file_path())
         if not file_path.exists():
-            return APIResponse(code=404, detail="文件已过期删除")
+            raise StorageError(status_code=404, detail="文件已过期删除")
         filename = f"{file_code.prefix}{file_code.suffix}"
         encoded_filename = quote(filename, safe='')
         content_disposition = f"attachment; filename*=UTF-8''{encoded_filename}"
@@ -169,11 +236,10 @@ class SystemFileStorage(FileStorageInterface):
             # 如果获取文件大小失败，则不提供 Content-Length
             pass
         
-        return FileResponse(
-            file_path,
-            media_type="application/octet-stream",
+        return StoredDownload(
+            filename=filename,
             headers=headers,
-            filename=filename  # 保留原始文件名以备某些场景使用
+            path=file_path,
         )
 
     async def save_chunk(self, upload_id: str, chunk_index: int, chunk_data: bytes, chunk_hash: str, save_path: str):
@@ -204,7 +270,7 @@ class SystemFileStorage(FileStorageInterface):
                 temp_path.unlink()
             raise e
 
-    async def merge_chunks(self, upload_id: str, chunk_info: UploadChunk, save_path: str) -> tuple[str, str]:
+    async def merge_chunks(self, upload_id: str, total_chunks: int, chunk_size: int, save_path: str, chunk_records: dict) -> tuple[str, str]:
         """
         合并本地文件系统的分片文件并返回文件路径和完整哈希值
         :param upload_id: 上传会话ID
@@ -223,20 +289,15 @@ class SystemFileStorage(FileStorageInterface):
         temp_output = output_path.with_suffix('.merging')
         try:
             async with aiofiles.open(temp_output, "wb") as out_file:
-                for i in range(chunk_info.total_chunks):
+                for i in range(total_chunks):
                     # 获取分片记录
-                    chunk_record = await UploadChunk.filter(upload_id=upload_id, chunk_index=i).first()
-                    if not chunk_record:
-                        raise ValueError(f"分片{i}记录不存在")
+                    chunk_record = self._get_chunk_record(chunk_records, i)
                     chunk_path = chunk_base_dir / f"{i}.part"
                     if not chunk_path.exists():
                         raise ValueError(f"分片{i}文件不存在")
                     async with aiofiles.open(chunk_path, "rb") as in_file:
                         chunk_data = await in_file.read()
-                        current_hash = hashlib.sha256(chunk_data).hexdigest()
-                        if current_hash != chunk_record.chunk_hash:
-                            raise ValueError(f"分片{i}哈希不匹配: 期望 {chunk_record.chunk_hash}, 实际 {current_hash}")
-                        file_sha256.update(chunk_data)
+                        self._verify_and_hash_chunk(i, chunk_record, chunk_data, file_sha256)
                         await out_file.write(chunk_data)
             # 原子重命名
             temp_output.rename(output_path)
@@ -321,23 +382,25 @@ class S3FileStorage(FileStorageInterface):
             config=self._client_config(),
         )
 
-    async def save_file(self, file: UploadFile, save_path: str):
+    async def save_file(
+        self, stream: BinaryIO, save_path: str, content_type: Optional[str] = None
+    ):
         async with self._client() as s3:
             # 使用 upload_fileobj 流式上传，避免将整个文件加载到内存
             await s3.upload_fileobj(
-                file.file,
+                stream,
                 self.bucket_name,
                 save_path,
-                ExtraArgs={"ContentType": file.content_type or "application/octet-stream"},
+                ExtraArgs={"ContentType": content_type or "application/octet-stream"},
             )
 
-    async def delete_file(self, file_code: FileCodes):
+    async def delete_file(self, file_code: StoredFile):
         async with self._client() as s3:
             await s3.delete_object(
-                Bucket=self.bucket_name, Key=await file_code.get_file_path()
+                Bucket=self.bucket_name, Key=file_code.get_file_path()
             )
 
-    async def get_file_response(self, file_code: FileCodes):
+    async def get_file_response(self, file_code: StoredFile):
         try:
             filename = file_code.prefix + file_code.suffix
             content_length = None  # 初始化为 None，表示未知大小
@@ -347,7 +410,7 @@ class S3FileStorage(FileStorageInterface):
                 try:
                     head_response = await s3.head_object(
                         Bucket=self.bucket_name,
-                        Key=await file_code.get_file_path()
+                        Key=file_code.get_file_path()
                     )
                     # 从HEAD响应中获取Content-Length
                     if 'ContentLength' in head_response:
@@ -362,7 +425,7 @@ class S3FileStorage(FileStorageInterface):
                     "get_object",
                     Params={
                         "Bucket": self.bucket_name,
-                        "Key": await file_code.get_file_path(),
+                        "Key": file_code.get_file_path(),
                     },
                     ExpiresIn=3600,
                 )
@@ -374,7 +437,7 @@ class S3FileStorage(FileStorageInterface):
                 try:
                     async with session.get(link) as resp:
                         if resp.status != 200:
-                            raise HTTPException(
+                            raise StorageError(
                                 status_code=resp.status,
                                 detail=f"从S3获取文件失败: {resp.status}"
                             )
@@ -388,26 +451,25 @@ class S3FileStorage(FileStorageInterface):
                 finally:
                     await session.close()
             
-            from fastapi.responses import StreamingResponse
             encoded_filename = quote(filename, safe='')
             headers = {
                 "Content-Disposition": f"attachment; filename*=UTF-8''{encoded_filename}"
             }
             if content_length is not None:
                 headers["Content-Length"] = str(content_length)
-            return StreamingResponse(
-                stream_generator(),
-                media_type="application/octet-stream",
+            return StoredDownload(
+                filename=filename,
                 headers=headers,
+                stream_factory=stream_generator,
                 # 兜底关闭会话：客户端中断时与 generator finally 双保险
                 background=BackgroundTask(session.close),
             )
-        except HTTPException:
+        except StorageError:
             raise
         except Exception:
-            raise HTTPException(status_code=503, detail="服务代理下载异常，请稍后再试")
+            raise StorageError(status_code=503, detail="服务代理下载异常，请稍后再试")
 
-    async def get_file_url(self, file_code: FileCodes):
+    async def get_file_url(self, file_code: StoredFile):
         if file_code.prefix == "文本分享":
             return file_code.text
         if self.proxy:
@@ -418,7 +480,7 @@ class S3FileStorage(FileStorageInterface):
                     "get_object",
                     Params={
                         "Bucket": self.bucket_name,
-                        "Key": await file_code.get_file_path(),
+                        "Key": file_code.get_file_path(),
                     },
                     ExpiresIn=3600,
                 )
@@ -442,7 +504,7 @@ class S3FileStorage(FileStorageInterface):
                 }
             )
 
-    async def merge_chunks(self, upload_id: str, chunk_info: UploadChunk, save_path: str) -> tuple[str, str]:
+    async def merge_chunks(self, upload_id: str, total_chunks: int, chunk_size: int, save_path: str, chunk_records: dict) -> tuple[str, str]:
         """
         合并 S3 上的分片文件
         使用 S3 的 multipart upload API 实现流式合并，避免内存问题
@@ -462,11 +524,9 @@ class S3FileStorage(FileStorageInterface):
 
             try:
                 # 按顺序读取、验证并上传每个分片
-                for i in range(chunk_info.total_chunks):
+                for i in range(total_chunks):
                     chunk_key = f"{chunk_dir}/{i}.part"
-                    chunk_record = await UploadChunk.filter(upload_id=upload_id, chunk_index=i).first()
-                    if not chunk_record:
-                        raise ValueError(f"分片{i}记录不存在")
+                    chunk_record = self._get_chunk_record(chunk_records, i)
 
                     try:
                         response = await s3.get_object(
@@ -477,11 +537,7 @@ class S3FileStorage(FileStorageInterface):
                     except Exception as e:
                         raise ValueError(f"分片{i}文件不存在: {e}")
 
-                    current_hash = hashlib.sha256(chunk_data).hexdigest()
-                    if current_hash != chunk_record.chunk_hash:
-                        raise ValueError(f"分片{i}哈希不匹配: 期望 {chunk_record.chunk_hash}, 实际 {current_hash}")
-
-                    file_sha256.update(chunk_data)
+                    self._verify_and_hash_chunk(i, chunk_record, chunk_data, file_sha256)
 
                     # 上传分片到 multipart upload
                     part_response = await s3.upload_part(
@@ -650,14 +706,32 @@ class OneDriveFileStorage(FileStorageInterface):
         path[-1] = path[-1].split(".")[0]
         return "/".join(path)
 
-    def _save(self, file, save_path):
-        content = file.file.read()
-        name = save_path(file.filename)
-        path = self._get_path_str(save_path)
-        self.root_path.get_by_path(path).upload(name, content).execute_query()
+    async def save_file(
+        self, stream: BinaryIO, save_path: str, content_type: Optional[str] = None
+    ):
+        """保存文件（自动创建目录；修复旧实现把 save_path 字符串当函数调用的崩溃）"""
+        content = await asyncio.to_thread(stream.read)
+        normalized = str(save_path).replace("\\", "/")
+        name = await sanitize_filename(Path(normalized).name)
+        dir_path = "/".join(normalized.split("/")[:-1])
 
-    async def save_file(self, file: UploadFile, save_path: str):
-        await asyncio.to_thread(self._save, file, save_path)
+        current_folder = self.root_path
+        for part in dir_path.split("/"):
+            if not part:
+                continue
+            try:
+                current_folder = current_folder.get_by_path(part).get().execute_query()
+            except self._ClientRequestException as e:
+                if e.code == "itemNotFound":
+                    current_folder = current_folder.create_folder(part).execute_query()
+                else:
+                    raise e
+
+        await asyncio.to_thread(
+            lambda: current_folder.get_by_path(name)
+            .upload(name, content)
+            .execute_query()
+        )
 
     def _delete(self, save_path):
         path = self._get_path_str(save_path)
@@ -669,8 +743,8 @@ class OneDriveFileStorage(FileStorageInterface):
             else:
                 raise e
 
-    async def delete_file(self, file_code: FileCodes):
-        await asyncio.to_thread(self._delete, await file_code.get_file_path())
+    async def delete_file(self, file_code: StoredFile):
+        await asyncio.to_thread(self._delete, file_code.get_file_path())
 
     def _convert_link_to_download_link(self, link):
         p1 = re.search(r"https://(.+)\.sharepoint\.com", link).group(1)
@@ -691,11 +765,11 @@ class OneDriveFileStorage(FileStorageInterface):
         ).execute_query()
         return self._convert_link_to_download_link(permission.link.webUrl)
 
-    async def get_file_response(self, file_code: FileCodes):
+    async def get_file_response(self, file_code: StoredFile):
         try:
             filename = file_code.prefix + file_code.suffix
             link = await asyncio.to_thread(
-                self._get_file_url, await file_code.get_file_path(), filename
+                self._get_file_url, file_code.get_file_path(), filename
             )
             
             content_length = None  # 初始化为 None，表示未知大小
@@ -716,7 +790,7 @@ class OneDriveFileStorage(FileStorageInterface):
                 try:
                     async with session.get(link) as resp:
                         if resp.status != 200:
-                            raise HTTPException(
+                            raise StorageError(
                                 status_code=resp.status,
                                 detail=f"从OneDrive获取文件失败: {resp.status}"
                             )
@@ -735,25 +809,25 @@ class OneDriveFileStorage(FileStorageInterface):
             }
             if content_length is not None:
                 headers["Content-Length"] = str(content_length)
-            return StreamingResponse(
-                stream_generator(),
-                media_type="application/octet-stream",
+            return StoredDownload(
+                filename=filename,
                 headers=headers,
+                stream_factory=stream_generator,
                 # 兜底关闭会话：客户端中断时与 generator finally 双保险
                 background=BackgroundTask(session.close),
             )
-        except HTTPException:
+        except StorageError:
             raise
         except Exception:
-            raise HTTPException(status_code=503, detail="服务代理下载异常，请稍后再试")
+            raise StorageError(status_code=503, detail="服务代理下载异常，请稍后再试")
 
-    async def get_file_url(self, file_code: FileCodes):
+    async def get_file_url(self, file_code: StoredFile):
         if self.proxy:
             return await get_file_url(file_code.code)
         else:
             return await asyncio.to_thread(
                 self._get_file_url,
-                await file_code.get_file_path(),
+                file_code.get_file_path(),
                 f"{file_code.prefix}{file_code.suffix}",
             )
 
@@ -809,7 +883,7 @@ class OneDriveFileStorage(FileStorageInterface):
         
         current_folder.upload(filename, data).execute_query()
 
-    async def merge_chunks(self, upload_id: str, chunk_info: UploadChunk, save_path: str) -> tuple[str, str]:
+    async def merge_chunks(self, upload_id: str, total_chunks: int, chunk_size: int, save_path: str, chunk_records: dict) -> tuple[str, str]:
         """合并 OneDrive 上的分片文件，使用临时文件避免内存问题"""
         file_sha256 = hashlib.sha256()
         chunk_dir = str(Path(save_path).parent / "chunks" / upload_id)
@@ -820,22 +894,16 @@ class OneDriveFileStorage(FileStorageInterface):
 
         try:
             async with aiofiles.open(temp_path, 'wb') as out_file:
-                for i in range(chunk_info.total_chunks):
+                for i in range(total_chunks):
                     chunk_path = f"{chunk_dir}/{i}.part"
-                    chunk_record = await UploadChunk.filter(upload_id=upload_id, chunk_index=i).first()
-                    if not chunk_record:
-                        raise ValueError(f"分片{i}记录不存在")
+                    chunk_record = self._get_chunk_record(chunk_records, i)
 
                     try:
                         chunk_data = await asyncio.to_thread(self._read_chunk, chunk_path)
                     except Exception as e:
                         raise ValueError(f"分片{i}文件不存在: {e}")
 
-                    current_hash = hashlib.sha256(chunk_data).hexdigest()
-                    if current_hash != chunk_record.chunk_hash:
-                        raise ValueError(f"分片{i}哈希不匹配: 期望 {chunk_record.chunk_hash}, 实际 {current_hash}")
-
-                    file_sha256.update(chunk_data)
+                    self._verify_and_hash_chunk(i, chunk_record, chunk_data, file_sha256)
                     await out_file.write(chunk_data)
                     del chunk_data  # 释放内存
 
@@ -903,25 +971,27 @@ class OpenDALFileStorage(FileStorageInterface):
             settings.opendal_scheme, **service_settings
         )
 
-    async def save_file(self, file: UploadFile, save_path: str):
+    async def save_file(
+        self, stream: BinaryIO, save_path: str, content_type: Optional[str] = None
+    ):
         # 使用 asyncio.to_thread 避免阻塞事件循环
-        content = await asyncio.to_thread(file.file.read)
+        content = await asyncio.to_thread(stream.read)
         await self.operator.write(save_path, content)
 
-    async def delete_file(self, file_code: FileCodes):
-        await self.operator.delete(await file_code.get_file_path())
+    async def delete_file(self, file_code: StoredFile):
+        await self.operator.delete(file_code.get_file_path())
 
-    async def get_file_url(self, file_code: FileCodes):
+    async def get_file_url(self, file_code: StoredFile):
         return await get_file_url(file_code.code)
 
-    async def get_file_response(self, file_code: FileCodes):
+    async def get_file_response(self, file_code: StoredFile):
         try:
             filename = file_code.prefix + file_code.suffix
             content_length = None  # 初始化为 None，表示未知大小
             
             # 尝试获取文件大小
             try:
-                stat_result = await self.operator.stat(await file_code.get_file_path())
+                stat_result = await self.operator.stat(file_code.get_file_path())
                 if hasattr(stat_result, 'content_length') and stat_result.content_length:
                     content_length = stat_result.content_length
                 elif hasattr(stat_result, 'size') and stat_result.size:
@@ -933,18 +1003,20 @@ class OpenDALFileStorage(FileStorageInterface):
             # 尝试使用流式读取器
             try:
                 # OpenDAL 可能提供 reader 方法返回一个异步读取器
-                reader = await self.operator.reader(await file_code.get_file_path())
+                reader = await self.operator.reader(file_code.get_file_path())
             except AttributeError:
                 # 如果 reader 方法不存在，回退到全量读取（兼容旧版本）
-                content = await self.operator.read(await file_code.get_file_path())
+                content = await self.operator.read(file_code.get_file_path())
                 encoded_filename = quote(filename, safe='')
                 headers = {
                     "Content-Disposition": f"attachment; filename*=UTF-8''{encoded_filename}"
                 }
                 if content_length is not None:
                     headers["Content-Length"] = str(content_length)
-                return Response(
-                    content, headers=headers, media_type="application/octet-stream"
+                return StoredDownload(
+                    filename=filename,
+                    headers=headers,
+                    content=content,
                 )
             
             async def stream_generator():
@@ -961,21 +1033,21 @@ class OpenDALFileStorage(FileStorageInterface):
             }
             if content_length is not None:
                 headers["Content-Length"] = str(content_length)
-            return StreamingResponse(
-                stream_generator(),
-                media_type="application/octet-stream",
-                headers=headers
+            return StoredDownload(
+                filename=filename,
+                headers=headers,
+                stream_factory=stream_generator,
             )
         except Exception as e:
             logger.info(e)
-            raise HTTPException(status_code=404, detail="文件已过期删除")
+            raise StorageError(status_code=404, detail="文件已过期删除")
 
     async def save_chunk(self, upload_id: str, chunk_index: int, chunk_data: bytes, chunk_hash: str, save_path: str):
         """保存分片到 OpenDAL 存储"""
         chunk_path = str(Path(save_path).parent / "chunks" / upload_id / f"{chunk_index}.part")
         await self.operator.write(chunk_path, chunk_data)
 
-    async def merge_chunks(self, upload_id: str, chunk_info: UploadChunk, save_path: str) -> tuple[str, str]:
+    async def merge_chunks(self, upload_id: str, total_chunks: int, chunk_size: int, save_path: str, chunk_records: dict) -> tuple[str, str]:
         """合并 OpenDAL 存储上的分片文件，使用临时文件避免内存问题"""
         file_sha256 = hashlib.sha256()
         chunk_dir = str(Path(save_path).parent / "chunks" / upload_id)
@@ -986,22 +1058,16 @@ class OpenDALFileStorage(FileStorageInterface):
 
         try:
             async with aiofiles.open(temp_path, 'wb') as out_file:
-                for i in range(chunk_info.total_chunks):
+                for i in range(total_chunks):
                     chunk_path = f"{chunk_dir}/{i}.part"
-                    chunk_record = await UploadChunk.filter(upload_id=upload_id, chunk_index=i).first()
-                    if not chunk_record:
-                        raise ValueError(f"分片{i}记录不存在")
+                    chunk_record = self._get_chunk_record(chunk_records, i)
 
                     try:
                         chunk_data = await self.operator.read(chunk_path)
                     except Exception as e:
                         raise ValueError(f"分片{i}文件不存在: {e}")
 
-                    current_hash = hashlib.sha256(chunk_data).hexdigest()
-                    if current_hash != chunk_record.chunk_hash:
-                        raise ValueError(f"分片{i}哈希不匹配: 期望 {chunk_record.chunk_hash}, 实际 {current_hash}")
-
-                    file_sha256.update(chunk_data)
+                    self._verify_and_hash_chunk(i, chunk_record, chunk_data, file_sha256)
                     await out_file.write(chunk_data)
                     del chunk_data  # 释放内存
 
@@ -1071,7 +1137,7 @@ class WebDAVFileStorage(FileStorageInterface):
                         async with session.request("MKCOL", url) as mkcol_resp:
                             if mkcol_resp.status not in (200, 201, 409):
                                 content = await mkcol_resp.text()
-                                raise HTTPException(
+                                raise StorageError(
                                     status_code=mkcol_resp.status,
                                     detail=f"目录创建失败: {content[:200]}",
                                 )
@@ -1104,7 +1170,9 @@ class WebDAVFileStorage(FileStorageInterface):
 
             current_path = current_path.parent
 
-    async def save_file(self, file: UploadFile, save_path: str):
+    async def save_file(
+        self, stream: BinaryIO, save_path: str, content_type: Optional[str] = None
+    ):
         """保存文件（自动创建目录，流式上传）"""
         path_obj = Path(save_path)
         directory_path = str(path_obj.parent)
@@ -1123,7 +1191,7 @@ class WebDAVFileStorage(FileStorageInterface):
                 """流式读取文件内容"""
                 chunk_size = 256 * 1024  # 256KB chunks
                 while True:
-                    chunk = await asyncio.to_thread(file.file.read, chunk_size)
+                    chunk = await asyncio.to_thread(stream.read, chunk_size)
                     if not chunk:
                         break
                     yield chunk
@@ -1132,21 +1200,21 @@ class WebDAVFileStorage(FileStorageInterface):
                 async with session.put(
                         url,
                         data=file_sender(),
-                        headers={"Content-Type": file.content_type or "application/octet-stream"}
+                        headers={"Content-Type": content_type or "application/octet-stream"}
                 ) as resp:
                     if resp.status not in (200, 201, 204):
                         content = await resp.text()
-                        raise HTTPException(
+                        raise StorageError(
                             status_code=resp.status,
                             detail=f"文件上传失败: {content[:200]}",
                         )
         except aiohttp.ClientError as e:
-            raise HTTPException(
+            raise StorageError(
                 status_code=503, detail=f"WebDAV连接异常: {str(e)}")
 
-    async def delete_file(self, file_code: FileCodes):
+    async def delete_file(self, file_code: StoredFile):
         """删除WebDAV文件及空目录"""
-        file_path = await file_code.get_file_path()
+        file_path = file_code.get_file_path()
         url = self._build_url(file_path)
         try:
             async with aiohttp.ClientSession(auth=self.auth) as session:
@@ -1154,7 +1222,7 @@ class WebDAVFileStorage(FileStorageInterface):
                 async with session.delete(url) as resp:
                     if resp.status not in (200, 204, 404):
                         content = await resp.text()
-                        raise HTTPException(
+                        raise StorageError(
                             status_code=resp.status,
                             detail=f"WebDAV删除失败: {content[:200]}",
                         )
@@ -1163,17 +1231,17 @@ class WebDAVFileStorage(FileStorageInterface):
                 await self._delete_empty_dirs(file_path, session)
 
         except aiohttp.ClientError as e:
-            raise HTTPException(
+            raise StorageError(
                 status_code=503, detail=f"WebDAV连接异常: {str(e)}")
 
-    async def get_file_url(self, file_code: FileCodes):
+    async def get_file_url(self, file_code: StoredFile):
         return await get_file_url(file_code.code)
 
-    async def get_file_response(self, file_code: FileCodes):
+    async def get_file_response(self, file_code: StoredFile):
         """获取文件响应（代理模式）"""
         try:
             filename = file_code.prefix + file_code.suffix
-            url = self._build_url(await file_code.get_file_path())
+            url = self._build_url(file_code.get_file_path())
             content_length = None  # 初始化为 None，表示未知大小
             
             # 创建ClientSession并复用（包含认证头）
@@ -1194,7 +1262,7 @@ class WebDAVFileStorage(FileStorageInterface):
                 try:
                     async with session.get(url) as resp:
                         if resp.status != 200:
-                            raise HTTPException(
+                            raise StorageError(
                                 status_code=resp.status,
                                 detail=f"文件获取失败{resp.status}: {await resp.text()}",
                             )
@@ -1213,15 +1281,15 @@ class WebDAVFileStorage(FileStorageInterface):
             }
             if content_length is not None:
                 headers["Content-Length"] = str(content_length)
-            return StreamingResponse(
-                stream_generator(),
-                media_type="application/octet-stream",
+            return StoredDownload(
+                filename=filename,
                 headers=headers,
+                stream_factory=stream_generator,
                 # 兜底关闭会话：客户端中断时与 generator finally 双保险
                 background=BackgroundTask(session.close),
             )
         except aiohttp.ClientError as e:
-            raise HTTPException(
+            raise StorageError(
                 status_code=503, detail=f"WebDAV连接异常: {str(e)}")
 
     async def save_chunk(self, upload_id: str, chunk_index: int, chunk_data: bytes, chunk_hash: str, save_path: str):
@@ -1237,12 +1305,12 @@ class WebDAVFileStorage(FileStorageInterface):
             async with session.put(chunk_url, data=chunk_data) as resp:
                 if resp.status not in (200, 201, 204):
                     content = await resp.text()
-                    raise HTTPException(
+                    raise StorageError(
                         status_code=resp.status,
                         detail=f"分片上传失败: {content[:200]}"
                     )
 
-    async def merge_chunks(self, upload_id: str, chunk_info: UploadChunk, save_path: str) -> tuple[str, str]:
+    async def merge_chunks(self, upload_id: str, total_chunks: int, chunk_size: int, save_path: str, chunk_records: dict) -> tuple[str, str]:
         """
         合并 WebDAV 上的分片文件
         使用临时文件避免内存问题
@@ -1258,14 +1326,12 @@ class WebDAVFileStorage(FileStorageInterface):
             async with aiohttp.ClientSession(auth=self.auth) as session:
                 # 按顺序读取并验证每个分片，写入临时文件
                 async with aiofiles.open(temp_path, 'wb') as out_file:
-                    for i in range(chunk_info.total_chunks):
+                    for i in range(total_chunks):
                         chunk_path = f"{chunk_dir}/{i}.part"
                         chunk_url = self._build_url(chunk_path)
 
                         # 获取分片记录
-                        chunk_record = await UploadChunk.filter(upload_id=upload_id, chunk_index=i).first()
-                        if not chunk_record:
-                            raise ValueError(f"分片{i}记录不存在")
+                        chunk_record = self._get_chunk_record(chunk_records, i)
 
                         # 下载分片数据
                         async with session.get(chunk_url) as resp:
@@ -1274,11 +1340,7 @@ class WebDAVFileStorage(FileStorageInterface):
                             chunk_data = await resp.read()
 
                         # 验证哈希
-                        current_hash = hashlib.sha256(chunk_data).hexdigest()
-                        if current_hash != chunk_record.chunk_hash:
-                            raise ValueError(f"分片{i}哈希不匹配: 期望 {chunk_record.chunk_hash}, 实际 {current_hash}")
-
-                        file_sha256.update(chunk_data)
+                        self._verify_and_hash_chunk(i, chunk_record, chunk_data, file_sha256)
                         await out_file.write(chunk_data)
                         del chunk_data  # 释放内存
 
@@ -1300,7 +1362,7 @@ class WebDAVFileStorage(FileStorageInterface):
                 async with session.put(output_url, data=file_sender()) as resp:
                     if resp.status not in (200, 201, 204):
                         content = await resp.text()
-                        raise HTTPException(
+                        raise StorageError(
                             status_code=resp.status,
                             detail=f"合并文件上传失败: {content[:200]}"
                         )

@@ -1,0 +1,32 @@
+# FileCodeBox tooling config.
+# Application repo (not a library): no [project] packaging metadata here, and
+# requirements.txt remains the single source of runtime deps. This file only
+# holds tool configs plus the dev dependency group (PEP 735, `uv sync --group dev`).
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+# Tests import top-level packages (core/apps) directly; put the repo root on
+# sys.path so bare `pytest` collects without `python -m pytest`.
+pythonpath = ["."]
+# Async tests/fixtures without per-test decorators.
+asyncio_mode = "auto"
+
+[dependency-groups]
+dev = [
+    "pytest",
+    "pytest-asyncio",
+    "httpx",
+    "ruff",
+    "pre-commit",
+]
+
+[tool.ruff]
+line-length = 120
+target-version = "py312"
+
+[tool.ruff.lint]
+# Core correctness rules only for now (same families as ruff defaults):
+# E4/E7/E9 = syntax/indent errors and unused variables; F = pyflakes
+# (unused imports, undefined names). Style families (pyupgrade, broad-except,
+# import sorting) are deferred to keep the initial diff minimal.
+select = ["E4", "E7", "E9", "F"]

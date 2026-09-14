@@ -1,6 +1,5 @@
 import asyncio
 import hashlib
-import time
 import unittest
 from unittest.mock import patch
 
@@ -9,8 +8,10 @@ from tortoise import Tortoise
 
 from apps.base import views
 from apps.base.models import FileCodes
+from core.storage import StoredDownload
 from apps.base.quota import _detect_sql_dialect, _sql_placeholders, reserve_storage
 from apps.base.utils import validate_expire_style
+from tests.helpers import init_memory_db
 from core.settings import settings
 from core.utils import get_select_token
 
@@ -20,14 +21,18 @@ class FakeStorage:
         return f"https://example.invalid/{file_code.code}"
 
     async def get_file_response(self, file_code):
-        return {"downloaded": file_code.code}
+        return StoredDownload(
+            filename=f"{file_code.prefix}{file_code.suffix}",
+            headers={},
+            content=f"downloaded:{file_code.code}".encode(),
+        )
 
 
 class SecurityPatchTests(unittest.TestCase):
     def test_validate_expire_style_rejects_unknown_mode(self):
         original = dict(settings.user_config)
         try:
-            settings.expireStyle = ["day", "count"]
+            settings.expire_style = ["day", "count"]
             self.assertEqual(validate_expire_style("day"), "day")
             with self.assertRaises(HTTPException) as ctx:
                 validate_expire_style("forever")
@@ -39,24 +44,7 @@ class SecurityPatchTests(unittest.TestCase):
         asyncio.run(self._assert_sql_placeholders())
 
     async def _assert_sql_placeholders(self):
-        await Tortoise.init(
-            config={
-                "connections": {
-                    "default": {
-                        "engine": "tortoise.backends.sqlite",
-                        "credentials": {"file_path": ":memory:"},
-                    }
-                },
-                "apps": {
-                    "models": {
-                        "models": ["apps.base.models"],
-                        "default_connection": "default",
-                    }
-                },
-                "use_tz": False,
-                "timezone": "Asia/Shanghai",
-            }
-        )
+        await init_memory_db()
         try:
             self.assertEqual(_detect_sql_dialect(), "sqlite")
             self.assertEqual(_sql_placeholders(3), ["?", "?", "?"])
@@ -69,11 +57,11 @@ class SecurityPatchTests(unittest.TestCase):
                 self.assertEqual(_sql_placeholders(2), ["%s", "%s"])
 
             # sqlite 下 reserve_storage 仍可正常工作
-            settings.storageLimit = 100
+            settings.storage_limit = 100
             await Tortoise.generate_schemas()
             await reserve_storage("patch-token", 10, 300)
         finally:
-            settings.storageLimit = 0
+            settings.storage_limit = 0
             await Tortoise.close_connections()
 
     def test_download_token_accepts_previous_window(self):
@@ -97,24 +85,7 @@ class SecurityPatchTests(unittest.TestCase):
         self.assertEqual(current, expected_current)
         self.assertEqual(previous, expected_previous)
 
-        await Tortoise.init(
-            config={
-                "connections": {
-                    "default": {
-                        "engine": "tortoise.backends.sqlite",
-                        "credentials": {"file_path": ":memory:"},
-                    }
-                },
-                "apps": {
-                    "models": {
-                        "models": ["apps.base.models"],
-                        "default_connection": "default",
-                    }
-                },
-                "use_tz": False,
-                "timezone": "Asia/Shanghai",
-            }
-        )
+        await init_memory_db()
         await Tortoise.generate_schemas()
         try:
             await FileCodes.create(
@@ -131,7 +102,7 @@ class SecurityPatchTests(unittest.TestCase):
                     result = await views.download_file(
                         key=current, code=code, ip="127.0.0.1"
                     )
-            self.assertEqual(result, {"downloaded": code})
+            self.assertEqual(result.body, f"downloaded:{code}".encode())
         finally:
             settings.user_config = original
             await Tortoise.close_connections()
