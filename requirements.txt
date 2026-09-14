@@ -4,6 +4,6 @@ aiofiles==25.1.0
 fastapi==0.139.2
 starlette==1.6.0
 pydantic==2.12.5
-uvicorn==0.51.0
+uvicorn==0.52.4
 tortoise-orm==0.25.3
 python-multipart==0.0.32
