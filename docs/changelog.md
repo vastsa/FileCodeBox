@@ -1,5 +1,30 @@
 # Changelog
 
+## [2.6.0](https://github.com/vastsa/FileCodeBox/compare/v2.5.6...v2.6.0) (2026-09-14)
+
+
+### Features
+
+* declare missing config keys (opendal_scheme, chunk_expire_hours) and add config schema guard ([c5d525d](https://github.com/vastsa/FileCodeBox/commit/c5d525df08bb9534d1efb3ab5ff9357b52240fe9))
+* rename all config keys to snake_case with DB migration 007 ([5121db6](https://github.com/vastsa/FileCodeBox/commit/5121db6edcdac57318d058e28d7249efb9ea4d03))
+* upgrade password hashing to memory-hard scrypt with transparent rehash ([443cfe7](https://github.com/vastsa/FileCodeBox/commit/443cfe7472693bb954845f4cc4ac77e3abfcbd23))
+
+
+### Bug Fixes
+
+* FileCodes.expired_count defaults to -1 (time-based) instead of instantly-expired 0 (D4) ([3c93718](https://github.com/vastsa/FileCodeBox/commit/3c93718d4b2f3a8e93978c7eb7a4a3b2553b0855))
+* save_file accepts plain binary streams; repair admin local file share (D2) ([bb95017](https://github.com/vastsa/FileCodeBox/commit/bb95017aa398e80e5eca512aa9a330aaeeceb364))
+* serialize KeyValue JSON read-modify-write sections behind a process lock (D5) ([0038636](https://github.com/vastsa/FileCodeBox/commit/0038636a2a5fc8e73f944c38789dce8de0354c3a))
+* snake_case the public config contract (D7 follow-up) ([800bac0](https://github.com/vastsa/FileCodeBox/commit/800bac01285dd6eb827e28460996997dbb80e2c3))
+* validate background config as http(s) URL to close CSS quote-breakout in 2023 theme ([4cab625](https://github.com/vastsa/FileCodeBox/commit/4cab625d5ab2fe5921f8f621ebe015623afb6fb8))
+
+
+### Performance Improvements
+
+* cache settings refresh behind a 2s TTL, force refresh on write paths (D6) ([61d72ab](https://github.com/vastsa/FileCodeBox/commit/61d72ab6ccba5df121945ef825de2967c45888b4))
+* dashboard counters and storage quota use SQL aggregation (D3) ([baecebd](https://github.com/vastsa/FileCodeBox/commit/baecebd81efc9677acac29d5335e281d6bb5a252))
+* make is_config_initialized cheap — no scrypt on the per-request probe (D1) ([ec424dd](https://github.com/vastsa/FileCodeBox/commit/ec424dd9093d94b69ec3a118f321cd1f85c7dd54))
+
 ## [2.5.6](https://github.com/vastsa/FileCodeBox/compare/v2.5.5...v2.5.6) (2026-09-01)
 
 
