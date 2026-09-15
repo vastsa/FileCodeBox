@@ -10,7 +10,7 @@ from datetime import timedelta
 
 from fastapi import HTTPException
 from tortoise.exceptions import IntegrityError
-from tortoise.expressions import F
+from tortoise.expressions import F, Q
 from tortoise.transactions import in_transaction
 
 from apps.admin.dependencies import create_token, verify_token
@@ -241,6 +241,10 @@ async def clean_file(record_id):
 
 async def cleanup_once():
     """有限批次回收崩溃残留，避免任务持有大量 ORM 对象。"""
+    # 兼容清理旧撤销记录及历史耗尽口令，不删除关联的分享或实际文件。
+    code_ids = await recyclable_codes().limit(100).values_list("id", flat=True)
+    if code_ids:
+        await recyclable_codes().filter(id__in=code_ids).delete()
     before = await get_now() - timedelta(seconds=STALE_SECONDS)
     for record in await DeliveryFile.filter(status__in=["pending", "finalizing"], updated_at__lt=before).limit(100):
         await abort_upload(record.id, stale_before=before)
@@ -323,6 +327,8 @@ async def commit_delivery(record, share_fields=None):
             share = await FileCodes.create(using_db=conn, **fields)
             await DeliveryFile.filter(id=record.id).using_db(conn).update(share_id=share.id, size=share.size)
         await StorageReservation.filter(token__in=reservation_tokens(record.token)).using_db(conn).delete()
+        # 最后一次成功上传与口令回收同事务提交；尚有额度或上传占用时保留。
+        await recyclable_codes().filter(id=record.delivery_id).using_db(conn).delete()
         return share
 
 
@@ -331,3 +337,10 @@ async def normalize_delivery_filename(file_name):
     """新旧上传统一清理显示名，并预留唯一前缀所需的文件系统字节空间。"""
     filename = await sanitize_filename((file_name or "file").replace("\\", "/").split("/")[-1])
     return filename.encode("utf-8")[:180].decode("utf-8", errors="ignore") or "file"
+
+
+def recyclable_codes():
+    """历史撤销口令与无上传占用的耗尽口令可回收，不清理仍可使用的多次口令。"""
+    return DeliveryCode.filter(owner_id="admin").filter(
+        Q(deleted=True) | Q(reserved_count=0, used_count__gte=F("max_uploads"))
+    )

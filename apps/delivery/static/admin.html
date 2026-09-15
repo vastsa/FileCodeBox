@@ -32,13 +32,13 @@
         <div id="created" class="notice" hidden><strong>寄件码只在创建时显示，请现在保存。</strong><p><code id="created-code"></code> <button id="copy-code" class="quiet">复制口令</button></p><p id="copy-message" role="status"></p></div>
       </section>
       <section class="card">
-        <div class="section-head"><h2>寄件码列表</h2><div class="row"><label class="inline"><input id="include-deleted" type="checkbox">显示已删除</label><button id="refresh" class="quiet">刷新</button></div></div>
+        <div class="section-head"><h2>寄件码列表</h2><div class="row"><button id="refresh" class="quiet">刷新</button></div></div>
         <div class="table-wrap"><table><thead><tr><th>用途 / 编号</th><th>目标存储</th><th>有效期</th><th>状态</th><th>成功 / 占用 / 总数</th><th>操作</th></tr></thead><tbody id="codes"></tbody></table></div>
         <div class="pagination"><button id="previous" class="quiet">上一页</button><span id="page-info"></span><button id="next" class="quiet">下一页</button></div>
       </section>
       <section id="files-panel" class="card" hidden>
         <div class="section-head"><h2 id="files-title">收到的文件</h2><button id="refresh-files" class="quiet">刷新文件</button></div>
-        <p class="muted">删除文件不会恢复寄件码的历史成功次数。删除寄件码会撤销投递权限，但保留这里的文件。</p>
+        <p class="muted">上传额度耗尽后寄件码自动清除。删除寄件码仅停止新上传，已生成的取件码仍按各自期限有效。</p>
         <div class="table-wrap"><table><thead><tr><th>文件</th><th>大小</th><th>时间</th><th>状态</th><th>操作</th></tr></thead><tbody id="received-files"></tbody></table></div>
         <div class="pagination"><button id="files-previous" class="quiet">上一页</button><span id="files-page-info"></span><button id="files-next" class="quiet">下一页</button></div>
       </section>

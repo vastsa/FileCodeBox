@@ -32,7 +32,6 @@ async def authorize_upload(request: Request, authorization: str | None = Header(
             raise HTTPException(401, "上传凭证无效或已过期") from None
         if payload.get("purpose") == "delivery" and not payload.get("is_admin"):
             access.code_id = int(payload["delivery_id"])
-            await active_code(access.code_id)
     if access.code_id is None:
         await share_required_login(authorization)
 
@@ -48,11 +47,17 @@ async def authorize_upload(request: Request, authorization: str | None = Header(
         elif access.code_id is not None:
             raise HTTPException(404, "上传会话不属于该寄件码")
 
+    completion_request = (
+        "/complete/" in request.url.path or "/confirm/" in request.url.path or "/proxy/" in request.url.path
+    )
+    # 耗尽口令已被回收时，原凭证只可取回自己已完成会话的结果，不能启动或续传文件。
+    completed_retry = completion_request and access.record is not None and access.record.status == "shared"
+    if access.code_id is not None and not completed_retry:
+        await active_code(access.code_id)
+
     # 完成阶段原子抢占，避免并发合并或代理上传覆盖同一个已发布文件。
     finalizing = False
-    if access.record is not None and access.record.status == "pending" and (
-        "/complete/" in request.url.path or "/confirm/" in request.url.path or "/proxy/" in request.url.path
-    ):
+    if access.record is not None and access.record.status == "pending" and completion_request:
         changed = await DeliveryFile.filter(id=access.record.id, status="pending").update(status="finalizing", updated_at=await get_now())
         if changed != 1:
             raise HTTPException(409, "上传正在完成，请稍后重试")

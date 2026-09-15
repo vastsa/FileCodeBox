@@ -25,7 +25,8 @@ function pagination(total, current, previous, next, info) {
 }
 async function loadCodes() {
   const sequence = ++listSequence;
-  const result = await request(`/codes?page=${page}&include_deleted=${$('include-deleted').checked}`);
+  // 已删除寄件码不再作为可筛选的历史记录保留。
+  const result = await request(`/codes?page=${page}`);
   if (sequence !== listSequence) return;
   if (!result.items.length && page > 1) { page--; return loadCodes(); }
   $('codes').replaceChildren();
@@ -41,7 +42,7 @@ async function loadCodes() {
       action(actions, item.enabled ? '禁用' : '启用', async () => { await request(`/codes/${item.id}`, {method:'PATCH', json:{enabled:!item.enabled}}); await loadCodes(); });
       action(actions, '删除', async () => {
         if (!window.confirm(`删除“${item.name}”的寄件码？会撤销投递权限，但保留已收到的文件。`)) return;
-        await request(`/codes/${item.id}`, {method:'DELETE'}); message($('message'), '寄件码已删除。勾选“显示已删除”可继续管理收件。'); await loadCodes();
+        await request(`/codes/${item.id}`, {method:'DELETE'}); message($('message'), '寄件码已永久删除，已生成的取件码仍可正常使用。'); await loadCodes();
       }, true);
     }
   }
@@ -99,7 +100,7 @@ $('create-form').addEventListener('submit', async event => {
 // HTTP 下的兼容复制必须直接在点击回调中触发，避免额外异步调度丢失用户手势。
 $('copy-code').addEventListener('click', copyCreatedCode);
 eventAction('logout','click',() => { token=''; sessionStorage.removeItem(tokenKey); authScreen(false); message($('message'),'已退出当前寄件管理会话。'); });
-eventAction('refresh','click',loadCodes); eventAction('include-deleted','change',() => {page=1; return loadCodes();});
+eventAction('refresh','click',loadCodes);
 eventAction('previous','click',() => {page=Math.max(1,page-1); return loadCodes();}); eventAction('next','click',() => {page++; return loadCodes();});
 eventAction('refresh-files','click',loadFiles); eventAction('files-previous','click',() => {filePage=Math.max(1,filePage-1); return loadFiles();}); eventAction('files-next','click',() => {filePage++; return loadFiles();});
 // datetime-local 使用本机时区显示，提交时转成带时区的 ISO 日期。

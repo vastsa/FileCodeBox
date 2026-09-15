@@ -96,10 +96,9 @@ async def upload(request: Request, authorization: str | None = Header(default=No
 
 
 @admin_api.get("/codes")
-async def list_codes(page: int = Query(1, ge=1), page_size: int = Query(20, ge=1, le=100), include_deleted: bool = False):
-    query = DeliveryCode.filter(owner_id="admin")
-    if not include_deleted:
-        query = query.filter(deleted=False)
+async def list_codes(page: int = Query(1, ge=1), page_size: int = Query(20, ge=1, le=100)):
+    # 旧撤销标记仅用于迁移清理，不再提供已删除寄件码的回收视图。
+    query = DeliveryCode.filter(owner_id="admin", deleted=False)
     total = await query.count()
     records = await query.order_by("-id").offset((page - 1) * page_size).limit(page_size)
     return APIResponse(detail={"items": [await services.code_summary(item) for item in records], "total": total})
@@ -120,8 +119,8 @@ async def toggle(code_id: int, data: SetDeliveryEnabled):
 
 @admin_api.delete("/codes/{code_id}")
 async def delete_code(code_id: int):
-    # 撤销口令不删除收到的资料；已删口令可在回收视图中查看对应文件。
-    changed = await DeliveryCode.filter(id=code_id, owner_id="admin").update(deleted=True, enabled=False)
+    # 寄件码物理删除；收件记录保留存储映射，已生成的普通取件码继续独立有效。
+    changed = await DeliveryCode.filter(id=code_id, owner_id="admin").delete()
     if not changed:
         raise HTTPException(404, "寄件码不存在")
     return APIResponse(detail={"message": "寄件码已删除，已收文件仍保留"})
