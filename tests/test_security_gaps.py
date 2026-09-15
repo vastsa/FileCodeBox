@@ -88,9 +88,10 @@ class LoginRateLimitTests(SettingsOverrideMixin, unittest.TestCase):
 class DockerRuntimeUserTests(unittest.TestCase):
     def test_dockerfile_defaults_to_root_for_volume_compatibility(self):
         # 默认 root：兼容已有 data 卷权限；如需非 root 可由编排层自行指定 user
-        text = Path("Dockerfile").read_text()
+        # 源文件采用 UTF-8，不依赖 Windows 的 GBK 默认编码。
+        text = Path("Dockerfile").read_text(encoding="utf-8")
         self.assertNotIn("USER appuser", text)
-        compose = Path("docker-compose.yml").read_text()
+        compose = Path("docker-compose.yml").read_text(encoding="utf-8")
         self.assertNotIn('user: "1000:1000"', compose)
 
 

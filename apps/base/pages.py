@@ -3,7 +3,7 @@ robots.txt, and the public config endpoints."""
 import html
 
 from fastapi import APIRouter, HTTPException, Request
-from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, RedirectResponse
 
 from apps.base.config import initialize_system, is_runtime_initialized
 from apps.base.setup_wizard import (
@@ -90,12 +90,19 @@ async def theme_asset(asset_path: str):
 
 @router.get("/")
 async def index(request=None, exc=None):
+    # 新增寄件接口的 404 保持 JSON 状态码，不能被主题 SPA 回退改成 HTML 200。
+    if request is not None and request.url.path.startswith(("/api/delivery", "/admin/delivery", "/delivery-assets/")):
+        return JSONResponse(status_code=404, content={"detail": getattr(exc, "detail", "资源不存在")})
     # Site config is admin input (and during the setup window anyone can claim it);
     # always escape before injecting into the theme template to prevent stored XSS
     # (mirrors the setup page).
+    template = resolve_theme_file("index.html").read_text(encoding="utf-8")
+    # 原生 2024 寄件页面自行提供导航，旧主题仍保留独立入口以兼容滚动更新。
+    if not theme_has_delivery_ui(template):
+        template = template.replace("</body>", '<link rel="stylesheet" href="/delivery-assets/entry.css">'
+                                    '<script src="/delivery-assets/entry.js" defer></script></body>')
     return HTMLResponse(
-        content=resolve_theme_file("index.html")
-        .read_text(encoding="utf-8")
+        content=template
         .replace("{{title}}", html.escape(str(settings.name)))
         .replace("{{description}}", html.escape(str(settings.description)))
         .replace("{{keywords}}", html.escape(str(settings.keywords)))
@@ -135,3 +142,13 @@ async def health_check():
             "theme": settings.themes_select,
         }
     )
+
+
+def theme_has_delivery_ui(template: str | None = None) -> bool:
+    """使用构建产物的功能标记兼容新旧前端，不依赖某个发行版本字符串。"""
+    if template is None:
+        path = resolve_theme_root() / "index.html"
+        if not path.is_file():
+            return False
+        template = path.read_text(encoding="utf-8")
+    return 'name="filecodebox-features" content="delivery"' in template

@@ -4,7 +4,7 @@ from fastapi import HTTPException
 from tortoise import connections
 from tortoise.functions import Sum
 
-from apps.base.models import FileCodes, StorageReservation
+from apps.base.models import DeliveryFile, FileCodes, StorageReservation
 from core.settings import settings
 from core.utils import get_now
 
@@ -57,11 +57,15 @@ async def get_storage_usage() -> dict[str, int | None]:
     now = await get_now()
     # SQL 聚合：此函数在每次上传配额检查时调用，禁止全表拉取（D3）
     used_rows = await FileCodes.all().annotate(total=Sum("size")).values("total")
+    # 私有收件与失败残留计入；shared 已由 FileCodes 计算，不能重复计费。
+    delivery_rows = await DeliveryFile.filter(status__in=["stored", "cleanup"]).annotate(
+        total=Sum("size")
+    ).values("total")
     reserved_rows = await StorageReservation.filter(expires_at__gt=now).annotate(
         total=Sum("size")
     ).values("total")
     limit = get_storage_limit()
-    used_bytes = used_rows[0]["total"] or 0
+    used_bytes = (used_rows[0]["total"] or 0) + (delivery_rows[0]["total"] or 0)
     reserved_bytes = reserved_rows[0]["total"] or 0
     return {
         "limit": limit,
@@ -95,6 +99,7 @@ async def reserve_storage(token: str, size: int, ttl_seconds: int) -> None:
             SELECT {ph[0]}, {ph[1]}, {ph[2]}
             WHERE (
                 COALESCE((SELECT SUM(size) FROM filecodes), 0)
+                + COALESCE((SELECT SUM(size) FROM deliveryfile WHERE status IN ('stored', 'cleanup')), 0)
                 + COALESCE((SELECT SUM(size) FROM storagereservation WHERE expires_at > {ph[3]}), 0)
                 + {ph[4]}
             ) <= {ph[5]}

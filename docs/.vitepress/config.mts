@@ -30,6 +30,8 @@ export default defineConfig({
               { text: '快速开始', link: '/guide/getting-started' },
               { text: '上传与分享', link: '/guide/upload' },
               { text: '管理面板', link: '/guide/management' },
+              // 寄件码的上传授权与普通取件码用途不同，单独说明。
+              { text: '寄件码', link: '/guide/delivery' },
               { text: '存储配置', link: '/guide/storage' },
             ],
           },
@@ -64,6 +66,8 @@ export default defineConfig({
                 { text: '文件上传', link: '/guide/upload' },
                 { text: '文件分享', link: '/guide/share' },
                 { text: '文件管理', link: '/guide/management' },
+                // 新增寄件功能入口，文档随本仓库维护。
+                { text: '寄件码', link: '/guide/delivery' },
               ],
             },
             {

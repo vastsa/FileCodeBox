@@ -32,8 +32,9 @@ class ThemeAssetTests(SettingsOverrideMixin, unittest.TestCase):
             "assets", self.get_theme_index_asset("themes/2024")
         )
 
-        self.assertIn("themes/2023/assets", str(theme_2023_asset))
-        self.assertIn("themes/2024/assets", str(theme_2024_asset))
+        # 路径断言统一为 POSIX 表示，避免 Windows 反斜线造成环境性误报。
+        self.assertIn("themes/2023/assets", theme_2023_asset.as_posix())
+        self.assertIn("themes/2024/assets", theme_2024_asset.as_posix())
 
     def test_rejects_theme_asset_path_traversal(self):
         settings.themes_select = "themes/2024"

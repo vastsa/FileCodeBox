@@ -206,9 +206,8 @@ class SystemFileStorage(FileStorageInterface):
         filename = await sanitize_filename(path_obj.name)
         # 构建安全的完整保存路径
         safe_save_path = self._resolve_safe_path(f"{directory}/{filename}" if directory not in {"", "."} else filename)
-        # 确保目录存在
-        if not safe_save_path.parent.exists():
-            safe_save_path.parent.mkdir(parents=True)
+        # 多个寄件可同时写入同一目标目录，幂等创建避免“先检查再创建”的并发冲突。
+        safe_save_path.parent.mkdir(parents=True, exist_ok=True)
         await asyncio.to_thread(self._save, stream, safe_save_path)
 
     async def delete_file(self, file_code: StoredFile):

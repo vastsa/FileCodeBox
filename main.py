@@ -28,6 +28,8 @@ from apps.base.tasks import (
     delete_expire_files,
 )
 from apps.base.views import share_api, chunk_api, presign_api
+from apps.delivery.services import cleanup_loop as delivery_cleanup_loop
+from apps.delivery.views import admin_api as delivery_admin_api, public_api as delivery_api, pages as delivery_pages
 from core.database import db_startup_lock, get_db_config, init_db
 from core.errors import StorageError
 from core.logger import get_log_level_name, is_access_log_enabled, logger
@@ -48,6 +50,8 @@ async def lifespan(app: FastAPI):
     task = asyncio.create_task(delete_expire_files())
     chunk_cleanup_task = asyncio.create_task(clean_incomplete_uploads())
     presign_cleanup_task = asyncio.create_task(clean_expired_presign_sessions())
+    # 独立回收崩溃遗留的寄件次数与文件，不改变普通分享的过期清理规则。
+    delivery_cleanup_task = asyncio.create_task(delivery_cleanup_loop())
     logger.info("应用初始化完成")
 
     try:
@@ -56,10 +60,12 @@ async def lifespan(app: FastAPI):
         task.cancel()
         chunk_cleanup_task.cancel()
         presign_cleanup_task.cancel()
+        delivery_cleanup_task.cancel()
         await asyncio.gather(
             task,
             chunk_cleanup_task,
             presign_cleanup_task,
+            delivery_cleanup_task,
             return_exceptions=True,
         )
         await Tortoise.close_connections()
@@ -138,6 +144,9 @@ app.include_router(chunk_api)
 app.include_router(presign_api)
 app.include_router(presign_api, prefix="/api")
 app.include_router(admin_api)
+app.include_router(delivery_admin_api)
+app.include_router(delivery_api)
+app.include_router(delivery_pages)
 app.include_router(pages_router)
 
 # 404 时返回主题首页（index 兼任 exception handler 与 GET / 路由）

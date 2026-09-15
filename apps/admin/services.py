@@ -18,7 +18,8 @@ from core.settings import (
 from apps.base.config import refresh_settings
 from apps.base.services import response_from_download, stored_file_of
 from core.security import INTERNAL_CONFIG_KEYS, generate_jwt_secret
-from apps.base.models import FileCodes, KeyValue
+from apps.base.models import DeliveryCode, DeliveryFile, FileCodes, KeyValue
+from apps.base.share_storage import remove_delivery_share, storage_for_share
 from apps.base.utils import get_expire_info, get_file_path_name
 from apps.base.quota import release_storage, reserve_storage
 from fastapi import HTTPException
@@ -98,6 +99,9 @@ class FileService:
         return f"{self.FILE_METADATA_KEY_PREFIX}{file_id}"
 
     async def _delete_file_code(self, file_code: FileCodes):
+        # 寄件分享在两个管理入口使用相同撤销与清理逻辑，避免重复计费或遗留可用取件码。
+        if await remove_delivery_share(file_code):
+            return
         if file_code.text is None:
             await self.file_storage.delete_file(stored_file_of(file_code))
         await KeyValue.filter(key=self._file_metadata_key(file_code.id)).delete()
@@ -477,6 +481,7 @@ class FileService:
         health: str = "",
         sort_by: str = "created_at",
         sort_order: str = "desc",
+        delivery_id: int | None = None,
     ):
         page = max(page, 1)
         size = min(max(size, 1), 100)
@@ -487,7 +492,16 @@ class FileService:
         sort_by = self._normalize_sort_by(sort_by)
         reverse = sort_order.strip().lower() != "asc"
 
-        all_files = await FileCodes.all()
+        query = FileCodes.all()
+        if delivery_id is not None:
+            # 收件列表复用文件管理的数据与操作，只限定当前管理员选中的寄件码。
+            if not await DeliveryCode.filter(id=delivery_id, owner_id="admin").exists():
+                raise HTTPException(404, "寄件码不存在")
+            share_ids = await DeliveryFile.filter(
+                delivery_id=delivery_id, owner_id="admin", status="shared"
+            ).values_list("share_id", flat=True)
+            query = query.filter(id__in=share_ids)
+        all_files = await query
         now = await get_now()
         enriched_files = []
         summary = {
@@ -1412,7 +1426,8 @@ class FileService:
         if file_code.text:
             return APIResponse(detail=file_code.text)
         else:
-            return response_from_download(await self.file_storage.get_file_response(stored_file_of(file_code)))
+            storage = await storage_for_share(file_code, self._file_storage)
+            return response_from_download(await storage.get_file_response(stored_file_of(file_code)))
 
     async def preview_file(self, file_id: int, max_chars: int = 4000):
         max_chars = min(max(max_chars, 1), 20000)

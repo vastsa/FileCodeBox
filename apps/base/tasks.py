@@ -20,6 +20,7 @@ from core.logger import logger
 from core.settings import settings, data_root
 from core.storage import FileStorageInterface, StoredFile, storages
 from apps.base.services import stored_file_of
+from apps.base.share_storage import remove_delivery_share
 from core.utils import get_now
 
 
@@ -27,7 +28,7 @@ async def delete_expire_files():
     while True:
         try:
             await refresh_settings()
-            file_storage: FileStorageInterface = storages[settings.file_storage]()
+            file_storage = None
             # 遍历 share目录下的所有文件夹，删除空的文件夹，并判断父目录是否为空，如果为空也删除
             if settings.file_storage == "local":
                 for root, dirs, files in os.walk(f"{data_root}/share/data"):
@@ -42,6 +43,15 @@ async def delete_expire_files():
             ).all()
             for exp in expire_data:
                 try:
+                    if await remove_delivery_share(exp):
+                        continue
+                except Exception:
+                    # 关联清理事务失败时保留分享，下一轮重试，不能落入普通删除分支丢失关联。
+                    logger.warning("寄件分享过期清理失败 id=%s", exp.id, exc_info=True)
+                    continue
+                try:
+                    if file_storage is None:
+                        file_storage = storages[settings.file_storage]()
                     await file_storage.delete_file(stored_file_of(exp))
                 except Exception as e:
                     logger.error(f"删除过期文件失败 code={exp.code}: {e}")
@@ -65,7 +75,7 @@ async def clean_incomplete_uploads():
             expire_time = now - datetime.timedelta(hours=expire_hours)
             expired_sessions = await UploadChunk.filter(
                 chunk_index=-1, created_at__lt=expire_time
-            ).all()
+            ).exclude(upload_id__startswith="d_").all()
 
             for session in expired_sessions:
                 try:
@@ -105,7 +115,7 @@ async def clean_expired_presign_sessions():
             now = await get_now()
             expired_sessions = await PresignUploadSession.filter(
                 expires_at__lt=now
-            ).all()
+            ).exclude(upload_id__startswith="d_").all()
             for session in expired_sessions:
                 if session.mode == "direct":
                     try:

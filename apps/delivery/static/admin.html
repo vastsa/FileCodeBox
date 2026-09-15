@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>寄件管理 · 文件驿站</title>
+  <link rel="icon" href="/delivery-assets/logo.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/delivery-assets/delivery.css">
+  <script type="module" src="/delivery-assets/admin.js"></script>
+</head>
+<body>
+  <header class="shell header"><a class="brand" href="/">文件驿站 <span>FileRelay</span></a><nav><a href="/delivery">访客投递页</a><a href="/#/admin">原管理后台</a><button id="logout" class="quiet" hidden>退出登录</button></nav></header>
+  <main class="shell">
+    <p class="eyebrow">管理员工作台</p><h1>寄件管理</h1><p class="intro">用一枚口令，收齐一份资料。控制有效期、投递次数与收件目录。</p>
+    <section id="login-panel" class="card login">
+      <h2>管理员登录</h2><p class="muted">使用现有站点管理员密码。寄件码不能登录此页面。</p>
+      <form id="login-form"><label for="password">管理员密码<input id="password" type="password" required autocomplete="current-password"></label><button type="submit">登录管理</button></form>
+    </section>
+    <p id="message" class="message" role="status" aria-live="polite"></p>
+    <div id="workspace" hidden>
+      <section class="card">
+        <h2>创建寄件码</h2>
+        <form id="create-form" class="grid">
+          <label for="name">用途名称<input id="name" required maxlength="100" placeholder="例如：九月项目资料"></label>
+          <label for="new-code">自定义口令（可选）<input id="new-code" minlength="8" maxlength="64" pattern="[A-Za-z0-9_-]{8,64}" autocomplete="off" placeholder="留空自动生成安全口令"></label>
+          <label for="storage">存储类型<select id="storage"><option value="local">本地存储</option><option value="webdav">WebDAV</option><option value="s3">S3</option><option value="onedrive">OneDrive</option><option value="opendal">OpenDAL</option></select></label>
+          <label for="target">目标目录<input id="target" required maxlength="200" value="inbox" placeholder="例如 inbox/project-a"></label>
+          <label for="expires">有效期至（本机时间）<input id="expires" type="datetime-local" required></label>
+          <label for="maximum">最多可投递文件数<input id="maximum" type="number" required min="1" max="100000" step="1" value="1"></label>
+          <p class="muted full">目录相对于所选存储的根目录。云存储/WebDAV 需先在原后台配置；已收到的文件不会随寄件码到期而删除。</p>
+          <div class="full"><button type="submit">创建寄件码</button></div>
+        </form>
+        <div id="created" class="notice" hidden><strong>寄件码只在创建时显示，请现在保存。</strong><p><code id="created-code"></code> <button id="copy-code" class="quiet">复制口令</button></p><p id="copy-message" role="status"></p></div>
+      </section>
+      <section class="card">
+        <div class="section-head"><h2>寄件码列表</h2><div class="row"><label class="inline"><input id="include-deleted" type="checkbox">显示已删除</label><button id="refresh" class="quiet">刷新</button></div></div>
+        <div class="table-wrap"><table><thead><tr><th>用途 / 编号</th><th>目标存储</th><th>有效期</th><th>状态</th><th>成功 / 占用 / 总数</th><th>操作</th></tr></thead><tbody id="codes"></tbody></table></div>
+        <div class="pagination"><button id="previous" class="quiet">上一页</button><span id="page-info"></span><button id="next" class="quiet">下一页</button></div>
+      </section>
+      <section id="files-panel" class="card" hidden>
+        <div class="section-head"><h2 id="files-title">收到的文件</h2><button id="refresh-files" class="quiet">刷新文件</button></div>
+        <p class="muted">删除文件不会恢复寄件码的历史成功次数。删除寄件码会撤销投递权限，但保留这里的文件。</p>
+        <div class="table-wrap"><table><thead><tr><th>文件</th><th>大小</th><th>时间</th><th>状态</th><th>操作</th></tr></thead><tbody id="received-files"></tbody></table></div>
+        <div class="pagination"><button id="files-previous" class="quiet">上一页</button><span id="files-page-info"></span><button id="files-next" class="quiet">下一页</button></div>
+      </section>
+    </div>
+  </main>
+</body>
+</html>

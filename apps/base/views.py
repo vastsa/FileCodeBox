@@ -4,7 +4,7 @@ import uuid
 from datetime import timedelta
 from urllib.parse import quote, unquote
 
-from typing import Optional, Tuple, Union
+from typing import Annotated, Optional, Tuple, Union
 
 from fastapi import APIRouter, Form, Request, UploadFile, File, Depends, HTTPException
 from pydantic import BaseModel, ValidationError
@@ -12,9 +12,11 @@ from starlette import status
 from starlette.responses import Response
 from tortoise.expressions import Case, F, Q, When
 
-from apps.admin.dependencies import share_required_login
+from apps.base.upload_access import UploadAccess, authorize_upload, prepare_upload, upload_storage, abort_access, completed_upload
+from apps.base.models import DeliveryFile
 from apps.base.models import FileCodes, UploadChunk, PresignUploadSession
 from apps.base.quota import release_storage, reserve_storage
+from apps.base.share_storage import delivery_record, storage_for_share
 from apps.base.services import (
     PRESIGN_SESSION_EXPIRES,
     FileUploadService,
@@ -38,7 +40,7 @@ from apps.base.utils import (
 )
 from core.response import APIResponse
 from core.settings import settings
-from core.storage import storages, FileStorageInterface
+from core.storage import FileStorageInterface, storages as storages
 from core.utils import (
     get_file_url as get_proxy_file_url,
     get_select_token,
@@ -56,8 +58,9 @@ def normalize_share_code(code: str) -> str:
     return str(code or "").strip()
 
 
-@share_api.post("/text/", dependencies=[Depends(share_required_login)])
+@share_api.post("/text/", dependencies=[Depends(authorize_upload)])
 async def share_text(
+    access: Annotated[UploadAccess, Depends(authorize_upload)] = None,
     text: str = Form(...),
     expire_value: int = Form(default=1, gt=0),
     expire_style: str = Form(default="day"),
@@ -69,13 +72,14 @@ async def share_text(
     if text_size > max_txt_size:
         raise HTTPException(status_code=403, detail="内容过多,建议采用文件形式")
 
-    code = await FileUploadService.create_text_share(text, expire_value, expire_style)
+    code = await FileUploadService.create_text_share(text, expire_value, expire_style, access=access)
     ip_limit["upload"].add_ip(ip)
     return APIResponse(detail={"code": code})
 
 
-@share_api.post("/file/", dependencies=[Depends(share_required_login)])
+@share_api.post("/file/", dependencies=[Depends(authorize_upload)])
 async def share_file(
+    access: Annotated[UploadAccess, Depends(authorize_upload)] = None,
     expire_value: int = Form(default=1, gt=0),
     expire_style: str = Form(default="day"),
     file: UploadFile = File(...),
@@ -85,7 +89,7 @@ async def share_file(
     await validate_upload_file(file)
     validate_expire_style(expire_style)
     detail = await FileUploadService.create_file_share(
-        file, size=file_size, expire_value=expire_value, expire_style=expire_style
+        file, size=file_size, expire_value=expire_value, expire_style=expire_style, access=access
     )
     ip_limit["upload"].add_ip(ip)
     return APIResponse(detail=detail)
@@ -151,7 +155,7 @@ async def build_select_detail(
     metadata = build_file_metadata(file_code)
     if file_code.text is not None:
         download_url = None
-    elif file_code.expired_count >= 0:
+    elif file_code.expired_count >= 0 or await delivery_record(file_code) is not None:
         # 有次数限制的文件必须经过下载接口，第三方直链无法阻止重复使用。
         download_url = await get_proxy_file_url(file_code.code)
     else:
@@ -193,7 +197,6 @@ async def post_file_metadata(
 
 @share_api.get("/select/")
 async def get_code_file(code: str, ip: str = Depends(ip_limit["error"])):
-    file_storage: FileStorageInterface = storages[settings.file_storage]()
     has, file_code = await get_code_file_by_code(code)
     if not has:
         ip_limit["error"].add_ip(ip)
@@ -213,18 +216,19 @@ async def get_code_file(code: str, ip: str = Depends(ip_limit["error"])):
                 )
             },
         )
+    file_storage = await storage_for_share(file_code)
     return response_from_download(await file_storage.get_file_response(stored_file_of(file_code)))
 
 
 @share_api.post("/select/")
 async def select_file(data: SelectFileModel, ip: str = Depends(ip_limit["error"])):
-    file_storage: FileStorageInterface = storages[settings.file_storage]()
     has, file_code = await get_code_file_by_code(data.code)
     if not has:
         ip_limit["error"].add_ip(ip)
         return APIResponse(code=404, detail=file_code)
 
     assert isinstance(file_code, FileCodes)
+    file_storage = await storage_for_share(file_code)
     detail = await build_select_detail(file_code, file_storage)
     download_url = detail.get("download_url")
     consumes_on_download = isinstance(download_url, str) and download_url.startswith(
@@ -239,7 +243,6 @@ async def select_file(data: SelectFileModel, ip: str = Depends(ip_limit["error"]
 
 @share_api.get("/download")
 async def download_file(key: str, code: str, ip: str = Depends(ip_limit["error"])):
-    file_storage: FileStorageInterface = storages[settings.file_storage]()
     normalized_code = normalize_share_code(code)
     # 同时接受当前窗口与上一窗口 token，避免时间窗边界竞态导致偶发 403
     valid_keys = {
@@ -255,6 +258,7 @@ async def download_file(key: str, code: str, ip: str = Depends(ip_limit["error"]
     assert isinstance(file_code, FileCodes)
     if not await consume_file_usage(file_code):
         return APIResponse(code=404, detail="文件已过期")
+    file_storage = await storage_for_share(file_code)
     return (
         APIResponse(detail=file_code.text)
         if file_code.text
@@ -287,21 +291,27 @@ async def parse_complete_upload(request: Request) -> CompleteUploadModel:
     return await parse_body_model(request, CompleteUploadModel)
 
 
-@chunk_api.post("/upload/init/", dependencies=[Depends(share_required_login)])
-async def init_chunk_upload(data: InitChunkUploadModel = Depends(parse_init_chunk_upload)):
+@chunk_api.post("/upload/init/", dependencies=[Depends(authorize_upload)])
+async def init_chunk_upload(data: InitChunkUploadModel = Depends(parse_init_chunk_upload), access: Annotated[UploadAccess, Depends(authorize_upload)] = None):
+    # 保持服务函数可被内部调用；HTTP 请求始终由依赖提供校验后的授权。
+    access = access or UploadAccess()
     safe_file_name = await sanitize_filename(unquote(data.file_name or ""))
     validate_file_type(safe_file_name)
-    # 服务端校验：根据 total_chunks * chunk_size 计算理论最大上传量
+    # 使用文件真实声明大小校验上限，最后一个分片通常小于整片大小。
     total_chunks = (data.file_size + data.chunk_size - 1) // data.chunk_size
-    max_possible_size = total_chunks * data.chunk_size
-    if max_possible_size > settings.upload_size:
+    if data.file_size > settings.upload_size:
         max_size_mb = settings.upload_size / (1024 * 1024)
         raise HTTPException(
             status_code=403, detail=f"文件大小超过限制，最大为 {max_size_mb:.2f} MB"
         )
 
-    # 断点续传：检查是否存在相同文件的未完成上传会话
-    existing_session = await UploadChunk.filter(
+    # 断点续传按寄件码隔离；普通上传不能恢复凭码创建的会话。
+    if access.code_id is not None:
+        tokens = await DeliveryFile.filter(delivery_id=access.code_id, status="pending").values_list("token", flat=True)
+        session_scope = UploadChunk.filter(upload_id__in=tokens)
+    else:
+        session_scope = UploadChunk.exclude(upload_id__startswith="d_")
+    existing_session = await session_scope.filter(
         chunk_hash=data.file_hash,
         chunk_index=-1,
         file_size=data.file_size,
@@ -309,7 +319,10 @@ async def init_chunk_upload(data: InitChunkUploadModel = Depends(parse_init_chun
     ).first()
 
     if existing_session:
+        if access.code_id is not None:
+            access.record = await DeliveryFile.get(token=existing_session.upload_id)
         if not existing_session.save_path:
+            await abort_access(access)
             await UploadChunk.filter(upload_id=existing_session.upload_id).delete()
             await release_storage(f"chunk:{existing_session.upload_id}")
         else:
@@ -336,6 +349,7 @@ async def init_chunk_upload(data: InitChunkUploadModel = Depends(parse_init_chun
 
     # 创建新的上传会话
     upload_id = uuid.uuid4().hex
+    upload_id, delivery_path = await prepare_upload(access, safe_file_name, data.file_size, upload_id)
     reservation_token = f"chunk:{upload_id}"
     chunk_expire_seconds = max(1, int(getattr(settings, "chunk_expire_hours", 24))) * 3600
     await reserve_storage(
@@ -353,9 +367,10 @@ async def init_chunk_upload(data: InitChunkUploadModel = Depends(parse_init_chun
             chunk_size=data.chunk_size,
             chunk_hash=data.file_hash,
             file_name=safe_file_name,
-            save_path=save_path,
+            save_path=delivery_path or save_path,
         )
     except Exception:
+        await abort_access(access)
         await release_storage(reservation_token)
         raise
     return APIResponse(
@@ -371,13 +386,17 @@ async def init_chunk_upload(data: InitChunkUploadModel = Depends(parse_init_chun
 
 @chunk_api.post(
     "/upload/chunk/{upload_id}/{chunk_index}",
-    dependencies=[Depends(share_required_login)],
+    dependencies=[Depends(authorize_upload)],
 )
 async def upload_chunk(
     upload_id: str,
     chunk_index: int,
+    access: Annotated[UploadAccess, Depends(authorize_upload)] = None,
     chunk: UploadFile = File(...),
 ):
+    # 已完成的寄件会话不能继续写分片，避免覆盖正在供下载的文件。
+    if access is not None and access.record is not None and access.record.status != "pending":
+        raise HTTPException(409, "上传已经完成")
     # 获取上传会话信息
     chunk_info = await UploadChunk.filter(upload_id=upload_id, chunk_index=-1).first()
     if not chunk_info:
@@ -406,6 +425,9 @@ async def upload_chunk(
     if chunk_index == 0:
         validate_header_bytes(chunk_info.file_name, None, chunk_data[:64])
     chunk_size = len(chunk_data)
+    expected_size = min(chunk_info.chunk_size, chunk_info.file_size - chunk_index * chunk_info.chunk_size)
+    if chunk_size != expected_size:
+        raise HTTPException(400, "分片大小与声明的文件范围不一致")
 
     # 校验分片大小不超过声明的 chunk_size
     if chunk_size > chunk_info.chunk_size:
@@ -431,7 +453,7 @@ async def upload_chunk(
     save_path = chunk_info.save_path
 
     # 保存分片到存储
-    storage = storages[settings.file_storage]()
+    storage = await upload_storage(access)
     try:
         await storage.save_chunk(
             upload_id, chunk_index, chunk_data, chunk_hash, save_path
@@ -458,9 +480,12 @@ async def upload_chunk(
     return APIResponse(detail={"chunk_hash": chunk_hash})
 
 
-@chunk_api.delete("/upload/{upload_id}", dependencies=[Depends(share_required_login)])
-async def cancel_upload(upload_id: str):
+@chunk_api.delete("/upload/{upload_id}", dependencies=[Depends(authorize_upload)])
+async def cancel_upload(upload_id: str, access: Annotated[UploadAccess, Depends(authorize_upload)] = None):
     """取消上传并清理临时文件"""
+    if access is not None and access.record is not None:
+        await abort_access(access)
+        return APIResponse(detail={"message": "上传已取消"})
     chunk_info = await UploadChunk.filter(upload_id=upload_id, chunk_index=-1).first()
     if not chunk_info:
         raise HTTPException(status.HTTP_404_NOT_FOUND, detail="上传会话不存在")
@@ -468,7 +493,7 @@ async def cancel_upload(upload_id: str):
     save_path = chunk_info.save_path
 
     # 清理存储中的临时文件
-    storage = storages[settings.file_storage]()
+    storage = await upload_storage(access)
     if save_path:
         try:
             await storage.clean_chunks(upload_id, save_path)
@@ -483,9 +508,9 @@ async def cancel_upload(upload_id: str):
 
 
 @chunk_api.get(
-    "/upload/status/{upload_id}", dependencies=[Depends(share_required_login)]
+    "/upload/status/{upload_id}", dependencies=[Depends(authorize_upload)]
 )
-async def get_upload_status(upload_id: str):
+async def get_upload_status(upload_id: str, access: Annotated[UploadAccess, Depends(authorize_upload)] = None):
     """获取上传状态"""
     chunk_info = await UploadChunk.filter(upload_id=upload_id, chunk_index=-1).first()
     if not chunk_info:
@@ -510,20 +535,24 @@ async def get_upload_status(upload_id: str):
 
 
 @chunk_api.post(
-    "/upload/complete/{upload_id}", dependencies=[Depends(share_required_login)]
+    "/upload/complete/{upload_id}", dependencies=[Depends(authorize_upload)]
 )
 async def complete_upload(
     upload_id: str,
+    access: Annotated[UploadAccess, Depends(authorize_upload)] = None,
     data: CompleteUploadModel = Depends(parse_complete_upload),
     ip: str = Depends(ip_limit["upload"]),
 ):
+    result = await completed_upload(access)
+    if result:
+        return APIResponse(detail=result)
     # 获取上传基本信息
     chunk_info = await UploadChunk.filter(upload_id=upload_id, chunk_index=-1).first()
     if not chunk_info:
         raise HTTPException(status.HTTP_404_NOT_FOUND, detail="上传会话不存在")
     validate_expire_style(data.expire_style)
     detail = await FileUploadService.complete_chunked_upload(
-        upload_id, chunk_info, data.expire_value, data.expire_style
+        upload_id, chunk_info, data.expire_value, data.expire_style, access=access
     )
     ip_limit["upload"].add_ip(ip)
     return APIResponse(detail=detail)
@@ -557,9 +586,9 @@ async def _get_valid_session(
     return session
 
 
-@presign_api.post("/upload/init", dependencies=[Depends(share_required_login)])
+@presign_api.post("/upload/init", dependencies=[Depends(authorize_upload)])
 async def presign_upload_init(
-    data: PresignUploadInitRequest, ip: str = Depends(ip_limit["upload"])
+    data: PresignUploadInitRequest, access: Annotated[UploadAccess, Depends(authorize_upload)] = None, ip: str = Depends(ip_limit["upload"])
 ):
     """初始化预签名上传，S3返回直传URL，其他存储返回代理URL"""
     validate_file_type(data.file_name)
@@ -571,6 +600,7 @@ async def presign_upload_init(
     validate_expire_style(data.expire_style)
 
     upload_id = uuid.uuid4().hex
+    upload_id, delivery_path = await prepare_upload(access, data.file_name, data.file_size, upload_id)
     reservation_token = f"presign:{upload_id}"
     await reserve_storage(
         reservation_token, data.file_size, ttl_seconds=PRESIGN_SESSION_EXPIRES
@@ -579,7 +609,9 @@ async def presign_upload_init(
         path, _, _, filename, save_path = await FileUploadService.generate_file_path(
             data.file_name, upload_id
         )
-        storage: FileStorageInterface = storages[settings.file_storage]()
+        if delivery_path:
+            save_path = delivery_path
+        storage: FileStorageInterface = await upload_storage(access)
         presigned_url = await storage.generate_presigned_upload_url(
             save_path, PRESIGN_SESSION_EXPIRES
         )
@@ -597,6 +629,7 @@ async def presign_upload_init(
             expires_at=await get_now() + timedelta(seconds=PRESIGN_SESSION_EXPIRES),
         )
     except Exception:
+        await abort_access(access)
         await release_storage(reservation_token)
         raise
 
@@ -616,33 +649,39 @@ async def presign_upload_init(
 
 
 @presign_api.put(
-    "/upload/proxy/{upload_id}", dependencies=[Depends(share_required_login)]
+    "/upload/proxy/{upload_id}", dependencies=[Depends(authorize_upload)]
 )
 async def presign_upload_proxy(
-    upload_id: str, file: UploadFile = File(...), ip: str = Depends(ip_limit["upload"])
+    upload_id: str, file: UploadFile = File(...), access: Annotated[UploadAccess, Depends(authorize_upload)] = None, ip: str = Depends(ip_limit["upload"])
 ):
     """代理模式上传，服务器转存到存储后端"""
+    result = await completed_upload(access)
+    if result:
+        return APIResponse(detail=result)
     session = await _get_valid_session(upload_id, expected_mode="proxy")
-    code = await FileUploadService.commit_proxy_upload(session, file)
+    code = await FileUploadService.commit_proxy_upload(session, file, access=access)
     ip_limit["upload"].add_ip(ip)
     return APIResponse(detail={"code": code, "name": session.file_name})
 
 
 @presign_api.post(
-    "/upload/confirm/{upload_id}", dependencies=[Depends(share_required_login)]
+    "/upload/confirm/{upload_id}", dependencies=[Depends(authorize_upload)]
 )
-async def presign_upload_confirm(upload_id: str, ip: str = Depends(ip_limit["upload"])):
+async def presign_upload_confirm(upload_id: str, access: Annotated[UploadAccess, Depends(authorize_upload)] = None, ip: str = Depends(ip_limit["upload"])):
     """直传确认，客户端完成S3直传后调用获取分享码"""
+    result = await completed_upload(access)
+    if result:
+        return APIResponse(detail=result)
     session = await _get_valid_session(upload_id, expected_mode="direct")
-    code = await FileUploadService.confirm_direct_upload(session)
+    code = await FileUploadService.confirm_direct_upload(session, access=access)
     ip_limit["upload"].add_ip(ip)
     return APIResponse(detail={"code": code, "name": session.file_name})
 
 
 @presign_api.get(
-    "/upload/status/{upload_id}", dependencies=[Depends(share_required_login)]
+    "/upload/status/{upload_id}", dependencies=[Depends(authorize_upload)]
 )
-async def presign_upload_status(upload_id: str):
+async def presign_upload_status(upload_id: str, access: Annotated[UploadAccess, Depends(authorize_upload)] = None):
     """查询上传会话状态"""
     session = await PresignUploadSession.filter(upload_id=upload_id).first()
     if not session:
@@ -661,15 +700,18 @@ async def presign_upload_status(upload_id: str):
     )
 
 
-@presign_api.delete("/upload/{upload_id}", dependencies=[Depends(share_required_login)])
-async def presign_upload_cancel(upload_id: str):
+@presign_api.delete("/upload/{upload_id}", dependencies=[Depends(authorize_upload)])
+async def presign_upload_cancel(upload_id: str, access: Annotated[UploadAccess, Depends(authorize_upload)] = None):
     """取消上传会话"""
+    if access is not None and access.record is not None:
+        await abort_access(access)
+        return APIResponse(detail={"message": "上传会话已取消"})
     session = await PresignUploadSession.filter(upload_id=upload_id).first()
     if not session:
         raise HTTPException(404, "上传会话不存在")
 
     if session.mode == "direct":
-        storage: FileStorageInterface = storages[settings.file_storage]()
+        storage: FileStorageInterface = await upload_storage(access)
         try:
             if await storage.file_exists(session.save_path):
                 temp_file_code = StoredFile(

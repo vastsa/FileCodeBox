@@ -1,0 +1,2 @@
+<!-- 内置站点图标，寄件页不依赖尚未编译的上游主题资源。 -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48"><rect width="48" height="48" rx="12" fill="#175c48"/><path d="M12 17 24 10l12 7v15l-12 7-12-7zM12 17l12 7 12-7M24 24v15" fill="none" stroke="#fff" stroke-width="2.5" stroke-linejoin="round"/></svg>

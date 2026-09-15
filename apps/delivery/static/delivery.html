@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>凭码寄件 · 文件驿站</title>
+  <link rel="icon" href="/delivery-assets/logo.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/delivery-assets/delivery.css">
+  <script type="module" src="/delivery-assets/delivery.js"></script>
+</head>
+<body>
+  <header class="shell header"><a class="brand" href="/">文件驿站 <span>FileRelay</span></a><a href="/">返回取件首页</a></header>
+  <main class="shell visitor">
+    <p class="eyebrow">文件投递</p><h1>把文件，安心交给对方。</h1>
+    <p class="intro">输入对方给你的寄件码，即可上传资料。无需注册，收到的文件仅由管理员管理。</p>
+    <section class="card" aria-labelledby="verify-title">
+      <h2 id="verify-title"><span class="step">1</span> 验证寄件码</h2>
+      <form id="verify-form" class="row">
+        <label class="grow" for="code">寄件码<input id="code" name="code" required minlength="8" maxlength="64" autocomplete="off" spellcheck="false" placeholder="输入 8 至 64 位寄件码"></label>
+        <button id="verify-button" type="submit">验证寄件码</button>
+      </form>
+      <p id="verify-message" class="message" role="status" aria-live="polite"></p>
+    </section>
+    <section id="upload-section" class="card" hidden aria-labelledby="upload-title">
+      <h2 id="upload-title"><span class="step">2</span> 投递文件</h2>
+      <p id="delivery-info" class="muted"></p>
+      <form id="upload-form">
+        <label class="file-picker" for="files">选择要投递的文件<input id="files" type="file" multiple required><span>每成功投递一个文件占用一次。同名文件不会覆盖。</span></label>
+        <p id="selection-info" class="muted"></p>
+        <button id="upload-button" type="submit">开始投递</button>
+      </form>
+      <div id="progress-box" hidden><label for="progress" id="progress-text">正在上传</label><progress id="progress" max="100" value="0"></progress></div>
+      <p id="upload-message" class="message" role="status" aria-live="polite"></p>
+      <ul id="results" class="results" aria-live="polite"></ul>
+    </section>
+    <p class="footnote">寄件码只用于上传。投递成功后如需取回文件，请联系接收方。</p>
+  </main>
+</body>
+</html>

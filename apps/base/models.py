@@ -95,6 +95,45 @@ class StorageReservation(models.Model):
     expires_at = fields.DatetimeField(index=True)
 
 
+class DeliveryCode(models.Model):
+    """只授予投递权限的口令；不进入公开取件码表，避免形成下载授权。"""
+
+    id = fields.IntField(pk=True)
+    code_digest = fields.CharField(max_length=64, unique=True)
+    # 与普通取件码一样保留原文供管理员管理；旧记录为 NULL，不能从摘要反推。
+    code_value = fields.CharField(max_length=64, null=True)
+    name = fields.CharField(max_length=100)
+    owner_id = fields.CharField(max_length=64, default="admin", index=True)
+    storage_type = fields.CharField(max_length=20)
+    target_path = fields.CharField(max_length=200)
+    expires_at = fields.DatetimeField()
+    max_uploads = fields.IntField()
+    used_count = fields.IntField(default=0)
+    reserved_count = fields.IntField(default=0)
+    enabled = fields.BooleanField(default=True)
+    deleted = fields.BooleanField(default=False)
+    created_at = fields.DatetimeField(auto_now_add=True)
+
+
+class DeliveryFile(models.Model):
+    """寄件收件记录；pending 占用次数，stored 计入永久容量，独立于公开分享。"""
+
+    id = fields.IntField(pk=True)
+    delivery_id = fields.IntField(index=True)
+    # 新的授权分享关联普通取件记录；NULL 表示旧版私有收件，绝不自动公开。
+    share_id = fields.IntField(null=True, index=True)
+    owner_id = fields.CharField(max_length=64, default="admin", index=True)
+    token = fields.CharField(max_length=64, unique=True)
+    filename = fields.CharField(max_length=255, default="")
+    stored_name = fields.CharField(max_length=255, default="")
+    file_path = fields.CharField(max_length=200)
+    storage_type = fields.CharField(max_length=20)
+    size = fields.BigIntField(default=0)
+    status = fields.CharField(max_length=20, default="pending", index=True)
+    created_at = fields.DatetimeField(auto_now_add=True)
+    updated_at = fields.DatetimeField(auto_now=True)
+
+
 file_codes_pydantic = pydantic_model_creator(FileCodes, name="FileCodes")
 upload_chunk_pydantic = pydantic_model_creator(UploadChunk, name="UploadChunk")
 key_value_pydantic = pydantic_model_creator(KeyValue, name="KeyValue")
