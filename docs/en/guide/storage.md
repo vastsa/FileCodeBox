@@ -35,6 +35,7 @@ storage_path=
 - Files are stored by default in `data/share/data/` directory
 - Subdirectories are automatically created by date: `year/month/day/fileID/`
 - In production, it's recommended to mount the `data/` directory to persistent storage
+- Existing NAS files can be mounted at `data/local` (including subfolders). Admin Local Share references them in place to mint extract codes and does not copy them into `data/share`
 
 ## S3-Compatible Storage
 

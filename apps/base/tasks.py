@@ -20,8 +20,8 @@ from core.logger import logger
 from core.settings import settings, data_root
 from core.storage import FileStorageInterface, StoredFile, storages
 from apps.base.services import stored_file_of
+from apps.base.local_share import is_local_ref
 from core.utils import get_now
-
 
 async def delete_expire_files():
     while True:
@@ -42,7 +42,8 @@ async def delete_expire_files():
             ).all()
             for exp in expire_data:
                 try:
-                    await file_storage.delete_file(stored_file_of(exp))
+                    if not is_local_ref(exp):
+                        await file_storage.delete_file(stored_file_of(exp))
                 except Exception as e:
                     logger.error(f"删除过期文件失败 code={exp.code}: {e}")
                 try:

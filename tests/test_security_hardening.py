@@ -39,7 +39,7 @@ class LocalFilePathTraversalTests(unittest.TestCase):
         self.local_root.mkdir(parents=True, exist_ok=True)
         (self.local_root / "safe.txt").write_text("ok", encoding="utf-8")
         self._data_root_patch = patch(
-            "apps.admin.services.data_root", Path(self._tmpdir.name)
+            "core.settings.data_root", Path(self._tmpdir.name)
         )
         self._data_root_patch.start()
 

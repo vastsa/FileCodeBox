@@ -18,6 +18,7 @@ from apps.base.quota import release_storage, reserve_storage
 from apps.base.services import (
     PRESIGN_SESSION_EXPIRES,
     FileUploadService,
+    get_stored_download,
     response_from_download,
     stored_file_of,
     validate_file_size,
@@ -36,6 +37,7 @@ from apps.base.utils import (
     get_chunk_file_path_name,
     validate_expire_style,
 )
+from apps.base.local_share import is_local_ref
 from core.response import APIResponse
 from core.settings import settings
 from core.storage import storages, FileStorageInterface
@@ -151,8 +153,8 @@ async def build_select_detail(
     metadata = build_file_metadata(file_code)
     if file_code.text is not None:
         download_url = None
-    elif file_code.expired_count >= 0:
-        # 有次数限制的文件必须经过下载接口，第三方直链无法阻止重复使用。
+    elif file_code.expired_count >= 0 or is_local_ref(file_code):
+        # 次数限制与 NAS 引用都必须走下载接口，避免直链绕过次数或打到错误存储。
         download_url = await get_proxy_file_url(file_code.code)
     else:
         download_url = await file_storage.get_file_url(stored_file_of(file_code))
@@ -213,7 +215,7 @@ async def get_code_file(code: str, ip: str = Depends(ip_limit["error"])):
                 )
             },
         )
-    return response_from_download(await file_storage.get_file_response(stored_file_of(file_code)))
+    return response_from_download(await get_stored_download(file_code, file_storage))
 
 
 @share_api.post("/select/")
@@ -258,7 +260,7 @@ async def download_file(key: str, code: str, ip: str = Depends(ip_limit["error"]
     return (
         APIResponse(detail=file_code.text)
         if file_code.text
-        else response_from_download(await file_storage.get_file_response(stored_file_of(file_code)))
+        else response_from_download(await get_stored_download(file_code, file_storage))
     )
 
 

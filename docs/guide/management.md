@@ -165,49 +165,50 @@ FileCodeBox 提供了功能完善的管理面板，让管理员可以方便地�
 
 ## 本地文件管理
 
-除了管理已分享的文件，管理面板还提供了本地文件管理功能，用于管理 `data/local` 目录中的文件。
+除了管理已分享的文件，管理面板还提供「本地分享」页面，用于浏览 `data/local`（含子目录）里的文件并生成提取码。
+
+把 NAS 共享目录挂到容器的 `/app/data/local` 后，即可指定内部文件夹中的文件生成提取码，无需再下载后上传。
+
+```yaml
+volumes:
+  - fcb-data:/app/data:rw
+  # 只读挂载 NAS 分享目录，供后台浏览并生成提取码
+  - /volume1/share:/app/data/local:ro
+```
 
 ### 查看本地文件
 
-本地文件列表显示 `data/local` 目录中的所有文件：
+后台「本地分享」支持进入子目录。列表接口：
 
-| 信息 | 说明 |
+```
+GET /admin/local/lists?path=movies
+```
+
+`path` 为相对 `data/local` 的目录，留空表示根目录。返回：
+
+| 字段 | 说明 |
 |------|------|
-| 文件名 | 文件的完整名称 |
-| 创建时间 | 文件的创建时间 |
-| 文件大小 | 文件大小（字节） |
+| `path` | 当前目录 |
+| `parent` | 上级目录 |
+| `truncated` | 是否因条目过多被截断 |
+| `items[].type` | `dir` 或 `file` |
+| `items[].path` | 相对 `data/local` 的路径，分享时作为 `filename` |
 
 ### 分享本地文件
 
-可以将本地文件快速分享：
-
-1. 在本地文件列表中选择要分享的文件
+1. 进入目标子目录，选择文件
 2. 设置过期方式和过期值
-3. 点击分享按钮
-4. 系统生成提取码
+3. 点击生成提取码
+
+分享是**零拷贝引用**：不会把文件复制进 `data/share`，也不占用快递柜存储配额。提取码过期或在文件管理中删除记录，**不会删除 NAS 原文件**。
 
 **分享参数：**
 
 | 参数 | 说明 |
 |------|------|
-| `filename` | 要分享的文件名 |
+| `filename` | 相对 `data/local` 的路径，如 `movies/a.mp4` |
 | `expire_style` | 过期方式（day/hour/minute/forever/count） |
 | `expire_value` | 过期值（天数/小时数/分钟数/下载次数） |
-
-### 删除本地文件
-
-可以删除 `data/local` 目录中的文件：
-
-1. 在本地文件列表中找到要删除的文件
-2. 点击删除按钮
-3. 确认删除
-
-::: tip 使用场景
-本地文件管理功能适用于：
-- 批量上传文件到服务器后进行分享
-- 管理通过其他方式上传到服务器的文件
-- 清理不需要的本地文件
-:::
 
 ## 系统设置
 
@@ -337,7 +338,7 @@ Content-Type: application/json
 
 **获取本地文件列表**
 ```
-GET /admin/local/lists
+GET /admin/local/lists?path=movies
 Authorization: Bearer <token>
 ```
 
@@ -348,7 +349,7 @@ Authorization: Bearer <token>
 Content-Type: application/json
 
 {
-    "filename": "example.txt"
+    "filename": "movies/example.txt"
 }
 ```
 
@@ -359,7 +360,7 @@ Authorization: Bearer <token>
 Content-Type: application/json
 
 {
-    "filename": "example.txt",
+    "filename": "movies/example.txt",
     "expire_style": "day",
     "expire_value": 7
 }

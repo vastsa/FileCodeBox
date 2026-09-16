@@ -2,11 +2,22 @@ import datetime
 
 from fastapi import HTTPException
 from tortoise import connections
+from tortoise.expressions import Q
 from tortoise.functions import Sum
 
 from apps.base.models import FileCodes, StorageReservation
+from apps.base.local_share import LOCAL_REF_MARKER
 from core.settings import settings
 from core.utils import get_now
+
+
+def owned_storage_queryset(queryset=None):
+    """FileCodes that occupy FileCodeBox storage (exclude NAS local-ref rows).
+
+    SQL ``file_path != 'local-ref'`` drops NULLs, so keep null paths explicitly.
+    """
+    qs = FileCodes.all() if queryset is None else queryset
+    return qs.filter(Q(file_path__isnull=True) | ~Q(file_path=LOCAL_REF_MARKER))
 
 
 def _detect_sql_dialect() -> str:
@@ -56,7 +67,7 @@ def get_storage_limit() -> int:
 async def get_storage_usage() -> dict[str, int | None]:
     now = await get_now()
     # SQL 聚合：此函数在每次上传配额检查时调用，禁止全表拉取（D3）
-    used_rows = await FileCodes.all().annotate(total=Sum("size")).values("total")
+    used_rows = await owned_storage_queryset().annotate(total=Sum("size")).values("total")
     reserved_rows = await StorageReservation.filter(expires_at__gt=now).annotate(
         total=Sum("size")
     ).values("total")
@@ -94,7 +105,7 @@ async def reserve_storage(token: str, size: int, ttl_seconds: int) -> None:
             INSERT INTO storagereservation (token, size, expires_at)
             SELECT {ph[0]}, {ph[1]}, {ph[2]}
             WHERE (
-                COALESCE((SELECT SUM(size) FROM filecodes), 0)
+                COALESCE((SELECT SUM(size) FROM filecodes WHERE file_path IS NULL OR file_path != '{LOCAL_REF_MARKER}'), 0)
                 + COALESCE((SELECT SUM(size) FROM storagereservation WHERE expires_at > {ph[3]}), 0)
                 + {ph[4]}
             ) <= {ph[5]}
