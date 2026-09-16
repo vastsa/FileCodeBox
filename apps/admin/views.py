@@ -527,7 +527,10 @@ async def file_view_presets_delete_post(
 async def get_config(
     config_service: ConfigService = Depends(get_config_service),
 ):
-    return APIResponse(detail=config_service.get_config())
+    # 与实际返回的主题保持一致；2024 和公共 API 继续使用标准字段，2023 设置页使用旧字段。
+    from apps.base.pages import resolve_theme_root
+
+    return APIResponse(detail=config_service.get_config(legacy=resolve_theme_root().name == "2023"))
 
 
 @admin_api.patch("/config/update")
@@ -537,6 +540,8 @@ async def update_config(
     file_service: FileService = Depends(get_file_service),
 ):
     data.pop("themes_choices", None)
+    # 旧主题会整表提交配置，同样剔除只读主题列表。
+    data.pop("themesChoices", None)
     await config_service.update_config(data)
     await file_service.record_admin_activity(
         action="config.update",

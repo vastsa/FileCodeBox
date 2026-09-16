@@ -1496,6 +1496,20 @@ class FileService:
 
 
 class ConfigService:
+    # 2023 设置页仍使用迁移前的字段名；仅在旧管理接口边界转换，存储保持 snake_case。
+    LEGACY_CONFIG_FIELDS = {
+        "errorCount": "error_count",
+        "errorMinute": "error_minute",
+        "expireStyle": "expire_style",
+        "openUpload": "open_upload",
+        "robotsText": "robots_text",
+        "showAdminAddr": "show_admin_addr",
+        "themesChoices": "themes_choices",
+        "themesSelect": "themes_select",
+        "uploadCount": "upload_count",
+        "uploadMinute": "upload_minute",
+        "uploadSize": "upload_size",
+    }
     INT_FIELDS = {
         "admin_session_expire",
         "enable_chunk",
@@ -1519,20 +1533,35 @@ class ConfigService:
     }
     FLOAT_FIELDS = {"opacity"}
 
-    def get_config(self):
+    def get_config(self, *, legacy: bool = False):
         config = dict(settings.items())
         config["admin_token"] = ""
         for key in INTERNAL_CONFIG_KEYS:
             config.pop(key, None)
+        if legacy:
+            # 每个配置只返回一种键名，避免旧页面整表提交时携带两个互相冲突的值。
+            for old_key, current_key in self.LEGACY_CONFIG_FIELDS.items():
+                config[old_key] = config.pop(current_key)
         return config
 
     async def update_config(self, data: dict):
         current_config = dict(settings.items())
         next_config = dict(current_config)
+        # 必须在白名单过滤前转换，否则旧主题保存成功但主题、上传限制等实际未更新。
+        normalized_data = dict(data)
+        for old_key, current_key in self.LEGACY_CONFIG_FIELDS.items():
+            if old_key not in normalized_data:
+                continue
+            value = normalized_data.pop(old_key)
+            if current_key in normalized_data and normalized_data[current_key] != value:
+                raise HTTPException(status_code=400, detail=f"{current_key} 配置值冲突")
+            normalized_data[current_key] = value
         update_data = {
             key: value
-            for key, value in data.items()
-            if key in settings.default_config and key not in INTERNAL_CONFIG_KEYS
+            for key, value in normalized_data.items()
+            if key in settings.default_config
+            and key not in INTERNAL_CONFIG_KEYS
+            and key != "themes_choices"  # 主题清单由程序维护，兼容旧字段时也不能允许客户端改写。
         }
 
         admin_token = update_data.get("admin_token")
