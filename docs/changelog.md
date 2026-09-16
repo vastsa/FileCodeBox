@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.7.0](https://github.com/vastsa/FileCodeBox/compare/v2.6.1...v2.7.0) (2026-09-16)
+
+
+### Features
+
+* mint extract codes from data/local without re-upload ([93a30a2](https://github.com/vastsa/FileCodeBox/commit/93a30a257cc5b0ee23a374521e1e12602c3959da))
+
 ## [2.6.1](https://github.com/vastsa/FileCodeBox/compare/v2.6.0...v2.6.1) (2026-09-14)
 
 
