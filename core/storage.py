@@ -3,6 +3,7 @@
 # @File    : storage.py
 # @Software: PyCharm
 import base64
+from botocore.exceptions import ClientError
 import hashlib
 import os
 import tempfile
@@ -64,6 +65,11 @@ class StoredFile:
     def get_file_path(self) -> str:
         return f"{self.file_path}/{self.uuid_file_name}"
 
+
+
+
+# S3 multipart 除最后一片外每部分最小 5MB（服务端强制，小于即 EntityTooSmall）
+S3_MIN_MULTIPART_PART_SIZE = 5 * 1024 * 1024
 
 
 def build_attachment_headers(filename: str, content_length=None) -> dict:
@@ -412,9 +418,10 @@ class S3FileStorage(FileStorageInterface):
         try:
             filename = file_code.prefix + file_code.suffix
             content_length = None  # 初始化为 None，表示未知大小
-            
+
             async with self._client() as s3:
-                # 尝试获取文件大小（HEAD请求）
+                # 尝试获取文件大小（HEAD请求）；对象不存在时前置 404——
+                # 与 local 后端语义一致（M2 行为统一），不能签出 200 的坏流
                 try:
                     head_response = await s3.head_object(
                         Bucket=self.bucket_name,
@@ -425,6 +432,13 @@ class S3FileStorage(FileStorageInterface):
                         content_length = head_response['ContentLength']
                     elif 'Content-Length' in head_response['ResponseMetadata']['HTTPHeaders']:
                         content_length = int(head_response['ResponseMetadata']['HTTPHeaders']['Content-Length'])
+                except ClientError as e:
+                    error_code = e.response.get("Error", {}).get("Code", "")
+                    if error_code in {"404", "NoSuchKey", "NotFound"}:
+                        raise StorageError(
+                            status_code=404, detail="文件已过期删除"
+                        ) from e
+                    # 其他 HEAD 错误不阻断：流式下载阶段会给出真实状态
                 except Exception:
                     # 如果HEAD请求失败，则不提供 Content-Length
                     pass
@@ -526,7 +540,31 @@ class S3FileStorage(FileStorageInterface):
             parts = []
 
             try:
-                # 按顺序读取、验证并上传每个分片
+                # 按顺序读取、验证每个分片；S3 multipart 规范要求除最后一片外
+                # 每个部分 ≥5MB（EntityTooSmall），而分片大小由客户端决定（常见
+                # 2-4MB）——因此缓冲到 S3_MIN_MULTIPART_PART_SIZE 再上传 part，
+                # 内存上界 = 5MB + 单个分片，不破坏流式合并的初衷。
+                part_buffer = bytearray()
+                part_number = 0
+
+                async def _flush_part():
+                    nonlocal part_number
+                    if not part_buffer:
+                        return
+                    part_number += 1
+                    part_response = await s3.upload_part(
+                        Bucket=self.bucket_name,
+                        Key=save_path,
+                        UploadId=mpu_id,
+                        PartNumber=part_number,
+                        Body=bytes(part_buffer),
+                    )
+                    parts.append({
+                        'PartNumber': part_number,
+                        'ETag': part_response['ETag']
+                    })
+                    part_buffer.clear()
+
                 for i in range(total_chunks):
                     chunk_key = f"{chunk_dir}/{i}.part"
                     chunk_record = self._get_chunk_record(chunk_records, i)
@@ -541,22 +579,13 @@ class S3FileStorage(FileStorageInterface):
                         raise ValueError(f"分片{i}文件不存在: {e}")
 
                     self._verify_and_hash_chunk(i, chunk_record, chunk_data, file_sha256)
+                    part_buffer.extend(chunk_data)
+                    if len(part_buffer) >= S3_MIN_MULTIPART_PART_SIZE:
+                        await _flush_part()
 
-                    # 上传分片到 multipart upload
-                    part_response = await s3.upload_part(
-                        Bucket=self.bucket_name,
-                        Key=save_path,
-                        UploadId=mpu_id,
-                        PartNumber=i + 1,  # S3 part numbers start at 1
-                        Body=chunk_data
-                    )
-                    parts.append({
-                        'PartNumber': i + 1,
-                        'ETag': part_response['ETag']
-                    })
-
-                    # 释放内存
-                    del chunk_data
+                # 收尾：剩余缓冲作为最后一个 part（S3 允许最后一片小于 5MB；
+                # 恰好整除时缓冲为空，跳过）
+                await _flush_part()
 
                 # 完成 multipart upload
                 await s3.complete_multipart_upload(
