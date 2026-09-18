@@ -114,3 +114,27 @@ class TestAdminUpdateFileBoundaries:
             headers={"Authorization": f"Bearer {token}"},
         )
         assert response.status_code == 400
+
+
+@pytest.mark.asyncio
+class TestNotFoundHandlerBranches:
+    """404 双分支边界：浏览器导航拿主题页（SPA 兜底保留），API 客户端拿 JSON 404。"""
+
+    async def test_api_accept_gets_json_404(self, initialized_client):
+        response = await initialized_client.get(
+            "/no-such-path", headers={"Accept": "application/json"}
+        )
+        assert response.status_code == 404
+        assert response.json()["code"] == 404
+        assert "text/html" not in response.headers["content-type"]
+
+    async def test_browser_accept_gets_theme_page(self, initialized_client):
+        response = await initialized_client.get("/no-such-path", headers={"Accept": "text/html"})
+        assert response.status_code == 200
+        assert "text/html" in response.headers["content-type"]
+
+    async def test_default_star_accept_gets_json_404(self, initialized_client):
+        """curl 默认 */* 不含 text/html——必须走 JSON 分支（防误伤脚本调用方）。"""
+        response = await initialized_client.get("/no-such-path")
+        assert response.status_code == 404
+        assert response.json()["code"] == 404
