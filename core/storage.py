@@ -1131,8 +1131,6 @@ class OpenDALFileStorage(FileStorageInterface):
 
 
 class WebDAVFileStorage(FileStorageInterface):
-    _instance: Optional["WebDAVFileStorage"] = None
-
     def __init__(self):
         if not hasattr(self, "_initialized"):
             self.base_url = settings.webdav_url.rstrip("/") + "/"

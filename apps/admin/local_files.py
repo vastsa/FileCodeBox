@@ -88,10 +88,6 @@ class LocalFileClass:
         with open(self.path, "rb") as fh:
             return fh.read()
 
-    async def write(self, data):
-        with open(self.path, "wb") as f:
-            f.write(data)
-
     async def delete(self):
         if not self.path.is_file():
             raise HTTPException(status_code=404, detail="文件不存在")
