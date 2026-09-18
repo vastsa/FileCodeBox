@@ -1,5 +1,5 @@
 from ipaddress import ip_address, ip_network
-from typing import Dict, Iterable, Union
+from typing import Dict, Iterable, TypedDict
 from datetime import datetime, timedelta
 from fastapi import HTTPException, Request
 
@@ -65,9 +65,14 @@ def get_client_ip(request: Request) -> str:
     return client_host
 
 
+class _IPRecord(TypedDict):
+    count: int
+    time: datetime
+
+
 class IPRateLimit:
     def __init__(self, count: int, minutes: int):
-        self.ips: Dict[str, Dict[str, Union[int, datetime]]] = {}
+        self.ips: Dict[str, _IPRecord] = {}
         self.count = count
         self.minutes = minutes
 
@@ -81,7 +86,9 @@ class IPRateLimit:
         return True
 
     def add_ip(self, ip: str) -> int:
-        ip_info = self.ips.get(ip, {"count": 0, "time": datetime.now()})
+        ip_info = self.ips.setdefault(
+            ip, {"count": 0, "time": datetime.now()}
+        )
         ip_info["count"] += 1
         ip_info["time"] = datetime.now()
         self.ips[ip] = ip_info
