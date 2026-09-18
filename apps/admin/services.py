@@ -1594,7 +1594,9 @@ class ConfigService:
                 else validate_outbound_endpoint
             )
             try:
-                validator(candidate)
+                # 写回规范化值（validator 去除首尾空白）：校验通过但入库脏值
+                # 会让存储层在连接期才报错，应在校验点归一。
+                next_config[endpoint_key] = validator(candidate)
             except ValueError as exc:
                 raise HTTPException(status_code=400, detail=str(exc))
 

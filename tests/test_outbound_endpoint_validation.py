@@ -199,3 +199,36 @@ def test_hostname_tier_denies_ip_shorthand_and_dns_tricks(production_env, hostna
 def test_hostname_tier_accepts_ipv6_with_port_and_public(production_env):
     assert validate_outbound_hostname("[2606:4700::1]:9000") == "[2606:4700::1]:9000"
     assert validate_outbound_hostname("files.example.com:9000") == "files.example.com:9000"
+
+
+@pytest.mark.asyncio
+class TestNormalizedWriteBack:
+    async def test_whitespace_padded_endpoint_stored_stripped(
+        self, initialized_client, monkeypatch
+    ):
+        monkeypatch.setenv("APP_ENV", "production")
+        from tests.conftest import TEST_ADMIN_PASSWORD
+
+        login = await initialized_client.post(
+            "/admin/login", json={"password": TEST_ADMIN_PASSWORD}
+        )
+        token = login.json()["detail"]["token"]
+
+        response = await initialized_client.patch(
+            "/admin/config/update",
+            json={"s3_endpoint_url": "  https://s3.example.com  "},
+            headers={"Authorization": f"Bearer {token}"},
+        )
+        assert response.status_code == 200, response.text
+
+        from apps.base.models import KeyValue
+
+        record = await KeyValue.filter(key="settings").first()
+        config = dict(record.value or {})
+        assert config["s3_endpoint_url"] == "https://s3.example.com"
+
+
+def test_hostname_tier_development_gate(monkeypatch):
+    """hostname 档同样受 APP_ENV 门控（开发环境本地 minio 不被拒）。"""
+    monkeypatch.setenv("APP_ENV", "development")
+    assert validate_outbound_hostname("127.0.0.1:9000") == "127.0.0.1:9000"
