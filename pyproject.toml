@@ -19,6 +19,7 @@ dev = [
     "ruff",
     "pre-commit",
     "moto[s3,server]",
+    "mypy",
 ]
 
 [tool.ruff]
@@ -31,3 +32,9 @@ target-version = "py312"
 # (unused imports, undefined names). Style families (pyupgrade, broad-except,
 # import sorting) are deferred to keep the initial diff minimal.
 select = ["E4", "E7", "E9", "F"]
+
+[tool.mypy]
+python_version = "3.12"
+# 渐进引入：基线棘轮模式（scripts/mypy-ratchet.py）——只许修复减少、不许新增。
+# 修掉基线里的错误后跑 `--regenerate` 收紧基线。
+ignore_missing_imports = true
