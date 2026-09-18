@@ -35,7 +35,7 @@ jobs:
           # --require-hashes so CI fails on lockfile drift, exactly like the
           # Docker build does.
           pip install --require-hashes -r requirements.lock.txt
-          pip install pytest pytest-asyncio httpx
+          pip install pytest pytest-asyncio httpx 'moto[s3,server]'
 
       - name: Ruff
         run: pipx run ruff==0.16.6 check .

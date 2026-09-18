@@ -18,6 +18,7 @@ dev = [
     "httpx",
     "ruff",
     "pre-commit",
+    "moto[s3,server]",
 ]
 
 [tool.ruff]
