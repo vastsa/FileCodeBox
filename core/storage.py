@@ -800,12 +800,21 @@ class OneDriveFileStorage(FileStorageInterface):
     async def get_file_response(self, file_code: StoredFile):
         try:
             filename = file_code.prefix + file_code.suffix
-            link = await asyncio.to_thread(
-                self._get_file_url, file_code.get_file_path(), filename
-            )
-            
+            try:
+                link = await asyncio.to_thread(
+                    self._get_file_url, file_code.get_file_path(), filename
+                )
+            except self._ClientRequestException as e:
+                # 对象不存在时前置 404（与 local/S3/WebDAV 语义对齐），
+                # 不再落入外层兜底的 503
+                if str(getattr(e, "code", "")).lower() in {"itemnotfound", "404"}:
+                    raise StorageError(
+                        status_code=404, detail="文件已过期删除"
+                    ) from e
+                raise
+
             content_length = None  # 初始化为 None，表示未知大小
-            
+
             # 创建ClientSession并复用
             session = aiohttp.ClientSession()
             

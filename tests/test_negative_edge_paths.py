@@ -10,8 +10,17 @@ import datetime
 
 import pytest
 
+from core.errors import StorageError
 from core.utils import get_select_token, get_now
 from tests.conftest import TEST_ADMIN_PASSWORD
+
+
+def _stored(key: str):
+    from core.storage import StoredFile
+
+    return StoredFile(
+        file_path=key.rsplit("/", 1)[0], uuid_file_name=key.rsplit("/", 1)[1]
+    )
 
 
 async def _login(client) -> str:
@@ -138,3 +147,99 @@ class TestNotFoundHandlerBranches:
         response = await initialized_client.get("/no-such-path")
         assert response.status_code == 404
         assert response.json()["code"] == 404
+
+
+@pytest.mark.asyncio
+class TestOneDriveMissingObjectTranslation:
+    """OneDrive 缺失对象：graph 的 itemNotFound 必须前置 404，而非外层兜底 503。
+
+    office365 SDK 不在运行时依赖里（Docker 构建不含），用 __new__ 绕过构造、
+    假异常类模拟 SDK 边界——只测我们新增的"异常码→StorageError"翻译层。
+    """
+
+    def _make_storage(self, monkeypatch, code_value: str):
+        import core.storage as storage_module
+        from core.storage import OneDriveFileStorage
+
+        class FakeClientRequestException(Exception):
+            def __init__(self, code: str):
+                self.code = code
+                super().__init__(code)
+
+        storage = OneDriveFileStorage.__new__(OneDriveFileStorage)
+        storage._ClientRequestException = FakeClientRequestException
+        storage.proxy = 1
+
+        def fake_to_thread(fn, *args, **kwargs):
+            raise FakeClientRequestException(code_value)
+
+        monkeypatch.setattr(storage_module.asyncio, "to_thread", fake_to_thread)
+        return storage
+
+    async def test_item_not_found_maps_to_404(self, monkeypatch):
+        storage = self._make_storage(monkeypatch, "itemNotFound")
+        with pytest.raises(StorageError) as exc_info:
+            await storage.get_file_response(_stored("share/data/ghost.bin"))
+        assert exc_info.value.status_code == 404
+
+    async def test_other_graph_errors_still_map_to_503(self, monkeypatch):
+        storage = self._make_storage(monkeypatch, "accessDenied")
+        with pytest.raises(StorageError) as exc_info:
+            await storage.get_file_response(_stored("share/data/denied.bin"))
+        assert exc_info.value.status_code == 503
+
+
+@pytest.mark.asyncio
+class TestOpenDALMissingObject:
+    """OpenDAL 缺失对象经外层兜底已映射 404——用假 operator 钉死该行为，
+    防止未来重构破坏（opendal SDK 不在运行时依赖，无法构造真实实例）。"""
+
+    def _make_storage(self, monkeypatch, *, reader_exists: bool):
+        import core.storage as storage_module
+        from core.storage import OpenDALFileStorage
+
+        storage = OpenDALFileStorage.__new__(OpenDALFileStorage)
+
+        class FakeStat:
+            content_length = 0
+            size = 0
+
+        class FakeReader:
+            def __init__(self, data: bytes):
+                self._data = data
+
+            async def read(self, n: int) -> bytes:
+                data, self._data = self._data[:n], self._data[n:]
+                return data
+
+        class FakeOperator:
+            async def stat(self, path: str):
+                if not reader_exists:
+                    raise FileNotFoundError(path)
+                return FakeStat()
+
+            async def reader(self, path: str):
+                if not reader_exists:
+                    raise FileNotFoundError(path)
+                return FakeReader(b"opendal-payload")
+
+            async def read(self, path: str):
+                if not reader_exists:
+                    raise FileNotFoundError(path)
+                return b"opendal-payload"
+
+        monkeypatch.setattr(storage_module, "logger", storage_module.logger)
+        storage.operator = FakeOperator()
+        return storage
+
+    async def test_missing_object_maps_to_404(self, monkeypatch):
+        storage = self._make_storage(monkeypatch, reader_exists=False)
+        with pytest.raises(StorageError) as exc_info:
+            await storage.get_file_response(_stored("share/data/ghost.bin"))
+        assert exc_info.value.status_code == 404
+
+    async def test_existing_object_streams_payload(self, monkeypatch):
+        storage = self._make_storage(monkeypatch, reader_exists=True)
+        download = await storage.get_file_response(_stored("share/data/s.bin"))
+        chunks = [chunk async for chunk in download.stream_factory()]
+        assert b"".join(chunks) == b"opendal-payload"

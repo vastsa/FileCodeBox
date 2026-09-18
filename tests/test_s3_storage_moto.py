@@ -85,7 +85,7 @@ class TestS3ObjectBasics:
     async def test_presigned_upload_url_targets_bucket_and_key(self, s3_storage):
         url = await s3_storage.generate_presigned_upload_url("share/data/f.bin", 900)
         assert "drill-bucket" in url
-        assert "f.bin" in url
+        assert "share/data/f.bin" in url  # key 必须出现在 URL（path 或签名参数）
         assert "X-Amz-Signature" in url
 
     async def test_get_file_url_proxy_uses_local_dispatch(self, s3_storage):
