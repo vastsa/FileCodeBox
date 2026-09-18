@@ -158,3 +158,44 @@ class TestChangedOnlyEnforcement:
             headers={"Authorization": f"Bearer {token}"},
         )
         assert response.status_code == 400
+
+
+@pytest.mark.parametrize(
+    "value",
+    [
+        "https://127.1",          # glibc 速记 = 127.0.0.1
+        "https://2130706433",     # 十进制整数 IP = 127.0.0.1
+        "https://0x7f.0x0.0x0.0x1",  # 十六进制 IP
+        "https://10.1",           # 速记 = 10.0.0.1
+        "https://127.0.0.1.nip.io",  # DNS 映射到 loopback
+        "https://foo.localhost",  # *.localhost 现代解析器指向 loopback
+        "https://[::1]",
+        "https://0.0.0.0",
+    ],
+)
+def test_url_tier_denies_ip_shorthand_and_dns_tricks(production_env, value):
+    """静态字符串黑名单对 IP 速记/十六进制/十进制/DNS 映射全部失效——必须解析后复判。"""
+    with pytest.raises(ValueError):
+        validate_outbound_endpoint(value)
+
+
+@pytest.mark.parametrize(
+    "hostname",
+    [
+        "127.1",
+        "2130706433",
+        "10.1",
+        "foo.localhost",
+        "127.0.0.1.nip.io",
+        "[::1]",
+        "[::ffff:127.0.0.1]:9000",
+    ],
+)
+def test_hostname_tier_denies_ip_shorthand_and_dns_tricks(production_env, hostname):
+    with pytest.raises(ValueError):
+        validate_outbound_hostname(hostname)
+
+
+def test_hostname_tier_accepts_ipv6_with_port_and_public(production_env):
+    assert validate_outbound_hostname("[2606:4700::1]:9000") == "[2606:4700::1]:9000"
+    assert validate_outbound_hostname("files.example.com:9000") == "files.example.com:9000"

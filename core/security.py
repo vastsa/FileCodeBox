@@ -2,6 +2,7 @@ import copy
 import ipaddress
 import os
 import secrets
+import socket
 from dataclasses import dataclass
 from typing import Any
 from urllib.parse import urlsplit
@@ -79,15 +80,19 @@ def prepare_security_config(config: dict[str, Any]) -> SecurityConfigResult:
 OUTBOUND_ENDPOINT_CONFIG_KEYS = ("s3_endpoint_url", "s3_hostname", "webdav_url")
 
 _ENDPOINT_SCHEME_WHITELIST = {"http", "https"}
-_ENDPOINT_HOST_DENY_SUFFIXES = (".local", ".internal", ".lan", ".home.arpa", ".corp")
+_ENDPOINT_HOST_DENY_SUFFIXES = (
+    ".local",
+    ".internal",
+    ".lan",
+    ".home.arpa",
+    ".corp",
+    ".localhost",
+)
 
 
-def _endpoint_host_is_denied(host: str) -> bool:
-    host = host.strip("[]").lower()
-    if host in {"localhost"} or host.endswith(_ENDPOINT_HOST_DENY_SUFFIXES):
-        return True
+def _endpoint_ip_is_denied(ip_str: str) -> bool:
     try:
-        ip = ipaddress.ip_address(host)
+        ip = ipaddress.ip_address(ip_str)
     except ValueError:
         return False
     return (
@@ -96,7 +101,27 @@ def _endpoint_host_is_denied(host: str) -> bool:
         or ip.is_link_local
         or ip.is_reserved
         or ip.is_multicast
+        or ip.is_unspecified
     )
+
+
+def _endpoint_host_is_denied(host: str) -> bool:
+    host = host.strip("[]").lower()
+    if host in {"localhost"} or host.endswith(_ENDPOINT_HOST_DENY_SUFFIXES):
+        return True
+    # 字面 IP 直接判；非字面形态（速记 "127.1"、十进制 2130706433、十六进制、
+    # *.localhost、nip.io 类 DNS 映射）交给解析后逐 IP 复判——静态字符串
+    # 黑名单对它们全部失效，这是探测中实测确认的绕过面。
+    if _endpoint_ip_is_denied(host):
+        return True
+    try:
+        infos = socket.getaddrinfo(host, None)
+    except (socket.gaierror, UnicodeError, OSError):
+        return False
+    for info in infos:
+        if _endpoint_ip_is_denied(info[4][0]):
+            return True
+    return False
 
 
 def validate_outbound_endpoint(value: Any) -> str:
@@ -130,6 +155,16 @@ def validate_outbound_hostname(value: Any) -> str:
 
     if "://" in hostname or "/" in hostname:
         raise ValueError(f"s3_hostname 应为裸主机名，不含协议或路径：{hostname}")
-    if _endpoint_host_is_denied(hostname.split(":")[0]):
+    # 取主机部分：[v6] 形态取括号内；host:port 取冒号前；裸 IPv6（多个冒号）整体
+    if "[" in hostname:
+        host = hostname.split("[", 1)[1].split("]", 1)[0]
+        rest = hostname.split("]", 1)[1] if "]" in hostname else ""
+        if rest and not rest.startswith(":"):
+            raise ValueError(f"s3_hostname 的 IPv6 括号后只允许端口：{hostname}")
+    elif hostname.count(":") == 1:
+        host = hostname.split(":")[0]
+    else:
+        host = hostname
+    if not host or _endpoint_host_is_denied(host):
         raise ValueError(f"端点不允许指向内网/保留地址：{hostname}")
     return hostname
