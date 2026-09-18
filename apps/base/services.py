@@ -76,9 +76,12 @@ async def validate_file_size(file: UploadFile, max_size: int) -> int:
     """Return the upload's size, rejecting anything above max_size."""
     size = file.size
     if size is None:
-        await file.seek(0, 2)  # type: ignore[arg-type]
+        # 无长度声明的上传（如 chunked 传输）：必须走底层文件对象拿末尾偏移。
+        # 注意两层都不能用：UploadFile.seek 只接受单参数（TypeError）；
+        # 底层 SpooledTemporaryFile.seek 是同步方法（不能 await）。
+        file.file.seek(0, 2)
         size = file.file.tell()
-        await file.seek(0)
+        file.file.seek(0)
     if size > max_size:
         max_size_mb = max_size / (1024 * 1024)
         raise HTTPException(

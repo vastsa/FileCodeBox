@@ -5,6 +5,7 @@ automated coverage. Focus on aggregation semantics (partial failure keeps
 going), validation rejections, and 404 handling for missing records.
 """
 import datetime
+import io
 
 import pytest
 
@@ -244,3 +245,18 @@ class TestPolicyActions:
         detail = response.json()["detail"]
         assert detail["updated"] == [id_a]
         assert detail["missing"] == [987657]
+
+
+@pytest.mark.asyncio
+class TestValidateFileSizeWithoutLength:
+    async def test_upload_without_size_declaration_no_500(self, initialized_client):
+        """无长度声明的上传（size=None 分支）不得 TypeError——上游原有缺陷。"""
+        from apps.base.auth import _require_admin_payload  # noqa: F401
+        from apps.base.services import validate_file_size
+        from core.settings import settings
+        from fastapi import UploadFile
+
+        upload = UploadFile(file=io.BytesIO(b"no-length-payload"))  # size=None
+        assert upload.size is None
+        size = await validate_file_size(upload, settings.upload_size)
+        assert size == len(b"no-length-payload")
