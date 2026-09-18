@@ -158,7 +158,7 @@ class TestOneDriveMissingObjectTranslation:
     """
 
     def _make_storage(self, monkeypatch, code_value: str):
-        import core.storage as storage_module
+        import core.storage.onedrive as storage_module
         from core.storage import OneDriveFileStorage
 
         class FakeClientRequestException(Exception):
@@ -195,7 +195,7 @@ class TestOpenDALMissingObject:
     防止未来重构破坏（opendal SDK 不在运行时依赖，无法构造真实实例）。"""
 
     def _make_storage(self, monkeypatch, *, reader_exists: bool):
-        import core.storage as storage_module
+        import core.storage.opendal as storage_module
         from core.storage import OpenDALFileStorage
 
         storage = OpenDALFileStorage.__new__(OpenDALFileStorage)

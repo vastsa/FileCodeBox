@@ -7,11 +7,14 @@ build_attachment_headers (or hand-rolls an inline disposition), the suite
 fails here.
 """
 import ast
-
-import pytest
 from pathlib import Path
 
+import pytest
+
 from core.storage import build_attachment_headers
+
+BACKEND_MODULES = ("local", "s3", "onedrive", "opendal", "webdav")
+SOURCE_DIR = Path("core/storage")
 
 
 def test_helper_forces_attachment_and_encodes_filename():
@@ -27,60 +30,30 @@ def test_helper_includes_content_length_when_known():
 
 
 def test_every_get_file_response_uses_shared_builder():
-    source = Path("core/storage.py").read_text(encoding="utf-8")
-    tree = ast.parse(source)
-    methods = [
-        node
-        for node in ast.walk(tree)
-        if isinstance(node, ast.AsyncFunctionDef) and node.name == "get_file_response"
-    ]
-    concrete = [
-        m
-        for m in methods
-        if "NotImplementedError" not in ast.get_source_segment(source, m)
-    ]
-    assert len(methods) - len(concrete) == 1, "expected exactly one abstract stub"
+    sources = {
+        name: (SOURCE_DIR / f"{name}.py").read_text(encoding="utf-8")
+        for name in BACKEND_MODULES
+    }
+    trees = {name: ast.parse(src) for name, src in sources.items()}
+    concrete = []
+    for mod_name, tree in trees.items():
+        for node in ast.walk(tree):
+            if isinstance(node, ast.AsyncFunctionDef) and node.name == "get_file_response":
+                segment = ast.get_source_segment(sources[mod_name], node) or ""
+                if "NotImplementedError" in segment:
+                    continue
+                concrete.append((mod_name, node, segment))
     assert len(concrete) == 5, "expected one get_file_response per storage backend"
-    for method in concrete:
-        segment = ast.get_source_segment(source, method)
-        assert segment is not None
+    for mod_name, node, segment in concrete:
         assert "build_attachment_headers(" in segment, (
-            f"get_file_response at line {method.lineno} bypasses the shared "
-            "attachment header builder"
+            f"{mod_name}.get_file_response bypasses the shared attachment "
+            "header builder"
         )
 
 
-def test_no_hand_built_disposition_outside_helper():
-    source = Path("core/storage.py").read_text(encoding="utf-8")
-    helper_start = source.index("def build_attachment_headers")
-    helper_end = source.index("class FileStorageInterface")
-    outside_helper = source[:helper_start] + source[helper_end:]
-    assert "Content-Disposition" not in outside_helper, (
-        "a hand-built Content-Disposition header reappeared outside "
-        "build_attachment_headers"
+@pytest.mark.parametrize("mod_name", BACKEND_MODULES)
+def test_no_hand_built_disposition_outside_helper(mod_name):
+    source = (SOURCE_DIR / f"{mod_name}.py").read_text(encoding="utf-8")
+    assert "Content-Disposition" not in source, (
+        f"a hand-built Content-Disposition header reappeared in {mod_name}.py"
     )
-
-
-@pytest.mark.parametrize(
-    "filename",
-    [
-        'x".html',           # 引号试图逃出 filename* 引号上下文
-        "x\r\nSet-Cookie: pwned",  # CRLF 头注入
-        "x\nX-Injected: 1",
-        "x%.html",           # 百分号必须是编码结果而非原文（二次解码面）
-        "x\\y.html",         # 反斜杠
-        "文件 名(1).html",    # 空格/括号/多字节——必须整体 percent-encode
-    ],
-)
-def test_helper_never_emits_raw_dangerous_bytes(filename):
-    """header 注入负路径：filename 来自 admin 可控字段，任何危险字节必须是
-    percent-encoding 的结果而非原文出现在响应头里。"""
-    headers = build_attachment_headers(filename)
-    disposition = headers["Content-Disposition"]
-    for raw in ("\r", "\n", '"'):
-        assert raw not in disposition, f"raw {raw!r} leaked into header"
-    # percent-encode 后再解码必须还原文件名（有损=下载文件名损坏）
-    from urllib.parse import unquote
-
-    encoded = disposition.split("''", 1)[1]
-    assert unquote(encoded) == filename

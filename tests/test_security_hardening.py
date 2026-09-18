@@ -125,7 +125,7 @@ class ChunkUploadMetadataTests(unittest.TestCase):
         try:
             settings.file_storage = "local"
             settings.allowed_file_types = ["*"]
-            with patch("core.storage.data_root", Path(tmpdir.name)):
+            with patch("core.storage.local.data_root", Path(tmpdir.name)):
                 await init_memory_db()
                 try:
                     raw_name = "../../../../../../filecodebox.db"
