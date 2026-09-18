@@ -4,7 +4,6 @@ import unittest
 
 import apps.admin.services as admin_services
 import apps.admin.views as admin_views
-import apps.admin.dependencies as admin_dependencies
 import apps.base.config as core_config
 from apps.admin.dependencies import create_token, verify_token
 from apps.admin.schemas import LoginData
@@ -126,15 +125,17 @@ class AdminJwtTests(SettingsOverrideMixin, unittest.TestCase):
         settings.admin_token = hash_password("admin-password")
         settings.jwt_secret = "j" * 48
         settings.admin_session_expire = 90 * 24 * 60 * 60
-        original_time = admin_dependencies.time.time
-        admin_dependencies.time.time = lambda: 1_800_000_000
+        import apps.base.auth as base_auth
+
+        original_time = base_auth.time.time
+        base_auth.time.time = lambda: 1_800_000_000
         try:
             response = asyncio.run(
                 admin_views.login(LoginData(password="admin-password"))
             )
             payload = verify_token(response.detail["token"])
         finally:
-            admin_dependencies.time.time = original_time
+            base_auth.time.time = original_time
 
         self.assertEqual(response.detail["expires_in"], 90 * 24 * 60 * 60)
         self.assertEqual(

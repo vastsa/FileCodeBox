@@ -13,7 +13,7 @@ from starlette import status
 from starlette.responses import Response
 from tortoise.expressions import Case, F, Q, When
 
-from apps.admin.dependencies import share_required_login
+from apps.base.auth import share_required_login
 from apps.base.models import FileCodes, UploadChunk, PresignUploadSession
 from apps.base.quota import release_storage, reserve_storage
 from apps.base.services import (
