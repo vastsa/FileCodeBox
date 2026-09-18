@@ -7,6 +7,8 @@ build_attachment_headers (or hand-rolls an inline disposition), the suite
 fails here.
 """
 import ast
+
+import pytest
 from pathlib import Path
 
 from core.storage import build_attachment_headers
@@ -57,3 +59,28 @@ def test_no_hand_built_disposition_outside_helper():
         "a hand-built Content-Disposition header reappeared outside "
         "build_attachment_headers"
     )
+
+
+@pytest.mark.parametrize(
+    "filename",
+    [
+        'x".html',           # 引号试图逃出 filename* 引号上下文
+        "x\r\nSet-Cookie: pwned",  # CRLF 头注入
+        "x\nX-Injected: 1",
+        "x%.html",           # 百分号必须是编码结果而非原文（二次解码面）
+        "x\\y.html",         # 反斜杠
+        "文件 名(1).html",    # 空格/括号/多字节——必须整体 percent-encode
+    ],
+)
+def test_helper_never_emits_raw_dangerous_bytes(filename):
+    """header 注入负路径：filename 来自 admin 可控字段，任何危险字节必须是
+    percent-encoding 的结果而非原文出现在响应头里。"""
+    headers = build_attachment_headers(filename)
+    disposition = headers["Content-Disposition"]
+    for raw in ("\r", "\n", '"'):
+        assert raw not in disposition, f"raw {raw!r} leaked into header"
+    # percent-encode 后再解码必须还原文件名（有损=下载文件名损坏）
+    from urllib.parse import unquote
+
+    encoded = disposition.split("''", 1)[1]
+    assert unquote(encoded) == filename
