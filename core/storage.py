@@ -1266,15 +1266,32 @@ class WebDAVFileStorage(FileStorageInterface):
                 "Authorization": f"Basic {base64.b64encode(f'{settings.webdav_username}:{settings.webdav_password}'.encode()).decode()}"
             })
             
-            # 尝试发送HEAD请求获取Content-Length
+            # 尝试发送HEAD请求获取Content-Length；对象不存在时前置 404
+            # （与 local/S3 语义对齐），连接层错误映射 503——两者都不能
+            # 静默吞掉后签出 200 坏流。异常路径回收 session 防泄漏。
             try:
-                async with session.head(url) as resp:
-                    if resp.status == 200 and 'Content-Length' in resp.headers:
-                        content_length = int(resp.headers['Content-Length'])
-            except Exception:
-                # 如果HEAD请求失败，则不提供 Content-Length
-                pass
-            
+                try:
+                    async with session.head(url) as resp:
+                        if resp.status == 404:
+                            raise StorageError(
+                                status_code=404, detail="文件已过期删除"
+                            )
+                        if resp.status == 200 and 'Content-Length' in resp.headers:
+                            content_length = int(resp.headers['Content-Length'])
+                except StorageError:
+                    raise
+                except aiohttp.ClientError as e:
+                    raise StorageError(
+                        status_code=503, detail=f"WebDAV连接异常: {str(e)}"
+                    ) from e
+                except Exception:
+                    # 其他 HEAD 异常不阻断：流式下载阶段会给出真实状态
+                    pass
+
+            except BaseException:
+                await session.close()
+                raise
+
             async def stream_generator():
                 try:
                     async with session.get(url) as resp:
