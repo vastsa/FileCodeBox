@@ -1136,9 +1136,12 @@ class WebDAVFileStorage(FileStorageInterface):
     def __init__(self):
         if not hasattr(self, "_initialized"):
             self.base_url = settings.webdav_url.rstrip("/") + "/"
-            self.auth = aiohttp.BasicAuth(
-                login=settings.webdav_username, password=settings.webdav_password
-            )
+            # aiohttp 4.0 移除 BasicAuth(auth=...) 参数——改用编码后的 Authorization 头
+            self.auth_headers = {
+                "Authorization": aiohttp.encode_basic_auth(
+                    settings.webdav_username, settings.webdav_password
+                )
+            }
             self._initialized = True
 
     def _build_url(self, path: str) -> str:
@@ -1150,7 +1153,7 @@ class WebDAVFileStorage(FileStorageInterface):
         path_obj = Path(unquote(directory_path))
         current_path = ""
 
-        async with aiohttp.ClientSession(auth=self.auth) as session:
+        async with aiohttp.ClientSession(headers=self.auth_headers) as session:
             # 逐级检查目录是否存在
             for part in path_obj.parts:
                 current_path = str(Path(current_path) / part)
@@ -1172,7 +1175,7 @@ class WebDAVFileStorage(FileStorageInterface):
         """检查目录是否为空"""
         url = self._build_url(dir_path)
 
-        async with aiohttp.ClientSession(auth=self.auth) as session:
+        async with aiohttp.ClientSession(headers=self.auth_headers) as session:
             async with session.request("PROPFIND", url, headers={"Depth": "1"}) as resp:
                 if resp.status != 207:  # 207 是 Multi-Status 响应
                     return False
@@ -1222,7 +1225,7 @@ class WebDAVFileStorage(FileStorageInterface):
                         break
                     yield chunk
 
-            async with aiohttp.ClientSession(auth=self.auth) as session:
+            async with aiohttp.ClientSession(headers=self.auth_headers) as session:
                 async with session.put(
                         url,
                         data=file_sender(),
@@ -1243,7 +1246,7 @@ class WebDAVFileStorage(FileStorageInterface):
         file_path = file_code.get_file_path()
         url = self._build_url(file_path)
         try:
-            async with aiohttp.ClientSession(auth=self.auth) as session:
+            async with aiohttp.ClientSession(headers=self.auth_headers) as session:
                 # 删除文件
                 async with session.delete(url) as resp:
                     if resp.status not in (200, 204, 404):
@@ -1339,7 +1342,7 @@ class WebDAVFileStorage(FileStorageInterface):
         await self._mkdir_p(chunk_dir)
         
         chunk_url = self._build_url(chunk_path)
-        async with aiohttp.ClientSession(auth=self.auth) as session:
+        async with aiohttp.ClientSession(headers=self.auth_headers) as session:
             async with session.put(chunk_url, data=chunk_data) as resp:
                 if resp.status not in (200, 201, 204):
                     content = await resp.text()
@@ -1361,7 +1364,7 @@ class WebDAVFileStorage(FileStorageInterface):
             temp_path = temp_file.name
 
         try:
-            async with aiohttp.ClientSession(auth=self.auth) as session:
+            async with aiohttp.ClientSession(headers=self.auth_headers) as session:
                 # 按顺序读取并验证每个分片，写入临时文件
                 async with aiofiles.open(temp_path, 'wb') as out_file:
                     for i in range(total_chunks):
@@ -1419,7 +1422,7 @@ class WebDAVFileStorage(FileStorageInterface):
         """
         chunk_dir = str(Path(save_path).parent / "chunks" / upload_id)
         chunk_dir_url = self._build_url(chunk_dir)
-        async with aiohttp.ClientSession(auth=self.auth) as session:
+        async with aiohttp.ClientSession(headers=self.auth_headers) as session:
             try:
                 # 检查分片目录是否存在
                 async with session.request("PROPFIND", chunk_dir_url, headers={"Depth": "1"}) as resp:
@@ -1452,7 +1455,7 @@ class WebDAVFileStorage(FileStorageInterface):
         :return: 文件是否存在
         """
         url = self._build_url(save_path)
-        async with aiohttp.ClientSession(auth=self.auth) as session:
+        async with aiohttp.ClientSession(headers=self.auth_headers) as session:
             async with session.head(url) as resp:
                 return resp.status == 200
 
