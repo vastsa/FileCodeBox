@@ -1,4 +1,5 @@
 import hashlib
+import hmac
 import os
 import uuid
 from datetime import timedelta
@@ -12,7 +13,7 @@ from starlette import status
 from starlette.responses import Response
 from tortoise.expressions import Case, F, Q, When
 
-from apps.admin.dependencies import share_required_login
+from apps.base.auth import share_required_login
 from apps.base.models import FileCodes, UploadChunk, PresignUploadSession
 from apps.base.quota import release_storage, reserve_storage
 from apps.base.services import (
@@ -243,12 +244,16 @@ async def select_file(data: SelectFileModel, ip: str = Depends(ip_limit["error"]
 async def download_file(key: str, code: str, ip: str = Depends(ip_limit["error"])):
     file_storage: FileStorageInterface = storages[settings.file_storage]()
     normalized_code = normalize_share_code(code)
-    # 同时接受当前窗口与上一窗口 token，避免时间窗边界竞态导致偶发 403
-    valid_keys = {
+    # 同时接受当前窗口与上一窗口 token，避免时间窗边界竞态导致偶发 403。
+    # 逐个常量时间比较（hmac.compare_digest），避免 set 成员判断的时序侧信道。
+    valid_keys = [
         await get_select_token(normalized_code, offset=0),
         await get_select_token(normalized_code, offset=1),
-    }
-    if key not in valid_keys:
+    ]
+    if not any(
+        hmac.compare_digest(key.encode(), candidate.encode())
+        for candidate in valid_keys
+    ):
         ip_limit["error"].add_ip(ip)
         raise HTTPException(status_code=403, detail="下载鉴权失败")
     has, file_code = await get_code_file_by_code(normalized_code)

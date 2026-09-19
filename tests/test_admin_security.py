@@ -2,9 +2,7 @@ import asyncio
 import copy
 import unittest
 
-import apps.admin.services as admin_services
 import apps.admin.views as admin_views
-import apps.admin.dependencies as admin_dependencies
 import apps.base.config as core_config
 from apps.admin.dependencies import create_token, verify_token
 from apps.admin.schemas import LoginData
@@ -126,15 +124,17 @@ class AdminJwtTests(SettingsOverrideMixin, unittest.TestCase):
         settings.admin_token = hash_password("admin-password")
         settings.jwt_secret = "j" * 48
         settings.admin_session_expire = 90 * 24 * 60 * 60
-        original_time = admin_dependencies.time.time
-        admin_dependencies.time.time = lambda: 1_800_000_000
+        import apps.base.auth as base_auth
+
+        original_time = base_auth.time.time
+        base_auth.time.time = lambda: 1_800_000_000
         try:
             response = asyncio.run(
                 admin_views.login(LoginData(password="admin-password"))
             )
             payload = verify_token(response.detail["token"])
         finally:
-            admin_dependencies.time.time = original_time
+            base_auth.time.time = original_time
 
         self.assertEqual(response.detail["expires_in"], 90 * 24 * 60 * 60)
         self.assertEqual(
@@ -207,16 +207,18 @@ class ConfigServiceSecurityTests(SettingsOverrideMixin, unittest.TestCase):
             "admin_token": hash_password("old-admin-password"),
             "jwt_secret": old_secret,
         }
-        original_key_value = admin_services.KeyValue
-        original_refresh_settings = admin_services.refresh_settings
-        admin_services.KeyValue = FakeKeyValue
-        admin_services.refresh_settings = fake_refresh_settings
+        import apps.admin.config_service as config_service
+
+        original_key_value = config_service.KeyValue
+        original_refresh_settings = config_service.refresh_settings
+        config_service.KeyValue = FakeKeyValue
+        config_service.refresh_settings = fake_refresh_settings
         FakeKeyValue.saved_value = None
         try:
             asyncio.run(ConfigService().update_config({"admin_token": "new-admin-password"}))
         finally:
-            admin_services.KeyValue = original_key_value
-            admin_services.refresh_settings = original_refresh_settings
+            config_service.KeyValue = original_key_value
+            config_service.refresh_settings = original_refresh_settings
 
         self.assertIsNotNone(FakeKeyValue.saved_value)
         self.assertTrue(verify_password("new-admin-password", FakeKeyValue.saved_value["admin_token"]))

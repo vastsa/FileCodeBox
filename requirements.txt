@@ -1,9 +1,9 @@
 aioboto3==15.5.0
-aiohttp==3.14.2
+aiohttp==3.14.3
 aiofiles==25.1.0
-fastapi==0.139.2
+fastapi==0.141.1
 starlette==1.6.0
-pydantic==2.12.5
-uvicorn==0.51.0
+pydantic==2.13.5
+uvicorn==0.53.0
 tortoise-orm==0.25.3
 python-multipart==0.0.32

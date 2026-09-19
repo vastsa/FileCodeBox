@@ -106,7 +106,7 @@ class ShareLocalFileTests(SettingsOverrideMixin, unittest.TestCase):
                 source = movies / "doc.txt"
                 source.write_bytes(b"hello local share")
                 with patch("core.settings.data_root", root), patch(
-                    "core.storage.data_root", root
+                    "core.storage.local.data_root", root
                 ):
                     class Item:
                         filename = "movies/doc.txt"
@@ -159,7 +159,7 @@ class LocalRefCleanupTests(SettingsOverrideMixin, unittest.TestCase):
                     raise SleepSentinel
 
                 with patch("core.settings.data_root", root), patch(
-                    "core.storage.data_root", root
+                    "core.storage.local.data_root", root
                 ), patch("apps.base.tasks.data_root", root), patch(
                     "apps.base.tasks.asyncio.sleep", side_effect=_sleep
                 ):

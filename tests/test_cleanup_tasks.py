@@ -39,7 +39,7 @@ class _OneRoundMixin(SettingsOverrideMixin):
             raise SleepSentinel
 
         with patch("apps.base.tasks.data_root", Path(tmpdir)), patch(
-            "core.storage.data_root", Path(tmpdir)
+            "core.storage.local.data_root", Path(tmpdir)
         ), patch("apps.base.tasks.asyncio.sleep", side_effect=_sleep):
             try:
                 await task_coro_factory()

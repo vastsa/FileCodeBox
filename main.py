@@ -20,7 +20,7 @@ from apps.base.config import (
     refresh_settings,
 )
 from apps.base.models import KeyValue
-from apps.base.pages import index, router as pages_router
+from apps.base.pages import not_found_handler, router as pages_router
 from apps.base.setup_wizard import build_setup_page, is_setup_path, setup_response, wants_html_response
 from apps.base.tasks import (
     clean_expired_presign_sessions,
@@ -141,7 +141,7 @@ app.include_router(admin_api)
 app.include_router(pages_router)
 
 # 404 时返回主题首页（index 兼任 exception handler 与 GET / 路由）
-app.add_exception_handler(404, index)
+app.add_exception_handler(404, not_found_handler)
 
 
 if __name__ == "__main__":

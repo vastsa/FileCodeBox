@@ -5,6 +5,8 @@ Pure presentation/logic — no router here; routes live in apps.base.pages.
 import html
 from urllib.parse import parse_qs
 
+from typing import Any
+
 from fastapi import Request
 from fastapi.responses import HTMLResponse
 
@@ -73,14 +75,14 @@ def build_public_meta() -> dict:
 
 
 
-def get_form_value(data: dict, key: str, default: str = "") -> str:
+def get_form_value(data: dict[str, Any], key: str, default: str = "") -> str:
     value = data.get(key, default)
     if isinstance(value, list):
         value = value[-1] if value else default
     return str(value if value is not None else default)
 
 
-def get_form_list(data: dict, key: str) -> list[str]:
+def get_form_list(data: dict[str, Any], key: str) -> list[str]:
     value = data.get(key, [])
     if isinstance(value, list):
         return [str(item) for item in value if str(item)]
@@ -96,7 +98,7 @@ def normalize_bool_field(data: dict, key: str, default: bool) -> bool:
 
 
 def parse_int_field(
-    data: dict,
+    data: dict[str, Any],
     key: str,
     default: int,
     label: str,

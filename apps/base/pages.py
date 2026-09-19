@@ -3,7 +3,7 @@ robots.txt, and the public config endpoints."""
 import html
 
 from fastapi import APIRouter, HTTPException, Request
-from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, RedirectResponse
 
 from apps.base.config import initialize_system, is_runtime_initialized
 from apps.base.setup_wizard import (
@@ -86,6 +86,24 @@ def resolve_theme_file(*parts: str):
 @router.get("/assets/{asset_path:path}", include_in_schema=False)
 async def theme_asset(asset_path: str):
     return FileResponse(resolve_theme_file("assets", asset_path))
+
+
+async def not_found_handler(request, exc=None):
+    """区分"浏览器导航到未知路径"与"API 处理器抛出的 404"。
+
+    Starlette 的 status-code handler 优先于 HTTPException 类 handler，
+    直接注册 index 会让全应用所有 HTTPException(404) 变成 200 HTML 页
+    （负路径测试抓到的存量 bug）。浏览器（Accept 含 text/html）仍拿到
+    主题首页做 SPA 兜底；API 客户端拿到 JSON 404。
+    """
+    if request is not None and request.method in {"GET", "HEAD"} and "text/html" in (
+        request.headers.get("accept", "")
+    ):
+        return await index(request, exc)
+    return JSONResponse(
+        status_code=404,
+        content={"code": 404, "message": "Not Found", "detail": "资源不存在"},
+    )
 
 
 @router.get("/")

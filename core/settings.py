@@ -1,3 +1,4 @@
+from typing import Any
 # @Time    : 2023/8/15 09:51
 # @Author  : Lan
 # @File    : settings.py
@@ -14,7 +15,7 @@ data_root = BASE_DIR / "data"
 if not data_root.exists():
     data_root.mkdir(parents=True, exist_ok=True)
 
-DEFAULT_CONFIG = {
+DEFAULT_CONFIG: dict[str, Any] = {
     "file_storage": "local",
     "storage_path": "",
     "storage_limit": 0,

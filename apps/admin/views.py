@@ -3,6 +3,7 @@
 # @File    : views.py
 # @Software: PyCharm
 import datetime
+from typing import Any
 from collections import Counter
 from typing import Optional
 
@@ -273,7 +274,7 @@ async def batch_update_files(
     if not data.ids:
         raise HTTPException(status_code=400, detail="请选择要更新的文件")
 
-    update_data = {}
+    update_data: dict[str, Any] = {}
     fields_set = data.model_fields_set
     should_clear_expired_at = bool(data.clear_expired_at)
 
@@ -281,6 +282,7 @@ async def batch_update_files(
         update_data["expired_at"] = None
         update_data["expired_count"] = -1
     elif "expired_at" in fields_set and data.expired_at != "":
+        # schema 声明 Union[datetime, str]——透传两种形态，tortoise 均可序列化
         update_data["expired_at"] = data.expired_at
 
     if (

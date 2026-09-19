@@ -32,7 +32,7 @@ class MergeChunksFailureTests(SettingsOverrideMixin, unittest.TestCase):
         with TemporaryDirectory() as tmpdir:
             await init_memory_db()
             try:
-                with patch("core.storage.data_root", Path(tmpdir)):
+                with patch("core.storage.local.data_root", Path(tmpdir)):
                     storage = SystemFileStorage()
                     save_path = "share/data/2026/01/01/uuid-merge/merged.bin"
                     chunk_dir = Path(tmpdir) / "share/data/2026/01/01/uuid-merge/chunks/uid-merge"
