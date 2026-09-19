@@ -1,7 +1,8 @@
 import {$, api, bytes, date, cell, emptyRow, errorText, message} from './common.js';
 
 // 管理凭证只存在当前标签页会话中；不与访客寄件凭证混用。
-const tokenKey = 'filerelay_delivery_admin_token';
+// 使用项目统一的会话键名，旧版独立页面用户需要重新登录。
+const tokenKey = 'filecodebox_delivery_admin_token';
 let token = sessionStorage.getItem(tokenKey) || '';
 let page = 1, filePage = 1, selected = null, listSequence = 0, fileSequence = 0;
 const stateNames = {active:'可投递', disabled:'已禁用', expired:'已过期', exhausted:'次数耗尽', deleted:'已删除', pending:'上传中', stored:'已收到', cleanup:'等待清理'};
