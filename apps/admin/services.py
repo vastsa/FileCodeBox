@@ -595,6 +595,8 @@ class FileService:
     ) -> dict[str, Any]:
         if now is None:
             now = await get_now()
+        # 兼容未携带寄件字段的原文件列表对象，普通文件仍按原规则展示。
+        is_private = getattr(file_code, "is_private", False)
         is_text = file_code.text is not None
         is_expired = await file_code.is_expired()
         name = f"{file_code.prefix}{file_code.suffix}"
@@ -606,8 +608,8 @@ class FileService:
         )
         data = {
             "id": file_code.id,
-            "code": "" if file_code.is_private else file_code.code,
-            "is_private": file_code.is_private,
+            "code": "" if is_private else file_code.code,
+            "is_private": is_private,
             "prefix": file_code.prefix,
             "suffix": file_code.suffix,
             "uuid_file_name": file_code.uuid_file_name,
