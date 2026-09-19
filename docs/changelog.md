@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.7.1](https://github.com/vastsa/FileCodeBox/compare/v2.7.0...v2.7.1) (2026-09-19)
+
+
+### Bug Fixes
+
+* keep Docker as root, close s3_hostname SSRF, unbreak 404 tests ([031d300](https://github.com/vastsa/FileCodeBox/commit/031d300caea99117e82b3bddc3e5d0532cf3efa6))
+
 ## [2.7.0](https://github.com/vastsa/FileCodeBox/compare/v2.6.1...v2.7.0) (2026-09-16)
 
 
