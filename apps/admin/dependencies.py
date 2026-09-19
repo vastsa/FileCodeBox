@@ -54,7 +54,8 @@ ADMIN_PUBLIC_ENDPOINTS = {("POST", "/admin/login")}
 
 
 async def admin_required(
-    authorization: str = Header(default=None), request: Request = None
+    authorization: str = Header(default=None),
+    request: Request = None,  # type: ignore[assignment]  # FastAPI 运行时注入 Request；可选语义由下方 if request 判断
 ):
     """
     验证管理员权限

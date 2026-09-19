@@ -62,10 +62,10 @@ def create_token(data: dict, expires_in: int | None = None) -> str:
         ).encode()
     ).decode().rstrip("=")
 
-    signature = hmac.new(
+    signature_digest = hmac.new(
         _get_jwt_secret(), f"{header}.{payload}".encode(), "sha256"
     ).digest()
-    signature = base64.urlsafe_b64encode(signature).decode().rstrip("=")
+    signature = base64.urlsafe_b64encode(signature_digest).decode().rstrip("=")
 
     return f"{header}.{payload}.{signature}"
 

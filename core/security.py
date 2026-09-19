@@ -119,7 +119,9 @@ def _endpoint_host_is_denied(host: str) -> bool:
     except (socket.gaierror, UnicodeError, OSError):
         return False
     for info in infos:
-        if _endpoint_ip_is_denied(info[4][0]):
+        # getaddrinfo 的 sockaddr 首元素在 IPv4/IPv6 下均为 str（int 仅出现在
+        # AF_UNIX 等异形族）——显式 str() 让类型检查器与运行时一致。
+        if _endpoint_ip_is_denied(str(info[4][0])):
             return True
     return False
 

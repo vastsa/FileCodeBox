@@ -197,7 +197,9 @@ class FileUploadService:
             raise
         finally:
             await release_storage(token)
-        return {"code": code, "name": file.filename}
+        # UploadFile.filename 类型为 str | None；路径生成已用 "" 兜底，
+        # 响应处保持 str 以匹配 dict[str, str] 契约
+        return {"code": code, "name": file.filename or ""}
 
     @staticmethod
     async def complete_chunked_upload(
@@ -402,6 +404,9 @@ def response_from_download(download: StoredDownload):
         return Response(
             download.content, media_type=download.media_type, headers=download.headers
         )
+    if download.stream_factory is None:
+        # 数据契约要求三者至少其一；防御性 500 语义
+        raise ValueError("StoredDownload 缺少可用的下载载荷")
     return StreamingResponse(
         download.stream_factory(),
         media_type=download.media_type,

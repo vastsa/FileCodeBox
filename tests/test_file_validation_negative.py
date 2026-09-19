@@ -7,7 +7,7 @@ pins the rejection semantics.
 import io
 
 import pytest
-from fastapi import UploadFile
+from fastapi import HTTPException, UploadFile
 
 from apps.base.file_validation import (
     detect_file_kind,
@@ -41,9 +41,9 @@ def allow_images_only(monkeypatch):
 class TestMagicBytesSpoofing:
     def test_png_extension_with_text_content_rejected(self, allow_all):
         """声明 .png 但内容是文本——magic bytes 必须拒绝伪造。"""
-        with pytest.raises(Exception) as exc_info:
+        with pytest.raises(HTTPException) as exc_info:
             validate_file_magic("shell.png", "image/png", b"#!/bin/sh\nrm -rf")
-        assert "403" in str(exc_info.value.status_code)
+        assert exc_info.value.status_code == 403
 
     def test_png_extension_with_real_png_signature_passes(self, allow_all):
         validate_file_magic(
@@ -51,9 +51,9 @@ class TestMagicBytesSpoofing:
         )
 
     def test_exe_disguised_as_pdf_rejected(self, allow_all):
-        with pytest.raises(Exception) as exc_info:
+        with pytest.raises(HTTPException) as exc_info:
             validate_file_magic("doc.pdf", "application/pdf", b"MZ\x90\x00")
-        assert "403" in str(exc_info.value.status_code)
+        assert exc_info.value.status_code == 403
 
     def test_pdf_signature_beats_longer_irrelevant_prefix(self, allow_all):
         assert detect_file_kind(b"%PDF-1.7\n").name == "pdf"
@@ -79,25 +79,25 @@ class TestWhitelistRules:
 
     def test_image_wildcard_allows_png_rejects_exe(self, allow_images_only):
         validate_file_magic("pic.png", "image/png", b"\x89PNG\r\n\x1a\n")
-        with pytest.raises(Exception) as exc_info:
+        with pytest.raises(HTTPException) as exc_info:
             validate_file_magic("run.exe", "application/x-msdownload", b"MZ")
-        assert "403" in str(exc_info.value.status_code)
+        assert exc_info.value.status_code == 403
 
     def test_image_wildcard_rejects_non_image_content_even_with_png_name(
         self, allow_images_only
     ):
         """扩展名是 .png 但 magic 识别失败（内容不是图）→ 伪造拒绝。"""
-        with pytest.raises(Exception) as exc_info:
+        with pytest.raises(HTTPException) as exc_info:
             validate_file_magic("pic.png", "image/png", b"plain text")
-        assert "403" in str(exc_info.value.status_code)
+        assert exc_info.value.status_code == 403
 
 
 class TestChunkHeaderValidation:
     def test_validate_header_bytes_delegates_to_magic(self, allow_all):
         """分片 0 的头部校验与整文件同一套 magic 语义（分片上传绕过面）。"""
-        with pytest.raises(Exception) as exc_info:
+        with pytest.raises(HTTPException) as exc_info:
             validate_header_bytes("doc.pdf", "application/pdf", b"MZ")  # exe 伪装 pdf
-        assert "403" in str(exc_info.value.status_code)
+        assert exc_info.value.status_code == 403
         validate_header_bytes("ok.png", "image/png", b"\x89PNG\r\n\x1a\n")
 
 
@@ -107,6 +107,6 @@ async def test_validate_upload_file_via_uploadfile(allow_all):
     upload = UploadFile(
         file=io.BytesIO(b"not an image"), filename="fake.png", size=12
     )
-    with pytest.raises(Exception) as exc_info:
+    with pytest.raises(HTTPException) as exc_info:
         await validate_upload_file(upload)
-    assert "403" in str(exc_info.value.status_code)
+    assert exc_info.value.status_code == 403

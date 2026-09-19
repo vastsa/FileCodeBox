@@ -47,7 +47,7 @@ def _lock_file(file_obj: IO[str]) -> None:
         if os.fstat(file_obj.fileno()).st_size == 0:
             file_obj.write("0")
             file_obj.flush()
-        msvcrt.locking(file_obj.fileno(), msvcrt.LK_LOCK, 1)
+        msvcrt.locking(file_obj.fileno(), msvcrt.LK_LOCK, 1)  # type: ignore[attr-defined]
     else:
         import fcntl
 
@@ -58,7 +58,7 @@ def _unlock_file(file_obj: IO[str]) -> None:
     if os.name == "nt":
         import msvcrt
 
-        msvcrt.locking(file_obj.fileno(), msvcrt.LK_UNLCK, 1)
+        msvcrt.locking(file_obj.fileno(), msvcrt.LK_UNLCK, 1)  # type: ignore[attr-defined]
     else:
         import fcntl
 

@@ -1,5 +1,6 @@
 """Admin-side local (NAS) file browsing and deletion."""
 from pathlib import Path
+from typing import Any
 
 from fastapi import HTTPException
 
@@ -20,7 +21,7 @@ class LocalFileService:
             raise HTTPException(status_code=404, detail="目录不存在")
 
         root = get_local_root()
-        items = []
+        items: list[dict[str, Any]] = []
         try:
             children = list(directory.iterdir())
         except OSError as exc:

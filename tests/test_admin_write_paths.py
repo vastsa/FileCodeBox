@@ -21,12 +21,22 @@ async def _login(client) -> str:
     return response.json()["detail"]["token"]
 
 
-async def _create_share(code: str, *, text: str = "x", **extra) -> int:
+async def _create_share(
+    code: str,
+    *,
+    text: str = "x",
+    expired_at: datetime.datetime | None = None,
+    expired_count: int | None = None,
+) -> int:
+    """造一条文本分享记录。需要额外字段时显式声明参数（勿用 **kwargs 透传）。"""
     from apps.base.models import FileCodes
 
-    record = await FileCodes.create(
-        code=code, text=text, size=1, prefix="Text", **extra
-    )
+    fields: dict = {"code": code, "text": text, "size": 1, "prefix": "Text"}
+    if expired_at is not None:
+        fields["expired_at"] = expired_at
+    if expired_count is not None:
+        fields["expired_count"] = expired_count
+    record = await FileCodes.create(**fields)
     return record.id
 
 
@@ -260,3 +270,5 @@ class TestValidateFileSizeWithoutLength:
         assert upload.size is None
         size = await validate_file_size(upload, settings.upload_size)
         assert size == len(b"no-length-payload")
+        # 关键后续语义：读指针必须复位到 0，否则该文件的 save_file 会读到空内容
+        assert upload.file.tell() == 0

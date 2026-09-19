@@ -94,7 +94,7 @@ class ConfigService:
                 raise HTTPException(status_code=400, detail=f"{key} 配置值格式错误")
 
         try:
-            session_expire = int(next_config.get("admin_session_expire"))
+            session_expire = int(str(next_config.get("admin_session_expire")))
         except (TypeError, ValueError):
             raise HTTPException(
                 status_code=400,

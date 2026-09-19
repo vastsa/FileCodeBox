@@ -6,7 +6,10 @@ import hashlib
 from typing import BinaryIO, Optional
 from urllib.parse import quote
 
+from collections.abc import Callable
+from typing import Any
 from dataclasses import dataclass
+from pathlib import Path
 
 
 @dataclass
@@ -25,10 +28,10 @@ class StoredDownload:
     filename: str
     headers: dict
     media_type: str = "application/octet-stream"
-    path: object = None
-    content: object = None
-    stream_factory: object = None
-    background: object = None
+    path: Path | None = None
+    content: bytes | None = None
+    stream_factory: Callable[[], Any] | None = None
+    background: Any = None  # starlette BackgroundTask（core 层不 import starlette）
 
 
 @dataclass
