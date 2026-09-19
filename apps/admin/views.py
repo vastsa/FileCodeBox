@@ -31,6 +31,7 @@ from apps.admin.schemas import (
 )
 from core.response import APIResponse
 from apps.base.models import FileCodes, KeyValue
+from apps.base.quota import owned_storage_queryset
 from tortoise.expressions import Q
 from tortoise.functions import Count, Sum
 from apps.admin.dependencies import (
@@ -144,7 +145,7 @@ async def dashboard(file_service: FileService = Depends(get_file_service)):
     # 健康摘要依赖逐行 rules engine（_build_file_status_insights），保留一次遍历。
     total_files = await FileCodes.all().count()
     expired_count = await FileCodes.filter(_expired_predicate(now)).count()
-    all_size = await _sum_size(FileCodes.all())
+    all_size = await _sum_size(owned_storage_queryset())
     used_count = (
         await FileCodes.all().annotate(total=Sum("used_count")).values("total")
     )[0]["total"] or 0
@@ -154,10 +155,14 @@ async def dashboard(file_service: FileService = Depends(get_file_service)):
         created_at__gte=yesterday_start, created_at__lte=yesterday_end
     ).count()
     yesterday_size = await _sum_size(
-        FileCodes.filter(created_at__gte=yesterday_start, created_at__lte=yesterday_end)
+        owned_storage_queryset(
+            FileCodes.filter(created_at__gte=yesterday_start, created_at__lte=yesterday_end)
+        )
     )
     today_count = await FileCodes.filter(created_at__gte=today_start).count()
-    today_size = await _sum_size(FileCodes.filter(created_at__gte=today_start))
+    today_size = await _sum_size(
+        owned_storage_queryset(FileCodes.filter(created_at__gte=today_start))
+    )
 
     suffix_rows = (
         await FileCodes.filter(text__isnull=True)
@@ -574,9 +579,10 @@ async def file_preview(
 
 @admin_api.get("/local/lists")
 async def get_local_lists(
+    path: str = "",
     local_file_service: LocalFileService = Depends(get_local_file_service),
 ):
-    files = await local_file_service.list_files()
+    files = await local_file_service.list_files(path)
     return APIResponse(detail=files)
 
 

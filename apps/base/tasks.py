@@ -21,8 +21,8 @@ from core.settings import settings, data_root
 from core.storage import FileStorageInterface, StoredFile, storages
 from apps.base.services import stored_file_of
 from apps.base.share_storage import remove_delivery_share, storage_for_share
+from apps.base.local_share import should_skip_storage_delete
 from core.utils import get_now
-
 
 async def delete_expire_files():
     while True:
@@ -49,8 +49,8 @@ async def delete_expire_files():
                     logger.warning("寄件分享过期清理失败 id=%s", exp.id, exc_info=True)
                     continue
                 try:
-                    # 文本内容只在数据库中；普通文件按快照清理，历史 NULL 才兼容旧设置。
-                    if exp.text is None:
+                    # 文本内容只在数据库中；NAS 引用不删原文件，其他文件按存储快照清理。
+                    if not should_skip_storage_delete(exp):
                         await (await storage_for_share(exp)).delete_file(stored_file_of(exp))
                 except Exception as e:
                     logger.error(f"删除过期文件失败 code={exp.code}: {e}")

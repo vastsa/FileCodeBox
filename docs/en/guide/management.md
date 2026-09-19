@@ -166,49 +166,50 @@ When modifying extraction codes, the system checks if the new code is already in
 
 ## Local File Management
 
-In addition to managing shared files, the admin panel also provides local file management functionality for managing files in the `data/local` directory.
+In addition to managing shared files, the admin panel has a Local Share page for browsing `data/local` (including subfolders) and minting extract codes.
+
+Mount a NAS share at `/app/data/local` to generate extract codes for files already on disk, without downloading and re-uploading them.
+
+```yaml
+volumes:
+  - fcb-data:/app/data:rw
+  # Read-only NAS share for admin browsing and extract-code generation
+  - /volume1/share:/app/data/local:ro
+```
 
 ### View Local Files
 
-The local file list displays all files in the `data/local` directory:
+The Local Share page supports nested folders. List API:
 
-| Information | Description |
-|-------------|-------------|
-| Filename | Complete filename |
-| Creation Time | File creation time |
-| File Size | File size (bytes) |
+```
+GET /admin/local/lists?path=movies
+```
+
+`path` is relative to `data/local`; leave it empty for the root. Response:
+
+| Field | Description |
+|------|------|
+| `path` | Current directory |
+| `parent` | Parent directory |
+| `truncated` | Whether the listing was truncated |
+| `items[].type` | `dir` or `file` |
+| `items[].path` | Path relative to `data/local`, used as `filename` when sharing |
 
 ### Share Local Files
 
-You can quickly share local files:
-
-1. Select the file to share in the local file list
+1. Open the target subfolder and pick a file
 2. Set expiration method and value
-3. Click the share button
-4. System generates extraction code
+3. Create an extract code
+
+Sharing is a **zero-copy reference**: the file is not copied into `data/share` and does not count against storage quota. Expiring or deleting the share record **does not delete the original NAS file**.
 
 **Share parameters:**
 
 | Parameter | Description |
 |-----------|-------------|
-| `filename` | Filename to share |
+| `filename` | Path relative to `data/local`, e.g. `movies/a.mp4` |
 | `expire_style` | Expiration method (day/hour/minute/forever/count) |
 | `expire_value` | Expiration value (days/hours/minutes/download count) |
-
-### Delete Local Files
-
-You can delete files in the `data/local` directory:
-
-1. Find the file to delete in the local file list
-2. Click the delete button
-3. Confirm deletion
-
-::: tip Use Cases
-Local file management is useful for:
-- Sharing files after batch uploading to the server
-- Managing files uploaded to the server through other means
-- Cleaning up unnecessary local files
-:::
 
 ## System Settings
 
@@ -338,7 +339,7 @@ Content-Type: application/json
 
 **Get Local File List**
 ```
-GET /admin/local/lists
+GET /admin/local/lists?path=movies
 Authorization: Bearer <token>
 ```
 
@@ -349,7 +350,7 @@ Authorization: Bearer <token>
 Content-Type: application/json
 
 {
-    "filename": "example.txt"
+    "filename": "movies/example.txt"
 }
 ```
 
@@ -360,7 +361,7 @@ Authorization: Bearer <token>
 Content-Type: application/json
 
 {
-    "filename": "example.txt",
+    "filename": "movies/example.txt",
     "expire_style": "day",
     "expire_value": 7
 }

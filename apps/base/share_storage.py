@@ -1,6 +1,7 @@
 """寄件生成的普通分享使用原投递后端，避免全站存储切换后找错文件。"""
 
 from apps.base.models import DeliveryFile
+from apps.base.local_share import is_local_ref
 from core.settings import settings
 from core.storage import storages
 
@@ -10,6 +11,9 @@ async def delivery_record(file_code):
 
 
 async def storage_for_share(file_code, fallback=None):
+    # NAS 引用固定来自本地目录，不受站点默认存储切换影响。
+    if is_local_ref(file_code):
+        return storages["local"]()
     record = await delivery_record(file_code)
     if record is not None:
         # 延迟导入以保持应用模块边界，沿用 OneDrive 的精确对象键适配。
@@ -23,6 +27,8 @@ async def storage_for_share(file_code, fallback=None):
 
 async def storage_type_for_share(file_code) -> str | None:
     """返回详情页可展示的实际后端；历史普通文件无来源时明确标记未知。"""
+    if is_local_ref(file_code):
+        return "local"
     record = await delivery_record(file_code)
     if record is not None:
         return record.storage_type

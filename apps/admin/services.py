@@ -1,30 +1,34 @@
 import asyncio
 import hashlib
-import io
 from pathlib import Path
-import os
-import time
-import uuid
 from datetime import datetime, timedelta
 from typing import Any, Optional
 
 from core.response import APIResponse
-from core.storage import FileStorageInterface, StoredFile, storages
+from core.storage import FileStorageInterface, storages
 from core.settings import (
     ADMIN_SESSION_EXPIRE_MAX,
     ADMIN_SESSION_EXPIRE_MIN,
     settings,
 )
 from apps.base.config import refresh_settings
-from apps.base.metadata import normalize_metadata_note, normalize_metadata_tags
-from apps.base.services import response_from_download, stored_file_of
+from apps.base.services import get_stored_download, response_from_download, stored_file_of
 from core.security import INTERNAL_CONFIG_KEYS, generate_jwt_secret
 from apps.base.models import DeliveryCode, DeliveryFile, FileCodes, KeyValue
+from apps.base.utils import get_expire_info
+from apps.base.local_share import (
+    LOCAL_REF_MARKER,
+    MAX_LIST_ENTRIES,
+    format_local_ctime,
+    get_local_root,
+    is_local_ref,
+    normalize_local_relpath,
+    resolve_under_local,
+    should_skip_storage_delete,
+)
+from apps.base.metadata import normalize_metadata_note, normalize_metadata_tags
 from apps.base.share_storage import remove_delivery_share, storage_for_share, storage_type_for_share
-from apps.base.utils import get_expire_info, get_file_path_name
-from apps.base.quota import release_storage, reserve_storage
 from fastapi import HTTPException
-from core.settings import data_root
 from core.utils import get_now, hash_password, is_password_hashed, validate_background_url
 
 # KeyValue 里的 settings/activities/presets 都是整块 JSON 读-改-写；
@@ -103,7 +107,8 @@ class FileService:
         # 寄件分享在两个管理入口使用相同撤销与清理逻辑，避免重复计费或遗留可用取件码。
         if await remove_delivery_share(file_code):
             return
-        if file_code.text is None:
+        # NAS 引用只删除分享记录，不能删除原始文件。
+        if not should_skip_storage_delete(file_code):
             storage = await storage_for_share(file_code, self._file_storage)
             await storage.delete_file(stored_file_of(file_code))
         await KeyValue.filter(key=self._file_metadata_key(file_code.id)).delete()
@@ -514,7 +519,7 @@ class FileService:
             "file_count": 0,
             "chunked_count": 0,
             **self._empty_health_summary(),
-            "storage_used": sum(file_code.size for file_code in all_files),
+            "storage_used": sum(file_code.size for file_code in all_files if not is_local_ref(file_code)),
             "used_count": sum(file_code.used_count for file_code in all_files),
         }
 
@@ -619,6 +624,7 @@ class FileService:
             "file_hash": file_code.file_hash,
             "is_chunked": file_code.is_chunked,
             "upload_id": file_code.upload_id,
+            "is_local_ref": is_local_ref(file_code),
         }
         data.update(
             {
@@ -1411,8 +1417,8 @@ class FileService:
         if file_code.text:
             return APIResponse(detail=file_code.text)
         else:
-            storage = await storage_for_share(file_code, self._file_storage)
-            return response_from_download(await storage.get_file_response(stored_file_of(file_code)))
+            # 统一处理 NAS 引用路径及普通/寄件文件的存储快照。
+            return response_from_download(await get_stored_download(file_code, self._file_storage))
 
     async def preview_file(self, file_id: int, max_chars: int = 4000):
         max_chars = min(max(max_chars, 1), 20000)
@@ -1443,45 +1449,30 @@ class FileService:
         if not await local_file.exists():
             raise HTTPException(status_code=404, detail="文件不存在")
 
-        reservation_token = f"local:{uuid.uuid4().hex}"
-        # 在读取和写入之间固定实际后端，避免管理端上传遇到设置切换而记录错位。
-        storage_type = settings.file_storage
-        storage = storages[storage_type]()
-        await reserve_storage(reservation_token, local_file.size, ttl_seconds=3600)
-        try:
-            data = await local_file.read()  # bytes（read 内部用 with 关闭句柄）
-            expired_at, expired_count, used_count, code = await get_expire_info(
-                item.expire_value, item.expire_style
-            )
-            path, suffix, prefix, uuid_file_name, save_path = await get_file_path_name(
-                item
-            )
-            await storage.save_file(io.BytesIO(data), save_path)
-            try:
-                await FileCodes.create(
-                    code=code,
-                    prefix=prefix,
-                    suffix=suffix,
-                    uuid_file_name=uuid_file_name,
-                    file_path=path,
-                    size=local_file.size,
-                    expired_at=expired_at,
-                    expired_count=expired_count,
-                    used_count=used_count,
-                    # 管理端本地文件分享同样固定保存时的真实后端。
-                    storage_type=storage_type,
-                )
-            except Exception:
-                await storage.delete_file(
-                    StoredFile(file_path=path, uuid_file_name=uuid_file_name)
-                )
-                raise
-        finally:
-            await release_storage(reservation_token)
-
+        # NAS 分享引用已有文件，不复制到上传目录，也不消耗上传配额。
+        expired_at, expired_count, used_count, code = await get_expire_info(
+            item.expire_value, item.expire_style
+        )
+        name = local_file.name
+        suffix = Path(name).suffix
+        prefix = name[: len(name) - len(suffix)] if suffix else name
+        record = await FileCodes.create(
+            code=code,
+            prefix=prefix,
+            suffix=suffix,
+            uuid_file_name=local_file.file,
+            file_path=LOCAL_REF_MARKER,
+            storage_type="local",
+            size=local_file.size or 0,
+            expired_at=expired_at,
+            expired_count=expired_count,
+            used_count=used_count,
+        )
         return {
             "code": code,
-            "name": local_file.file,
+            "name": name,
+            "path": local_file.file,
+            "id": record.id,
         }
 
 
@@ -1629,18 +1620,55 @@ class ConfigService:
 
 
 class LocalFileService:
-    async def list_files(self):
-        files = []
-        if not os.path.exists(data_root / "local"):
-            os.makedirs(data_root / "local")
-        for file in os.listdir(data_root / "local"):
-            local_file = LocalFileClass(file)
-            files.append({
-                "file": local_file.file,
-                "ctime": local_file.ctime,
-                "size": local_file.size,
-            })
-        return files
+    async def list_files(self, path: str = ""):
+        relpath = normalize_local_relpath(path, allow_empty=True)
+        directory = resolve_under_local(relpath)
+        if not directory.exists() or not directory.is_dir():
+            raise HTTPException(status_code=404, detail="目录不存在")
+
+        root = get_local_root()
+        items = []
+        try:
+            children = list(directory.iterdir())
+        except OSError as exc:
+            raise HTTPException(status_code=500, detail="无法读取目录") from exc
+
+        children.sort(key=lambda p: (not p.is_dir(), p.name.lower()))
+        truncated = False
+        for child in children:
+            if len(items) >= MAX_LIST_ENTRIES:
+                truncated = True
+                break
+            try:
+                resolved = child.resolve()
+                resolved.relative_to(root)
+            except (OSError, ValueError):
+                continue
+            if not resolved.is_file() and not resolved.is_dir():
+                continue
+            child_rel = child.name if not relpath else f"{relpath}/{child.name}"
+            is_dir = resolved.is_dir()
+            items.append(
+                {
+                    "file": child.name,
+                    "name": child.name,
+                    "path": child_rel,
+                    "type": "dir" if is_dir else "file",
+                    "ctime": format_local_ctime(resolved),
+                    "size": None if is_dir else resolved.stat().st_size,
+                }
+            )
+
+        parent = ""
+        if relpath:
+            parent_path = Path(relpath).parent.as_posix()
+            parent = "" if parent_path == "." else parent_path
+        return {
+            "path": relpath,
+            "parent": parent,
+            "truncated": truncated,
+            "items": items,
+        }
 
     async def delete_file(self, filename: str):
         file = LocalFileClass(filename)
@@ -1652,39 +1680,13 @@ class LocalFileService:
 
 class LocalFileClass:
     def __init__(self, file):
-        # 仅允许 data/local 目录下的单层文件名，阻断路径穿越与绝对路径访问。
-        raw_name = str(file or "")
-        normalized = Path(raw_name).as_posix()
-        # 输入本身不得包含路径分隔符或绝对路径形态。
-        if (
-            not raw_name
-            or raw_name in {".", ".."}
-            or normalized in {".", ".."}
-            or "/" in normalized
-            or normalized.startswith("~")
-            or Path(raw_name).is_absolute()
-            or Path(raw_name).name != raw_name
-        ):
-            raise HTTPException(status_code=400, detail="非法文件名")
-
-        safe_name = Path(raw_name).name
-        if not safe_name or safe_name in {".", ".."}:
-            raise HTTPException(status_code=400, detail="非法文件名")
-
-        local_root = (data_root / "local").resolve()
-        candidate = (local_root / safe_name).resolve()
-        try:
-            candidate.relative_to(local_root)
-        except ValueError:
-            raise HTTPException(status_code=400, detail="非法文件路径")
-
-        self.file = safe_name
-        self.path = candidate
+        relpath = normalize_local_relpath(file)
+        self.file = relpath
+        self.name = Path(relpath).name
+        self.path = resolve_under_local(relpath)
         if self.path.is_file():
-            self.ctime = time.strftime(
-                "%Y-%m-%d %H:%M:%S", time.localtime(os.path.getctime(self.path))
-            )
-            self.size = os.path.getsize(self.path)
+            self.ctime = format_local_ctime(self.path)
+            self.size = self.path.stat().st_size
         else:
             self.ctime = None
             self.size = None
@@ -1694,11 +1696,13 @@ class LocalFileClass:
             return fh.read()
 
     async def write(self, data):
-        with open(self.path, "w") as f:
+        with open(self.path, "wb") as f:
             f.write(data)
 
     async def delete(self):
-        os.remove(self.path)
+        if not self.path.is_file():
+            raise HTTPException(status_code=404, detail="文件不存在")
+        self.path.unlink()
 
     async def exists(self):
         return self.path.is_file()

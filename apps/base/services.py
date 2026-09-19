@@ -16,6 +16,7 @@ from core.storage import FileStorageInterface, StoredDownload, StoredFile
 
 from apps.base.upload_access import prepare_upload, upload_storage, create_upload_share, abort_access
 from apps.base.file_validation import validate_upload_file
+from apps.base.local_share import build_local_ref_download, is_local_ref
 from apps.base.models import FileCodes, PresignUploadSession, UploadChunk
 from apps.base.quota import release_storage, reserve_storage
 from apps.base.utils import build_file_path, get_expire_info
@@ -36,6 +37,15 @@ def stored_file_of(code: FileCodes) -> StoredFile:
         suffix=code.suffix,
         text=code.text or "",
     )
+
+
+async def get_stored_download(file_code, file_storage: FileStorageInterface | None = None) -> StoredDownload:
+    if is_local_ref(file_code):
+        return build_local_ref_download(file_code)
+    # NAS 引用已在上方直接定位；其他分享复用寄件/普通文件的存储快照。
+    from apps.base.share_storage import storage_for_share
+    storage = await storage_for_share(file_code, file_storage)
+    return await storage.get_file_response(stored_file_of(file_code))
 
 
 async def rollback_saved_file(
