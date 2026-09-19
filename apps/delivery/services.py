@@ -11,8 +11,7 @@ from tortoise.transactions import in_transaction
 from apps.admin.dependencies import create_token, verify_token
 from apps.base.models import DeliveryCode, StorageReservation
 from apps.base.quota import _sql_placeholders
-from apps.delivery.storage import validate_storage_config
-from core.settings import settings
+from apps.base.setup_wizard import build_public_config
 from core.utils import get_now
 
 TOKEN_TTL = 900
@@ -46,12 +45,10 @@ async def active_code(code_id: int) -> DeliveryCode:
 
 async def create_code(data):
     """创建时保存原文，便于管理员后续查看；访客响应仍不提供任何口令列表。"""
-    validate_storage_config(settings.file_storage if data.storage_type == "system" else data.storage_type)
     code = data.code or "".join(secrets.choice("ABCDEFGHJKLMNPQRSTUVWXYZ23456789") for _ in range(16))
     try:
         record = await DeliveryCode.create(
             code_value=code, name=data.name,
-            storage_type=data.storage_type, target_path=data.target_path,
             expires_at=data.expires_at, max_uploads=data.max_uploads,
             note=data.note, tags=data.tags,
         )
@@ -73,10 +70,10 @@ async def code_summary(record, *, include_code=False):
     elif record.expires_at <= now:
         state = "expired"
     return {
-        "id": record.id, "name": record.name, "storage_type": record.storage_type,
+        "id": record.id, "name": record.name,
         **({"code": record.code_value} if include_code else {}),
         "note": record.note, "tags": record.tags if isinstance(record.tags, list) else [],
-        "target_path": record.target_path, "expires_at": record.expires_at,
+        "expires_at": record.expires_at,
         "max_uploads": record.max_uploads, "used_count": record.used_count,
         "reserved_count": record.reserved_count, "enabled": record.enabled,
         "deleted": record.deleted, "status": state, "created_at": record.created_at,
@@ -98,14 +95,16 @@ async def verify_code(code: str):
 
 async def session_summary(record):
     """验证与续期使用相同白名单响应，不泄露路径、存储密钥或管理员授权。"""
+    # 老版寄件页面仍读取这些字段；值统一取自原公共配置构建函数，不维护独立规则。
+    config = build_public_config()
+    upload_keys = ("upload_size", "allowed_file_types", "expire_style", "max_save_seconds", "enable_chunk")
     return {
         "token": create_token({"purpose": "delivery", "delivery_id": record.id,
                                "delivery_version": record.auth_version}, expires_in=TOKEN_TTL),
         "expires_in": TOKEN_TTL, "name": record.name,
         "remaining": max(0, record.max_uploads - record.used_count - record.reserved_count),
-        "expires_at": record.expires_at, "upload_size": settings.upload_size,
-        "allowed_file_types": settings.allowed_file_types, "expire_style": settings.expire_style,
-        "max_save_seconds": settings.max_save_seconds, "enable_chunk": settings.enable_chunk,
+        "expires_at": record.expires_at,
+        **{key: config[key] for key in upload_keys},
     }
 
 
@@ -135,18 +134,6 @@ async def update_code(code_id, data):
         max_uploads = changes.get("max_uploads", record.max_uploads)
         if record.used_count + record.reserved_count > max_uploads:
             raise HTTPException(409, "上传总次数不能小于已使用次数与上传中占用次数之和，请刷新后重试")
-        storage_requested = "storage_type" in changes or "target_path" in changes
-        storage_type = changes.get("storage_type", record.storage_type)
-        target_path = changes.get("target_path", record.target_path)
-        if storage_type == "system":
-            target_path = ""
-        elif not target_path:
-            raise HTTPException(400, "自定义存储位置必须填写目标目录")
-        # 整理名称或元数据时不依赖当前后端配置；仅实际改存储设置才重新校验。
-        if storage_requested and (storage_type != record.storage_type or target_path != record.target_path):
-            validate_storage_config(settings.file_storage if storage_type == "system" else storage_type)
-            changes["storage_type"] = storage_type
-            changes["target_path"] = target_path
         if new_code and new_code != record.code_value:
             # 版本由数据库递增，两个改码请求并发时任一旧令牌都不会被错误复用。
             changes.update(code_value=new_code, auth_version=True)
@@ -173,12 +160,10 @@ async def update_code(code_id, data):
         return await code_summary(record)
 
 
-async def list_codes(*, page=1, page_size=20, keyword="", status="all", storage_type="all", tag="", sort_by="created_at", sort_order="desc"):
+async def list_codes(*, page=1, page_size=20, keyword="", status="all", tag="", sort_by="created_at", sort_order="desc"):
     """筛选、计数、排序和分页全部在数据库执行，列表不返回口令原文。"""
     if status not in {"all", "active", "disabled", "expired", "exhausted"}:
         raise HTTPException(400, "不支持的寄件码状态筛选")
-    if storage_type not in {"all", "system", "local", "s3", "webdav"}:
-        raise HTTPException(400, "不支持的存储类型筛选")
     if sort_by not in {"created_at", "expires_at", "name", "used_count", "max_uploads"} or sort_order not in {"asc", "desc"}:
         raise HTTPException(400, "不支持的排序方式")
     query = DeliveryCode.filter(deleted=False)
@@ -191,8 +176,6 @@ async def list_codes(*, page=1, page_size=20, keyword="", status="all", storage_
         query = query.filter(enabled=True, expires_at__lte=now, used_count__lt=F("max_uploads"))
     elif status == "active":
         query = query.filter(enabled=True, expires_at__gt=now, used_count__lt=F("max_uploads"))
-    if storage_type != "all":
-        query = query.filter(storage_type=storage_type)
     if keyword.strip():
         query = query.filter(Q(name__icontains=keyword.strip()) | Q(note__icontains=keyword.strip()))
     if tag.strip():
@@ -206,7 +189,7 @@ async def list_codes(*, page=1, page_size=20, keyword="", status="all", storage_
     order = ("-" if sort_order == "desc" else "") + sort_by
     # 只选取管理展示字段，口令原文仅由单独管理接口按需返回。
     records = await query.order_by(order, "-id").offset((page - 1) * page_size).limit(page_size).only(
-        "id", "name", "note", "tags", "storage_type", "target_path", "expires_at",
+        "id", "name", "note", "tags", "expires_at",
         "max_uploads", "used_count", "reserved_count", "enabled", "deleted", "created_at",
     )
     return {"items": [await code_summary(record) for record in records], "total": total}

@@ -12,7 +12,6 @@ from apps.base.upload_sessions import reserve_slot, heartbeat, abort_upload, com
 from apps.delivery.services import upload_identity, active_code
 from core.settings import settings
 from core.storage import storages
-from apps.delivery.storage import get_storage
 from core.utils import get_now
 
 
@@ -89,7 +88,7 @@ async def prepare_upload(access, file_name, file_size, upload_id):
 
 async def upload_storage(access=None):
     if access is not None and access.record is not None:
-        return await get_storage(access.record.storage_type)
+        return storages[access.record.storage_type]()
     return storages[settings.file_storage]()
 
 

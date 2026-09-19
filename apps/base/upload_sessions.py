@@ -13,17 +13,14 @@ from apps.base.quota import _sql_placeholders
 from apps.base.utils import build_file_path
 from core.logger import logger
 from core.settings import settings
-from core.storage import StoredFile
-from apps.delivery.storage import get_storage, validate_storage_config
-from core.utils import get_now, sanitize_filename
+from core.storage import StoredFile, storages
+from core.utils import get_now
 
 STALE_SECONDS = 7200
 
 
 async def reserve_slot(code_id, version, file_name, upload_id):
     """次数原子预占与会话创建同事务；实际字节随后由共用配额入口预留。"""
-    filename = await sanitize_filename((file_name or "file").replace("\\", "/").split("/")[-1])
-    filename = filename.encode("utf-8")[:180].decode("utf-8", errors="ignore") or "file"
     async with in_transaction() as conn:
         now = await get_now()
         p = _sql_placeholders(3)
@@ -35,18 +32,13 @@ async def reserve_slot(code_id, version, file_name, upload_id):
         )
         if changed != 1:
             raise HTTPException(409, "寄件码已失效或没有剩余上传次数")
-        code = await DeliveryCode.get(id=code_id).using_db(conn)
-        storage_type, path = code.storage_type, code.target_path
-        if storage_type == "system":
-            storage_type = settings.file_storage
-            path, *_ = await build_file_path("delivery", upload_id)
-        validate_storage_config(storage_type)
+        # 每次新寄件都沿用原系统的存储设置和路径生成器，不读取寄件码独立配置。
+        storage_type = settings.file_storage
+        path, _, _, stored_name, _ = await build_file_path(file_name or "file", upload_id)
         token = "d_" + upload_id
-        if code.storage_type != "system":
-            path = f"{path}/{token}"
         return await StorageReservation.create(
             token=token, size=0, delivery_id=code_id, auth_version=version,
-            filename=filename, stored_name=token + "_" + filename,
+            filename=stored_name, stored_name=stored_name,
             file_path=path, storage_type=storage_type,
             expires_at=now + timedelta(seconds=STALE_SECONDS), using_db=conn,
         )
@@ -87,7 +79,7 @@ async def clean_reservation(record_id):
     if record is None:
         return
     try:
-        storage = await get_storage(record.storage_type)
+        storage = storages[record.storage_type]()
         if record.stored_name:
             path = f"{record.file_path}/{record.stored_name}"
             await storage.clean_chunks(record.token, path)
@@ -131,7 +123,7 @@ async def cleanup_once():
     tokens = await UploadChunk.filter(chunk_index=-1, upload_id__startswith="d_").limit(100).values_list("upload_id", flat=True)
     for share in await FileCodes.filter(upload_id__in=tokens):
         try:
-            storage = await get_storage(share.storage_type)
+            storage = storages[share.storage_type]()
             await storage.clean_chunks(share.upload_id, await share.get_file_path())
             await UploadChunk.filter(upload_id=share.upload_id).delete()
         except Exception:

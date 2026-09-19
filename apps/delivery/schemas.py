@@ -1,4 +1,4 @@
-"""寄件参数校验，所有路径都相对于已配置的存储根目录。"""
+"""只校验寄件授权参数，存储和文件规则由系统设置统一控制。"""
 
 import re
 from datetime import datetime, timezone, timedelta
@@ -7,33 +7,15 @@ from typing import Any
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from apps.base.metadata import normalize_metadata_note, normalize_metadata_tags
-from core.path_validation import validate_storage_directory
 
 
 class DeliveryCodeConfig(BaseModel):
-    """创建和编辑共用配置校验，编辑请求不能改动口令或计数。"""
+    """寄件授权的公共字段，文件和存储配置不在此模型中。"""
     # 禁止静默接受 owner_id 等越权字段，未来多用户必须由服务端身份决定归属。
     model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
     name: str = Field(min_length=1, max_length=100)
-    # system 表示上传开始时跟随全站配置；旧记录的明确存储值继续保留。
-    storage_type: str = "system"
-    target_path: str = Field(default="", max_length=200)
     expires_at: datetime
     max_uploads: int = Field(default=1, ge=1, le=100000)
-
-    @field_validator("storage_type")
-    @classmethod
-    def validate_storage(cls, value):
-        # 配置入口与设置页保持一致；历史收件的存储驱动仍保留供读取和清理。
-        if value not in {"system", "local", "s3", "webdav"}:
-            raise ValueError("不支持的存储类型")
-        return value
-
-    @field_validator("target_path")
-    @classmethod
-    def validate_path(cls, value):
-        # 目录校验与系统设置共用，避免同一路径在两个入口产生不同结果。
-        return validate_storage_directory(value, allow_empty=True, max_length=200)
 
     @field_validator("expires_at")
     @classmethod
@@ -44,15 +26,6 @@ class DeliveryCodeConfig(BaseModel):
         if value <= datetime.now(timezone.utc):
             raise ValueError("有效期必须晚于当前时间")
         return value
-
-    @model_validator(mode="after")
-    def validate_storage_mode(self):
-        # 跟随系统时不保存隐藏表单中残留的自定义目录。
-        if self.storage_type == "system":
-            self.target_path = ""
-        elif not self.target_path:
-            raise ValueError("自定义存储位置必须填写目标目录")
-        return self
 
 
 class CreateDeliveryCode(DeliveryCodeConfig):
@@ -85,25 +58,11 @@ class UpdateDeliveryCode(BaseModel):
 
     model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
     name: str | None = Field(default=None, min_length=1, max_length=100)
-    storage_type: str | None = None
-    target_path: str | None = Field(default=None, max_length=200)
     expires_at: datetime | None = None
     max_uploads: int | None = Field(default=None, ge=1, le=100000)
     code: str = Field(default="", max_length=32)
     note: str | None = Field(default=None, max_length=2000)
     tags: list[str] | None = None
-
-    @field_validator("storage_type")
-    @classmethod
-    def validate_storage(cls, value):
-        if value is not None and value not in {"system", "local", "s3", "webdav"}:
-            raise ValueError("不支持的存储类型")
-        return value
-
-    @field_validator("target_path")
-    @classmethod
-    def validate_path(cls, value):
-        return None if value is None else validate_storage_directory(value, allow_empty=True, max_length=200)
 
     @field_validator("code")
     @classmethod
@@ -131,7 +90,7 @@ class UpdateDeliveryCode(BaseModel):
     @model_validator(mode="after")
     def reject_explicit_null(self):
         # 可选字段表示可以省略，不能用 null 意外清空已有配置。
-        forbidden = {"name", "storage_type", "target_path", "expires_at", "max_uploads", "note", "tags"}
+        forbidden = {"name", "expires_at", "max_uploads", "note", "tags"}
         if any(field in self.model_fields_set and getattr(self, field) is None for field in forbidden):
             raise ValueError("编辑字段不能为 null；请省略不修改的字段")
         return self

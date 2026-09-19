@@ -119,9 +119,6 @@ class DeliveryCode(models.Model):
     name = fields.CharField(max_length=100)
     note = fields.CharField(max_length=2000, default="")
     tags = fields.JSONField(default=list)
-    # system 仅标记寄件码跟随设置，实际收件记录始终保存解析后的存储类型与目录。
-    storage_type = fields.CharField(max_length=20)
-    target_path = fields.CharField(max_length=200)
     expires_at = fields.DatetimeField()
     max_uploads = fields.IntField()
     used_count = fields.IntField(default=0)

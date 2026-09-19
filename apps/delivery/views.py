@@ -47,10 +47,10 @@ async def refresh(authorization: str | None = Header(default=None)):
 @admin_api.get("/codes")
 async def list_codes(
     page: int = Query(1, ge=1), page_size: int = Query(20, ge=1, le=100), keyword: str = "",
-    status: str = "all", storage_type: str = "all", tag: str = "", sort_by: str = "created_at", sort_order: str = "desc",
+    status: str = "all", tag: str = "", sort_by: str = "created_at", sort_order: str = "desc",
 ):
     return APIResponse(detail=await services.list_codes(
-        page=page, page_size=page_size, keyword=keyword, status=status, storage_type=storage_type,
+        page=page, page_size=page_size, keyword=keyword, status=status,
         tag=tag, sort_by=sort_by, sort_order=sort_order,
     ))
 
