@@ -13,10 +13,10 @@ from starlette.responses import Response
 from tortoise.expressions import Case, F, Q, When
 
 from apps.base.upload_access import UploadAccess, authorize_upload, prepare_upload, upload_storage, abort_access, completed_upload
-from apps.base.models import DeliveryFile
+from apps.base.models import StorageReservation
 from apps.base.models import FileCodes, UploadChunk, PresignUploadSession
 from apps.base.quota import release_storage, reserve_storage
-from apps.base.share_storage import delivery_record, storage_for_share
+from apps.base.share_storage import storage_for_share
 from apps.base.services import (
     PRESIGN_SESSION_EXPIRES,
     FileUploadService,
@@ -103,7 +103,7 @@ async def get_code_file_by_code(
     normalized_code = normalize_share_code(code)
     if not normalized_code:
         return False, "文件不存在"
-    file_code = await FileCodes.filter(code=normalized_code).first()
+    file_code = await FileCodes.filter(code=normalized_code, is_private=False).first()
     if not file_code:
         return False, "文件不存在"
     if await file_code.is_expired() and check:
@@ -157,7 +157,7 @@ async def build_select_detail(
     metadata = build_file_metadata(file_code)
     if file_code.text is not None:
         download_url = None
-    elif file_code.expired_count >= 0 or is_local_ref(file_code) or await delivery_record(file_code) is not None:
+    elif file_code.expired_count >= 0 or is_local_ref(file_code) or file_code.delivery_id is not None:
         # 次数限制、NAS 引用及寄件文件均经过下载接口，统一执行计数和存储定位。
         download_url = await get_proxy_file_url(file_code.code)
     else:
@@ -299,9 +299,12 @@ async def init_chunk_upload(data: InitChunkUploadModel = Depends(parse_init_chun
     access = access or UploadAccess()
     safe_file_name = await sanitize_filename(unquote(data.file_name or ""))
     validate_file_type(safe_file_name)
-    # 使用文件真实声明大小校验上限，最后一个分片通常小于整片大小。
+    # 新增校验仅约束寄件授权，避免无效大小影响次数预占或容量计算。
+    if access.code_id is not None and (data.file_size <= 0 or not 1 <= data.chunk_size <= 5 * 1024 * 1024):
+        raise HTTPException(422, "寄件文件大小必须为正数，分片大小须在 1 至 5MB 之间")
     total_chunks = (data.file_size + data.chunk_size - 1) // data.chunk_size
-    if data.file_size > settings.upload_size:
+    max_possible_size = data.file_size if access.code_id is not None else total_chunks * data.chunk_size
+    if max_possible_size > settings.upload_size:
         max_size_mb = settings.upload_size / (1024 * 1024)
         raise HTTPException(
             status_code=403, detail=f"文件大小超过限制，最大为 {max_size_mb:.2f} MB"
@@ -309,7 +312,7 @@ async def init_chunk_upload(data: InitChunkUploadModel = Depends(parse_init_chun
 
     # 断点续传按寄件码隔离；普通上传不能恢复凭码创建的会话。
     if access.code_id is not None:
-        tokens = await DeliveryFile.filter(delivery_id=access.code_id, status="pending").values_list("token", flat=True)
+        tokens = await StorageReservation.filter(delivery_id=access.code_id, auth_version=access.auth_version, status="pending").values_list("token", flat=True)
         session_scope = UploadChunk.filter(upload_id__in=tokens)
     else:
         session_scope = UploadChunk.exclude(upload_id__startswith="d_")
@@ -322,7 +325,7 @@ async def init_chunk_upload(data: InitChunkUploadModel = Depends(parse_init_chun
 
     if existing_session:
         if access.code_id is not None:
-            access.record = await DeliveryFile.get(token=existing_session.upload_id)
+            access.record = await StorageReservation.get(token=existing_session.upload_id)
         if not existing_session.save_path:
             await abort_access(access)
             await UploadChunk.filter(upload_id=existing_session.upload_id).delete()
@@ -350,8 +353,6 @@ async def init_chunk_upload(data: InitChunkUploadModel = Depends(parse_init_chun
             )
 
     # 创建新的上传会话
-    # 普通会话在任何异步准备前先固定后端，避免设置切换穿透到本次会话。
-    initial_storage_type = settings.file_storage
     upload_id = uuid.uuid4().hex
     upload_id, delivery_path = await prepare_upload(access, safe_file_name, data.file_size, upload_id)
     reservation_token = f"chunk:{upload_id}"
@@ -363,8 +364,6 @@ async def init_chunk_upload(data: InitChunkUploadModel = Depends(parse_init_chun
         data.file_name, upload_id
     )
     try:
-        # 普通分片会话在初始化时固定后端，寄件会话沿用收件记录的实际后端。
-        storage_type = access.record.storage_type if access is not None and access.record is not None else initial_storage_type
         await UploadChunk.create(
             upload_id=upload_id,
             chunk_index=-1,
@@ -374,7 +373,6 @@ async def init_chunk_upload(data: InitChunkUploadModel = Depends(parse_init_chun
             chunk_hash=data.file_hash,
             file_name=safe_file_name,
             save_path=delivery_path or save_path,
-            storage_type=storage_type,
         )
     except Exception:
         await abort_access(access)
@@ -432,9 +430,11 @@ async def upload_chunk(
     if chunk_index == 0:
         validate_header_bytes(chunk_info.file_name, None, chunk_data[:64])
     chunk_size = len(chunk_data)
-    expected_size = min(chunk_info.chunk_size, chunk_info.file_size - chunk_index * chunk_info.chunk_size)
-    if chunk_size != expected_size:
-        raise HTTPException(400, "分片大小与声明的文件范围不一致")
+    if access and access.record:
+        # 寄件不得少报容量；普通分片继续沿用下方的原大小校验。
+        expected_size = min(chunk_info.chunk_size, chunk_info.file_size - chunk_index * chunk_info.chunk_size)
+        if chunk_size != expected_size:
+            raise HTTPException(400, "分片大小与声明的文件范围不一致")
 
     # 校验分片大小不超过声明的 chunk_size
     if chunk_size > chunk_info.chunk_size:
@@ -460,12 +460,7 @@ async def upload_chunk(
     save_path = chunk_info.save_path
 
     # 保存分片到存储
-    # 旧会话首次续传后补写快照；本请求及之后都使用同一个后端。
-    storage_type = chunk_info.storage_type or settings.file_storage
-    if chunk_info.storage_type is None:
-        await UploadChunk.filter(upload_id=upload_id).update(storage_type=storage_type)
-        chunk_info.storage_type = storage_type
-    storage = await upload_storage(access, storage_type)
+    storage = await upload_storage(access)
     try:
         await storage.save_chunk(
             upload_id, chunk_index, chunk_data, chunk_hash, save_path
@@ -487,7 +482,6 @@ async def upload_chunk(
             "chunk_size": chunk_info.chunk_size,
             "file_name": chunk_info.file_name,
             "save_path": chunk_info.save_path,
-            "storage_type": storage_type,
         },
     )
     return APIResponse(detail={"chunk_hash": chunk_hash})
@@ -506,7 +500,7 @@ async def cancel_upload(upload_id: str, access: Annotated[UploadAccess, Depends(
     save_path = chunk_info.save_path
 
     # 清理存储中的临时文件
-    storage = await upload_storage(access, chunk_info.storage_type or settings.file_storage)
+    storage = await upload_storage(access)
     if save_path:
         try:
             await storage.clean_chunks(upload_id, save_path)
@@ -564,6 +558,8 @@ async def complete_upload(
     if not chunk_info:
         raise HTTPException(status.HTTP_404_NOT_FOUND, detail="上传会话不存在")
     validate_expire_style(data.expire_style)
+    if access and access.code_id is not None and data.expire_value <= 0:
+        raise HTTPException(422, "寄件保存期限必须为正数")
     detail = await FileUploadService.complete_chunked_upload(
         upload_id, chunk_info, data.expire_value, data.expire_style, access=access
     )
@@ -591,19 +587,9 @@ async def _get_valid_session(
     if not session:
         raise HTTPException(404, "上传会话不存在")
     if await session.is_expired():
-        # 请求触发的过期处理也必须使用会话快照，不能等待后台任务误用新设置。
-        if session.mode == "direct":
-            storage = await upload_storage(access, session.storage_type)
-            try:
-                if await storage.file_exists(session.save_path):
-                    await storage.delete_file(
-                        StoredFile(
-                            file_path=os.path.dirname(session.save_path),
-                            uuid_file_name=os.path.basename(session.save_path),
-                        )
-                    )
-            except Exception:
-                logger.warning("过期预签名会话：清理临时文件失败 upload_id=%s", upload_id, exc_info=True)
+        if access and access.record:
+            # 寄件过期仍须释放次数并跟踪残留；普通会话沿用原清理方式。
+            await abort_access(access)
         await session.delete()
         await release_storage(f"presign:{upload_id}")
         raise HTTPException(404, "上传会话已过期")
@@ -625,8 +611,8 @@ async def presign_upload_init(
         )
     validate_expire_style(data.expire_style)
 
-    # 普通预签名会话在准备寄件记录和远端 URL 前固定实际后端。
-    initial_storage_type = settings.file_storage
+    if access and access.code_id is not None and (data.file_size <= 0 or data.expire_value <= 0):
+        raise HTTPException(422, "寄件文件大小和保存期限必须为正数")
     upload_id = uuid.uuid4().hex
     upload_id, delivery_path = await prepare_upload(access, data.file_name, data.file_size, upload_id)
     reservation_token = f"presign:{upload_id}"
@@ -639,10 +625,10 @@ async def presign_upload_init(
         )
         if delivery_path:
             save_path = delivery_path
-        # 预签名会话保存快照，后续代理、确认和清理不会受全站设置影响。
-        storage_type = access.record.storage_type if access is not None and access.record is not None else initial_storage_type
-        storage: FileStorageInterface = await upload_storage(access, storage_type)
-        presigned_url = await storage.generate_presigned_upload_url(
+        storage: FileStorageInterface = await upload_storage(access)
+        # 寄件通过原代理路径核验真实字节数，不能把未约束大小的 S3 直传 URL 当作受限授权。
+        # 普通上传仍按上游规则选择 S3 直传或代理。
+        presigned_url = None if access and access.code_id is not None else await storage.generate_presigned_upload_url(
             save_path, PRESIGN_SESSION_EXPIRES
         )
         mode = "direct" if presigned_url else "proxy"
@@ -657,7 +643,6 @@ async def presign_upload_init(
             expire_value=data.expire_value,
             expire_style=data.expire_style,
             expires_at=await get_now() + timedelta(seconds=PRESIGN_SESSION_EXPIRES),
-            storage_type=storage_type,
         )
     except Exception:
         await abort_access(access)
@@ -742,7 +727,7 @@ async def presign_upload_cancel(upload_id: str, access: Annotated[UploadAccess, 
         raise HTTPException(404, "上传会话不存在")
 
     if session.mode == "direct":
-        storage: FileStorageInterface = await upload_storage(access, session.storage_type)
+        storage: FileStorageInterface = await upload_storage(access)
         try:
             if await storage.file_exists(session.save_path):
                 temp_file_code = StoredFile(

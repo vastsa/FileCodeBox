@@ -28,7 +28,7 @@ from apps.base.tasks import (
     delete_expire_files,
 )
 from apps.base.views import share_api, chunk_api, presign_api
-from apps.delivery.services import cleanup_loop as delivery_cleanup_loop
+from apps.base.upload_sessions import cleanup_loop as delivery_cleanup_loop
 from apps.delivery.views import admin_api as delivery_admin_api, public_api as delivery_api, pages as delivery_pages
 from core.database import db_startup_lock, get_db_config, init_db
 from core.errors import StorageError

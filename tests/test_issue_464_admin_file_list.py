@@ -26,6 +26,8 @@ class FakeFileCode:
         self.file_hash = "a" * 64
         self.is_chunked = False
         self.upload_id = None
+        # 与新模型保持一致：普通文件可公开，历史私有收件单独标记。
+        self.is_private = False
 
     async def is_expired(self):
         return False
@@ -58,3 +60,10 @@ class AdminFileItemTests(SettingsOverrideMixin, unittest.TestCase):
 
         self.assertEqual(item["status_insights"]["severity"], "warning")
         self.assertIn("expires_soon", item["status_insights"]["reasons"])
+
+    def test_private_receipt_does_not_expose_public_retrieval_code(self):
+        file_code = FakeFileCode()
+        file_code.is_private = True
+        item = asyncio.run(FileService()._build_admin_file_item(file_code))
+        self.assertTrue(item["is_private"])
+        self.assertEqual(item["code"], "")

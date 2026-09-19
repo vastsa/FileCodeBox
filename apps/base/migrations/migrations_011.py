@@ -1,4 +1,4 @@
-"""为普通文件及上传会话保存实际存储后端快照。"""
+"""仅为寄件分享保存授权指定的实际存储后端。"""
 
 from tortoise import connections
 
@@ -8,8 +8,6 @@ async def migrate():
     conn = connections.get("default")
     tables = {
         "filecodes": "storage_type",
-        "uploadchunk": "storage_type",
-        "presignuploadsession": "storage_type",
     }
     for table, column in tables.items():
         columns = await conn.execute_query_dict(f"PRAGMA table_info({table})")

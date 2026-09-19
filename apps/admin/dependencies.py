@@ -14,7 +14,6 @@ from core.settings import (
     ADMIN_SESSION_EXPIRE_MIN,
     settings,
 )
-from apps.admin.services import FileService, ConfigService, LocalFileService
 
 
 def _get_jwt_secret() -> bytes:
@@ -173,12 +172,18 @@ async def share_required_login(authorization: str = Header(default=None)):
 
 
 async def get_file_service():
+    # 工厂调用时加载业务服务，鉴权模块不依赖上传与文件管理实现。
+    from apps.admin.services import FileService
     return FileService()
 
 
 async def get_config_service():
+    # 工厂调用时加载业务服务，鉴权模块不依赖上传与文件管理实现。
+    from apps.admin.services import ConfigService
     return ConfigService()
 
 
 async def get_local_file_service():
+    # 工厂调用时加载业务服务，鉴权模块不依赖上传与文件管理实现。
+    from apps.admin.services import LocalFileService
     return LocalFileService()

@@ -12,7 +12,7 @@ from fastapi.responses import FileResponse, Response, StreamingResponse
 
 from core.logger import logger
 from core.settings import settings
-from core.storage import FileStorageInterface, StoredDownload, StoredFile
+from core.storage import FileStorageInterface, StoredDownload, StoredFile, storages
 
 from apps.base.upload_access import prepare_upload, upload_storage, create_upload_share, abort_access
 from apps.base.file_validation import validate_upload_file
@@ -42,7 +42,7 @@ def stored_file_of(code: FileCodes) -> StoredFile:
 async def get_stored_download(file_code, file_storage: FileStorageInterface | None = None) -> StoredDownload:
     if is_local_ref(file_code):
         return build_local_ref_download(file_code)
-    # NAS 引用已在上方直接定位；其他分享复用寄件/普通文件的存储快照。
+    # NAS 引用沿用原逻辑；只有寄件分享需要覆盖默认存储。
     from apps.base.share_storage import storage_for_share
     storage = await storage_for_share(file_code, file_storage)
     return await storage.get_file_response(stored_file_of(file_code))
@@ -99,6 +99,10 @@ class FileUploadService:
     """统一的文件上传服务"""
 
     @staticmethod
+    def _storage() -> FileStorageInterface:
+        return storages[settings.file_storage]()
+
+    @staticmethod
     async def generate_file_path(
         file_name: str, upload_id: str | None = None
     ) -> tuple[str, str, str, str, str]:
@@ -121,23 +125,11 @@ class FileUploadService:
         )
         prefix, suffix = os.path.splitext(file_name)
 
-        storage_type = extra_fields.pop("storage_type", None)
-        share_fields = {
-            "code": code,
-            "prefix": prefix,
-            "suffix": suffix,
-            "uuid_file_name": file_name,
-            "file_path": file_path,
-            "size": file_size,
-            "expired_at": expired_at,
-            "expired_count": expired_count,
-            "used_count": used_count,
-            **extra_fields,
-        }
-        # 未指定时由普通创建入口固定当前后端；NULL 不覆盖这一安全默认值。
-        if storage_type:
-            share_fields["storage_type"] = storage_type
-        await create_upload_share(access, **share_fields)
+        await create_upload_share(access,
+            code=code, prefix=prefix, suffix=suffix, uuid_file_name=file_name,
+            file_path=file_path, size=file_size, expired_at=expired_at,
+            expired_count=expired_count, used_count=used_count, **extra_fields,
+        )
         return code
 
     @staticmethod
@@ -151,7 +143,7 @@ class FileUploadService:
         if access is not None and access.record is not None:
             access.record.stored_name = ""
             await access.record.save(update_fields=["stored_name"])
-        token = f"text:{uuid.uuid4().hex}"
+        token = access.record.token if access and access.record else f"text:{uuid.uuid4().hex}"
         await reserve_storage(token, text_size, ttl_seconds=300)
         try:
             expired_at, expired_count, used_count, code = await get_expire_info(
@@ -184,10 +176,9 @@ class FileUploadService:
         if delivery_path:
             save_path = delivery_path
             path, uuid_file_name = os.path.split(save_path)
-        token = f"file:{uuid.uuid4().hex}"
+        token = access.record.token if access and access.record else f"file:{uuid.uuid4().hex}"
         await reserve_storage(token, size, ttl_seconds=3600)
-        storage_type = access.record.storage_type if access is not None and access.record is not None else settings.file_storage
-        storage = await upload_storage(access, storage_type)
+        storage = await upload_storage(access) if access and access.record else FileUploadService._storage()
         try:
             expired_at, expired_count, used_count, code = await get_expire_info(
                 expire_value, expire_style
@@ -203,7 +194,6 @@ class FileUploadService:
                 expired_at=expired_at,
                 expired_count=expired_count,
                 used_count=used_count,
-                storage_type=storage_type,
             )
         except Exception:
             await rollback_saved_file(
@@ -224,13 +214,7 @@ class FileUploadService:
         失败路径的配额释放与清理范围与原实现逐一对齐：
         完整性校验失败仅抛 400（预留由 TTL 兜底）；合并失败清理分片文件后抛 500。
         """
-        # 旧会话没有快照时只在本次开始解析一次，并在成功完成后写入文件记录。
-        storage_type = chunk_info.storage_type or settings.file_storage
-        if chunk_info.storage_type is None:
-            # 合并失败后仍保留该解析结果，重试不能因设置切换而改后端。
-            await UploadChunk.filter(upload_id=upload_id).update(storage_type=storage_type)
-            chunk_info.storage_type = storage_type
-        storage = await upload_storage(access, storage_type)
+        storage = await upload_storage(access) if access and access.record else FileUploadService._storage()
         await reserve_storage(
             f"chunk:{upload_id}", chunk_info.file_size, ttl_seconds=chunk_reservation_ttl()
         )
@@ -241,8 +225,8 @@ class FileUploadService:
         if len(completed_chunks) != chunk_info.total_chunks:
             raise HTTPException(400, "分片不完整")
 
-        # 每片已按声明范围校验，合并时使用实际文件大小，避免将尾片向上取整。
-        max_total_size = chunk_info.file_size
+        # 寄件预占按声明字节数计费；普通上传保持上游的分片容量规则。
+        max_total_size = chunk_info.file_size if access and access.record else len(completed_chunks) * chunk_info.chunk_size
         if max_total_size > settings.upload_size:
             save_path = chunk_info.save_path
             if save_path:
@@ -291,13 +275,14 @@ class FileUploadService:
                 uuid_file_name=safe_file_name,
                 prefix=prefix,
                 suffix=suffix,
-                storage_type=storage_type,
             )
             try:
                 await storage.clean_chunks(upload_id, save_path)
                 await UploadChunk.filter(upload_id=upload_id).delete()
             except Exception:
-                logger.warning("分享已创建，分片清理稍后重试 upload_id=%s", upload_id, exc_info=True)
+                if not (access and access.record):
+                    raise
+                logger.warning("寄件分享已创建，分片清理稍后重试 upload_id=%s", upload_id, exc_info=True)
             await release_storage(f"chunk:{upload_id}")
             # 寄件存储名带唯一前缀，但发送结果仍展示原文件名。
             return {"code": code, "name": access.record.filename if access is not None and access.record is not None else safe_file_name}
@@ -323,11 +308,6 @@ class FileUploadService:
 
         校验失败不释放预留（与原实现一致，由 TTL 兜底）。
         """
-        # 进入代理上传前就冻结旧会话的兼容回退值，后续 await 不再读取设置。
-        storage_type = session.storage_type or settings.file_storage
-        if session.storage_type is None:
-            session.storage_type = storage_type
-            await session.save(update_fields=["storage_type"])
         await reserve_storage(
             f"presign:{session.upload_id}",
             session.file_size,
@@ -336,17 +316,19 @@ class FileUploadService:
 
         file_size = await validate_file_size(file, settings.upload_size)
         await validate_upload_file(file)
-        if abs(file_size - session.file_size) > 1024:
+        # 寄件必须与预占容量精确一致；普通代理保留上游的容差规则。
+        mismatch = file_size != session.file_size if access and access.record else abs(file_size - session.file_size) > 1024
+        if mismatch:
             raise HTTPException(400, "文件大小与声明不符")
 
-        storage = await upload_storage(access, storage_type)
+        storage = await upload_storage(access) if access and access.record else FileUploadService._storage()
         try:
             await storage.save_file(file.file, session.save_path, file.content_type)
         except Exception as e:
             raise HTTPException(500, f"文件保存失败: {str(e)}")
 
         return await FileUploadService._commit_presign_record(
-            session, file_size, storage, access=access, storage_type=storage_type,
+            session, file_size, storage, access=access,
             context="预签名代理上传：记录创建失败"
         )
 
@@ -356,11 +338,10 @@ class FileUploadService:
 
         预留失败说明配额已耗尽，此时清理远端临时文件与会话后原样抛出。
         """
-        # 在预留容量前冻结旧会话的兼容回退值，整条确认流程使用同一后端。
-        storage_type = session.storage_type or settings.file_storage
-        if session.storage_type is None:
-            session.storage_type = storage_type
-            await session.save(update_fields=["storage_type"])
+        if access and access.record:
+            # 释放旧会话的上传次数；已签发的 URL 不能提前撤销，容量和清理记录保留到其过期。
+            await abort_access(access, cleanup_after=session.expires_at)
+            raise HTTPException(409, "旧寄件直传已停用，请重新上传；临时容量将在原会话过期后释放")
         try:
             await reserve_storage(
                 f"presign:{session.upload_id}",
@@ -368,7 +349,7 @@ class FileUploadService:
                 ttl_seconds=PRESIGN_SESSION_EXPIRES,
             )
         except HTTPException:
-            storage = await upload_storage(access, storage_type)
+            storage = await upload_storage(access) if access and access.record else FileUploadService._storage()
             try:
                 if await storage.file_exists(session.save_path):
                     await storage.delete_file(
@@ -382,23 +363,22 @@ class FileUploadService:
                 await release_storage(f"presign:{session.upload_id}")
             raise
 
-        storage = await upload_storage(access, storage_type)
+        storage = await upload_storage(access) if access and access.record else FileUploadService._storage()
         if not await storage.file_exists(session.save_path):
             raise HTTPException(404, "文件未上传或上传失败")
 
         return await FileUploadService._commit_presign_record(
-            session, session.file_size, storage, access=access, storage_type=storage_type,
+            session, session.file_size, storage, access=access,
             context="预签名确认：记录创建失败"
         )
 
     @staticmethod
-    async def _commit_presign_record(session, file_size, storage, *, access=None, storage_type, context):
+    async def _commit_presign_record(session, file_size, storage, *, access=None, context):
         """代理上传与直传共用记录提交、失败回滚及会话释放，避免两条路径行为分叉。"""
         try:
             code = await FileUploadService.create_file_record(
                 session.file_name, file_size, os.path.dirname(session.save_path),
                 session.expire_value, session.expire_style, access=access,
-                storage_type=storage_type,
             )
         except Exception:
             await rollback_saved_file(

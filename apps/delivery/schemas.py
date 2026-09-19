@@ -174,9 +174,3 @@ class VerifyDeliveryCode(BaseModel):
 class SetDeliveryEnabled(BaseModel):
     model_config = ConfigDict(extra="forbid")
     enabled: bool
-
-
-class DeliveryShareOptions(BaseModel):
-    """上传选择的过期策略仍受全站白名单和最长保存时间约束。"""
-    expire_style: str = Field(min_length=1, max_length=20)
-    expire_value: int = Field(default=1, ge=1, le=1000000)

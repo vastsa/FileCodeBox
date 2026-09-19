@@ -5,7 +5,7 @@ from tortoise import connections
 from tortoise.expressions import Q
 from tortoise.functions import Sum
 
-from apps.base.models import DeliveryFile, FileCodes, StorageReservation
+from apps.base.models import FileCodes, StorageReservation
 from apps.base.local_share import LOCAL_REF_MARKER
 from core.settings import settings
 from core.utils import get_now
@@ -67,17 +67,13 @@ def get_storage_limit() -> int:
 async def get_storage_usage() -> dict[str, int | None]:
     now = await get_now()
     # SQL 聚合：此函数在每次上传配额检查时调用，禁止全表拉取（D3）
-    # NAS 引用不占上传容量；私有寄件及清理残留仍需单独计入。
+    # 成功文件只计 FileCodes；寄件上传残留保留在容量预留中直到删除成功。
     used_rows = await owned_storage_queryset().annotate(total=Sum("size")).values("total")
-    # 私有收件与失败残留计入；shared 已由 FileCodes 计算，不能重复计费。
-    delivery_rows = await DeliveryFile.filter(status__in=["stored", "cleanup"]).annotate(
-        total=Sum("size")
-    ).values("total")
-    reserved_rows = await StorageReservation.filter(expires_at__gt=now).annotate(
+    reserved_rows = await StorageReservation.filter(Q(expires_at__gt=now) | Q(delivery_id__isnull=False)).annotate(
         total=Sum("size")
     ).values("total")
     limit = get_storage_limit()
-    used_bytes = (used_rows[0]["total"] or 0) + (delivery_rows[0]["total"] or 0)
+    used_bytes = used_rows[0]["total"] or 0
     reserved_bytes = reserved_rows[0]["total"] or 0
     return {
         "limit": limit,
@@ -90,6 +86,25 @@ async def get_storage_usage() -> dict[str, int | None]:
 async def reserve_storage(token: str, size: int, ttl_seconds: int) -> None:
     requested_size = max(0, int(size))
     limit = get_storage_limit()
+    # 普通上传前缀映射到同一寄件预留，避免次数和容量分别产生重复计费行。
+    delivery_token = token.split(":", 1)[-1]
+    if delivery_token.startswith("d_"):
+        now = await get_now()
+        conn = connections.get("default")
+        p = _sql_placeholders(8)
+        changed, _ = await conn.execute_query(
+            f"UPDATE storagereservation SET size = {p[0]}, expires_at = {p[1]} "
+            f"WHERE token = {p[2]} AND delivery_id IS NOT NULL AND status IN ('pending', 'finalizing') "
+            f"AND ({p[3]} = 0 OR "
+            f"COALESCE((SELECT SUM(size) FROM filecodes WHERE file_path IS NULL OR file_path != '{LOCAL_REF_MARKER}'), 0) "
+            f"+ COALESCE((SELECT SUM(size) FROM storagereservation WHERE token != {p[4]} AND (expires_at > {p[5]} OR delivery_id IS NOT NULL)), 0) "
+            f"+ {p[6]} <= {p[7]})",
+            [requested_size, now + datetime.timedelta(seconds=ttl_seconds), delivery_token,
+             limit, delivery_token, now, requested_size, limit],
+        )
+        if changed != 1:
+            raise HTTPException(507, "上传会话失效或存储容量不足")
+        return
     if not limit or requested_size == 0:
         return
 
@@ -111,8 +126,7 @@ async def reserve_storage(token: str, size: int, ttl_seconds: int) -> None:
             SELECT {ph[0]}, {ph[1]}, {ph[2]}
             WHERE (
                 COALESCE((SELECT SUM(size) FROM filecodes WHERE file_path IS NULL OR file_path != '{LOCAL_REF_MARKER}'), 0)
-                + COALESCE((SELECT SUM(size) FROM deliveryfile WHERE status IN ('stored', 'cleanup')), 0)
-                + COALESCE((SELECT SUM(size) FROM storagereservation WHERE expires_at > {ph[3]}), 0)
+                + COALESCE((SELECT SUM(size) FROM storagereservation WHERE expires_at > {ph[3]} OR delivery_id IS NOT NULL), 0)
                 + {ph[4]}
             ) <= {ph[5]}
             """,
@@ -135,4 +149,7 @@ async def reserve_storage(token: str, size: int, ttl_seconds: int) -> None:
 
 
 async def release_storage(token: str) -> None:
+    # 寄件预留必须先完成文件提交或清理，不能由普通 finally 提前释放容量。
+    if token.split(":", 1)[-1].startswith("d_"):
+        return
     await StorageReservation.filter(token=token).delete()

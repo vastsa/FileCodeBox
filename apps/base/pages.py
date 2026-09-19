@@ -97,10 +97,6 @@ async def index(request=None, exc=None):
     # always escape before injecting into the theme template to prevent stored XSS
     # (mirrors the setup page).
     template = resolve_theme_file("index.html").read_text(encoding="utf-8")
-    # 原生 2024 寄件页面自行提供导航，旧主题仍保留独立入口以兼容滚动更新。
-    if not theme_has_delivery_ui(template):
-        template = template.replace("</body>", '<link rel="stylesheet" href="/delivery-assets/entry.css">'
-                                    '<script src="/delivery-assets/entry.js" defer></script></body>')
     return HTMLResponse(
         content=template
         .replace("{{title}}", html.escape(str(settings.name)))

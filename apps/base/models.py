@@ -30,7 +30,10 @@ class FileCodes(models.Model):
     file_hash = fields.CharField(max_length=64, null=True)
     is_chunked = fields.BooleanField(default=False)
     upload_id = fields.CharField(max_length=36, null=True)
-    # 普通文件创建时固定实际后端；历史记录没有可靠来源时保留 NULL。
+    # 寄件文件直接关联授权；历史私有收件仅供后台读取，不自动公开。
+    delivery_id = fields.IntField(null=True, index=True)
+    is_private = fields.BooleanField(default=False)
+    # 仅寄件文件记录授权指定的真实后端；普通文件不写入也不读取该字段。
     storage_type = fields.CharField(max_length=20, null=True)
 
     async def is_expired(self):
@@ -54,8 +57,6 @@ class UploadChunk(models.Model):
     chunk_size = fields.IntField()
     file_name = fields.CharField(max_length=255)
     save_path = fields.CharField(max_length=512, null=True)
-    # 分片会话必须固定后端，避免全站设置切换后续传或清理到错误位置。
-    storage_type = fields.CharField(max_length=20, null=True)
     created_at = fields.DatetimeField(auto_now_add=True)
     completed = fields.BooleanField(default=False)
 
@@ -79,8 +80,6 @@ class PresignUploadSession(models.Model):
     file_name = fields.CharField(max_length=255)
     file_size = fields.BigIntField()
     save_path = fields.CharField(max_length=512)
-    # 直传 URL、代理上传和会话清理均使用初始化时确定的后端。
-    storage_type = fields.CharField(max_length=20, null=True)
     mode = fields.CharField(max_length=10)  # "direct" 或 "proxy"
     expire_value = fields.IntField(default=1)
     expire_style = fields.CharField(max_length=20, default="day")
@@ -99,21 +98,27 @@ class StorageReservation(models.Model):
     token = fields.CharField(max_length=64, unique=True, index=True)
     size = fields.BigIntField()
     expires_at = fields.DatetimeField(index=True)
+    # 寄件预占复用容量预留；成功后整行删除，持久文件只保存到 FileCodes。
+    delivery_id = fields.IntField(null=True, index=True)
+    auth_version = fields.IntField(default=1)
+    status = fields.CharField(max_length=20, default="pending")
+    filename = fields.CharField(max_length=255, default="")
+    stored_name = fields.CharField(max_length=255, default="")
+    file_path = fields.CharField(max_length=255, default="")
+    storage_type = fields.CharField(max_length=20, null=True)
 
 
 class DeliveryCode(models.Model):
     """只授予投递权限的口令；不进入公开取件码表，避免形成下载授权。"""
 
     id = fields.IntField(pk=True)
-    code_digest = fields.CharField(max_length=64, unique=True)
-    # 与普通取件码一样保留原文供管理员管理；旧记录为 NULL，不能从摘要反推。
-    code_value = fields.CharField(max_length=64, null=True)
+    # 原文作为唯一上传口令；NULL 只用于已停用、等待管理员重新设码的历史记录。
+    code_value = fields.CharField(max_length=64, null=True, unique=True)
     # 改码时递增，令牌携带该版本后可立即撤销旧寄件授权。
     auth_version = fields.IntField(default=1)
     name = fields.CharField(max_length=100)
     note = fields.CharField(max_length=2000, default="")
     tags = fields.JSONField(default=list)
-    owner_id = fields.CharField(max_length=64, default="admin", index=True)
     # system 仅标记寄件码跟随设置，实际收件记录始终保存解析后的存储类型与目录。
     storage_type = fields.CharField(max_length=20)
     target_path = fields.CharField(max_length=200)
@@ -124,26 +129,6 @@ class DeliveryCode(models.Model):
     enabled = fields.BooleanField(default=True)
     deleted = fields.BooleanField(default=False)
     created_at = fields.DatetimeField(auto_now_add=True)
-
-
-class DeliveryFile(models.Model):
-    """寄件收件记录；pending 占用次数，stored 计入永久容量，独立于公开分享。"""
-
-    id = fields.IntField(pk=True)
-    delivery_id = fields.IntField(index=True)
-    # 新的授权分享关联普通取件记录；NULL 表示旧版私有收件，绝不自动公开。
-    share_id = fields.IntField(null=True, index=True)
-    owner_id = fields.CharField(max_length=64, default="admin", index=True)
-    token = fields.CharField(max_length=64, unique=True)
-    filename = fields.CharField(max_length=255, default="")
-    stored_name = fields.CharField(max_length=255, default="")
-    # system 路径可包含 share/data 日期目录及唯一文件名，长度与普通文件路径对齐。
-    file_path = fields.CharField(max_length=255)
-    storage_type = fields.CharField(max_length=20)
-    size = fields.BigIntField(default=0)
-    status = fields.CharField(max_length=20, default="pending", index=True)
-    created_at = fields.DatetimeField(auto_now_add=True)
-    updated_at = fields.DatetimeField(auto_now=True)
 
 
 file_codes_pydantic = pydantic_model_creator(FileCodes, name="FileCodes")

@@ -9,7 +9,6 @@ from typing import Optional, Tuple
 from apps.base.dependencies import IPRateLimit
 from apps.base.models import FileCodes
 from core.settings import settings
-from core.path_validation import validate_storage_directory
 from core.utils import (
     get_random_num,
     get_random_string,
@@ -35,11 +34,7 @@ async def build_file_path(
     Always use get_now() (UTC+8); do not switch to server-local time.
     """
     today = await get_now()
-    # 与寄件自定义目录共用校验；此处仍保留普通上传的日期及唯一标识目录。
-    try:
-        storage_path = validate_storage_directory(settings.storage_path, allow_empty=True)
-    except ValueError as exc:
-        raise HTTPException(422, f"系统文件存储路径无效，请在设置中修正：{exc}") from None
+    storage_path = settings.storage_path.strip("/")
     filename = await sanitize_filename(unquote(file_name or ""))
     base_path = f"share/data/{today.strftime('%Y/%m/%d')}/{file_uuid}"
     path = f"{storage_path}/{base_path}" if storage_path else base_path

@@ -14,7 +14,7 @@ from core.settings import (
 from apps.base.config import refresh_settings
 from apps.base.services import get_stored_download, response_from_download, stored_file_of
 from core.security import INTERNAL_CONFIG_KEYS, generate_jwt_secret
-from apps.base.models import DeliveryCode, DeliveryFile, FileCodes, KeyValue
+from apps.base.models import DeliveryCode, FileCodes, KeyValue
 from apps.base.utils import get_expire_info
 from apps.base.local_share import (
     LOCAL_REF_MARKER,
@@ -27,7 +27,7 @@ from apps.base.local_share import (
     should_skip_storage_delete,
 )
 from apps.base.metadata import normalize_metadata_note, normalize_metadata_tags
-from apps.base.share_storage import remove_delivery_share, storage_for_share, storage_type_for_share
+from apps.base.share_storage import storage_for_share, storage_type_for_share
 from fastapi import HTTPException
 from core.utils import get_now, hash_password, is_password_hashed, validate_background_url
 
@@ -104,9 +104,7 @@ class FileService:
         return f"{self.FILE_METADATA_KEY_PREFIX}{file_id}"
 
     async def _delete_file_code(self, file_code: FileCodes):
-        # 寄件分享在两个管理入口使用相同撤销与清理逻辑，避免重复计费或遗留可用取件码。
-        if await remove_delivery_share(file_code):
-            return
+        # 寄件文件与普通文件共用删除流程，失败时保留记录供重试。
         # NAS 引用只删除分享记录，不能删除原始文件。
         if not should_skip_storage_delete(file_code):
             storage = await storage_for_share(file_code, self._file_storage)
@@ -227,7 +225,8 @@ class FileService:
             raise HTTPException(status_code=404, detail="文件不存在")
 
         update_data: dict[str, Any] = {}
-        if code is not None and code != file_code.code:
+        # 历史私有文件没有公开口令，普通编辑不能改变其内部标识或公开权限。
+        if code is not None and not file_code.is_private and code != file_code.code:
             if await FileCodes.filter(code=code).first():
                 raise HTTPException(status_code=400, detail="code已存在")
             update_data["code"] = code
@@ -502,12 +501,9 @@ class FileService:
         query = FileCodes.all()
         if delivery_id is not None:
             # 收件列表复用文件管理的数据与操作，只限定当前管理员选中的寄件码。
-            if not await DeliveryCode.filter(id=delivery_id, owner_id="admin").exists():
+            if not await DeliveryCode.filter(id=delivery_id).exists():
                 raise HTTPException(404, "寄件码不存在")
-            share_ids = await DeliveryFile.filter(
-                delivery_id=delivery_id, owner_id="admin", status="shared"
-            ).values_list("share_id", flat=True)
-            query = query.filter(id__in=share_ids)
+            query = query.filter(delivery_id=delivery_id)
         all_files = await query
         now = await get_now()
         enriched_files = []
@@ -610,7 +606,8 @@ class FileService:
         )
         data = {
             "id": file_code.id,
-            "code": file_code.code,
+            "code": "" if file_code.is_private else file_code.code,
+            "is_private": file_code.is_private,
             "prefix": file_code.prefix,
             "suffix": file_code.suffix,
             "uuid_file_name": file_code.uuid_file_name,
@@ -685,10 +682,8 @@ class FileService:
             is_text=is_text,
         )
 
-        # 详情展示记录实际后端；历史普通文件没有可靠来源时显示 unknown。
-        actual_storage_type = await storage_type_for_share(file_code)
-        # 未知来源以 NULL 交给前端本地化，不能直接输出英文文案。
-        display_storage_type = actual_storage_type
+        # 只有寄件文件展示授权后端，普通文件仍显示站点当前设置。
+        display_storage_type = await storage_type_for_share(file_code)
         detail.update(
             {
                 "filename": detail["name"],
@@ -1417,7 +1412,7 @@ class FileService:
         if file_code.text:
             return APIResponse(detail=file_code.text)
         else:
-            # 统一处理 NAS 引用路径及普通/寄件文件的存储快照。
+            # NAS 和普通下载沿用上游路径，寄件文件使用其授权后端。
             return response_from_download(await get_stored_download(file_code, self._file_storage))
 
     async def preview_file(self, file_id: int, max_chars: int = 4000):
@@ -1432,7 +1427,8 @@ class FileService:
         preview = content[:max_chars]
         return {
             "id": file_code.id,
-            "code": file_code.code,
+            "code": "" if file_code.is_private else file_code.code,
+            "is_private": file_code.is_private,
             "name": f"{file_code.prefix}{file_code.suffix}",
             "type": "text",
             "content": preview,
@@ -1462,7 +1458,6 @@ class FileService:
             suffix=suffix,
             uuid_file_name=local_file.file,
             file_path=LOCAL_REF_MARKER,
-            storage_type="local",
             size=local_file.size or 0,
             expired_at=expired_at,
             expired_count=expired_count,
@@ -1477,20 +1472,6 @@ class FileService:
 
 
 class ConfigService:
-    # 2023 设置页仍使用迁移前的字段名；仅在旧管理接口边界转换，存储保持 snake_case。
-    LEGACY_CONFIG_FIELDS = {
-        "errorCount": "error_count",
-        "errorMinute": "error_minute",
-        "expireStyle": "expire_style",
-        "openUpload": "open_upload",
-        "robotsText": "robots_text",
-        "showAdminAddr": "show_admin_addr",
-        "themesChoices": "themes_choices",
-        "themesSelect": "themes_select",
-        "uploadCount": "upload_count",
-        "uploadMinute": "upload_minute",
-        "uploadSize": "upload_size",
-    }
     INT_FIELDS = {
         "admin_session_expire",
         "enable_chunk",
@@ -1514,44 +1495,21 @@ class ConfigService:
     }
     FLOAT_FIELDS = {"opacity"}
 
-    def get_config(self, *, legacy: bool = False):
+    def get_config(self):
         config = dict(settings.items())
         config["admin_token"] = ""
         for key in INTERNAL_CONFIG_KEYS:
             config.pop(key, None)
-        if legacy:
-            # 每个配置只返回一种键名，避免旧页面整表提交时携带两个互相冲突的值。
-            for old_key, current_key in self.LEGACY_CONFIG_FIELDS.items():
-                config[old_key] = config.pop(current_key)
         return config
 
     async def update_config(self, data: dict):
         current_config = dict(settings.items())
         next_config = dict(current_config)
-        # 必须在白名单过滤前转换，否则旧主题保存成功但主题、上传限制等实际未更新。
-        normalized_data = dict(data)
-        for old_key, current_key in self.LEGACY_CONFIG_FIELDS.items():
-            if old_key not in normalized_data:
-                continue
-            value = normalized_data.pop(old_key)
-            if current_key in normalized_data and normalized_data[current_key] != value:
-                raise HTTPException(status_code=400, detail=f"{current_key} 配置值冲突")
-            normalized_data[current_key] = value
         update_data = {
             key: value
-            for key, value in normalized_data.items()
-            if key in settings.default_config
-            and key not in INTERNAL_CONFIG_KEYS
-            and key != "themes_choices"  # 主题清单由程序维护，兼容旧字段时也不能允许客户端改写。
+            for key, value in data.items()
+            if key in settings.default_config and key not in INTERNAL_CONFIG_KEYS
         }
-
-        # 与寄件目录采用相同规则，允许空前缀表示普通上传的默认日期目录。
-        if "storage_path" in update_data:
-            from core.path_validation import validate_storage_directory
-            try:
-                update_data["storage_path"] = validate_storage_directory(update_data["storage_path"], allow_empty=True)
-            except ValueError as exc:
-                raise HTTPException(422, str(exc)) from None
 
         admin_token = update_data.get("admin_token")
         admin_password_changed = False
