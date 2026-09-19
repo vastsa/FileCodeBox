@@ -4,9 +4,9 @@ aioboto3==15.5.0 \
     --hash=sha256:cc880c4d6a8481dd7e05da89f41c384dbd841454fc1998ae25ca9c39201437a6 \
     --hash=sha256:ea8d8787d315594842fbfcf2c4dce3bac2ad61be275bc8584b2ce9a3402a6979
     # via -r requirements.txt
-aiobotocore==2.25.1 \
-    --hash=sha256:ea9be739bfd7ece8864f072ec99bb9ed5c7e78ebb2b0b15f29781fbe02daedbc \
-    --hash=sha256:eb6daebe3cbef5b39a0bb2a97cffbe9c7cb46b2fcc399ad141f369f3c2134b1f
+aiobotocore==3.9.1 \
+    --hash=sha256:23aa448b4daff3fdce0714c962a2050b63c0222b5f2b5c17d0c874eb76a50ac0 \
+    --hash=sha256:617d4a78da5adb6ae7d532835727ad388f73555f2ef129b9de1b1add73a43ee6
     # via aioboto3
 aiofiles==25.1.0 \
     --hash=sha256:a8d728f0a29de45dc521f18f07297428d56992a742f0cd2701ba86e44d23d5b2 \
