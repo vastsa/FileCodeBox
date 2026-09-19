@@ -21,12 +21,14 @@
         <h2>创建寄件码</h2>
         <form id="create-form" class="grid">
           <label for="name">用途名称<input id="name" required maxlength="100" placeholder="例如：九月项目资料"></label>
-          <label for="new-code">自定义口令（可选）<input id="new-code" minlength="8" maxlength="64" pattern="[A-Za-z0-9_-]{8,64}" autocomplete="off" placeholder="留空自动生成安全口令"></label>
-          <label for="storage">存储类型<select id="storage"><option value="local">本地存储</option><option value="webdav">WebDAV</option><option value="s3">S3</option><option value="onedrive">OneDrive</option><option value="opendal">OpenDAL</option></select></label>
-          <label for="target">目标目录<input id="target" required maxlength="200" value="inbox" placeholder="例如 inbox/project-a"></label>
+          <label for="new-code">自定义口令（可选）<input id="new-code" minlength="8" maxlength="32" pattern="[A-Za-z0-9_-]{8,32}" autocomplete="off" placeholder="留空自动生成安全口令"></label>
+          <!-- 旧主题入口与设置页统一为三种存储，跟随系统是配置模式而不是额外存储。 -->
+          <label for="storage">存储类型<select id="storage"><option value="system">跟随系统设置</option><option value="local">本地存储</option><option value="s3">S3 对象存储</option><option value="webdav">WebDAV 存储</option></select></label>
+          <label id="target-label" for="target" hidden>目标目录<input id="target" maxlength="200" value="inbox" placeholder="例如 inbox/project-a"></label>
           <label for="expires">有效期至（本机时间）<input id="expires" type="datetime-local" required></label>
-          <label for="maximum">最多可投递文件数<input id="maximum" type="number" required min="1" max="100000" step="1" value="1"></label>
-          <p class="muted full">目录相对于所选存储的根目录。云存储/WebDAV 需先在原后台配置；已收到的文件不会随寄件码到期而删除。</p>
+          <!-- 每次成功分享扣一次，多文件打包和文本同样按一次寄件计费。 -->
+          <label for="maximum">最多可寄件次数<input id="maximum" type="number" required min="1" max="100000" step="1" value="1"></label>
+          <p class="muted full">默认使用设置中的存储方式和文件路径规则；自定义目录相对于所选存储的根目录。云存储/WebDAV 需先在原后台配置；每次成功分享扣一次（多文件打包算一次，文本也算一次）；寄件码期限不改变取件码期限。</p>
           <div class="full"><button type="submit">创建寄件码</button></div>
         </form>
         <div id="created" class="notice" hidden><strong>寄件码只在创建时显示，请现在保存。</strong><p><code id="created-code"></code> <button id="copy-code" class="quiet">复制口令</button></p><p id="copy-message" role="status"></p></div>

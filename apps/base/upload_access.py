@@ -22,7 +22,7 @@ class UploadAccess:
 async def authorize_upload(request: Request, authorization: str | None = Header(default=None)):
     """校验每一步的授权和会话归属，游客模式也不能访问寄件上传会话。"""
     from apps.admin.dependencies import share_required_login, verify_token
-    from apps.delivery.services import active_code, heartbeat
+    from apps.delivery.services import active_code, heartbeat, upload_identity
 
     access = UploadAccess()
     if authorization and authorization.startswith("Bearer "):
@@ -53,6 +53,8 @@ async def authorize_upload(request: Request, authorization: str | None = Header(
     # 耗尽口令已被回收时，原凭证只可取回自己已完成会话的结果，不能启动或续传文件。
     completed_retry = completion_request and access.record is not None and access.record.status == "shared"
     if access.code_id is not None and not completed_retry:
+        # 新上传和续传必须校验寄件码版本；改码后旧临时凭证不能再投递。
+        access.code_id = await upload_identity(authorization)
         await active_code(access.code_id)
 
     # 完成阶段原子抢占，避免并发合并或代理上传覆盖同一个已发布文件。
@@ -102,17 +104,20 @@ async def prepare_upload(access, file_name, file_size, upload_id):
     return record.token, f"{record.file_path}/{record.stored_name}"
 
 
-async def upload_storage(access=None):
+async def upload_storage(access=None, storage_type: str | None = None):
     """上传和合并均使用寄件码选定的存储，普通上传仍遵循全站设置。"""
     if access is not None and access.record is not None:
         from apps.delivery.storage import get_storage
         return await get_storage(access.record.storage_type)
-    return storages[settings.file_storage]()
+    # 普通会话一旦创建即使用其快照，NULL 仅兼容升级前尚未完成的会话。
+    return storages[storage_type or settings.file_storage]()
 
 
 async def create_upload_share(access=None, **fields):
     """共用普通取件记录；寄件扣次与关联记录提交必须处于同一事务。"""
     if access is None or access.record is None:
+        # 普通单文件上传在创建记录的同一时刻固化实际存储类型。
+        fields.setdefault("storage_type", settings.file_storage)
         return await FileCodes.create(**fields)
     # 授权适配层只传递身份，扣次及私有/公开收件事务集中在寄件业务层。
     from apps.delivery.services import commit_delivery

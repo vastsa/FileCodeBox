@@ -3,6 +3,7 @@
 import asyncio
 import hashlib
 import hmac
+import json
 import os
 import secrets
 import uuid
@@ -16,7 +17,7 @@ from tortoise.transactions import in_transaction
 from apps.admin.dependencies import create_token, verify_token
 from apps.base.file_validation import validate_upload_file
 from apps.base.models import DeliveryCode, DeliveryFile, FileCodes, KeyValue, UploadChunk, PresignUploadSession, StorageReservation
-from apps.base.utils import get_expire_info, validate_expire_style
+from apps.base.utils import build_file_path, get_expire_info, validate_expire_style
 from apps.base.quota import _sql_placeholders, reserve_storage
 from apps.delivery.storage import get_storage, validate_storage_config
 from core.logger import logger
@@ -36,7 +37,7 @@ def code_digest(code: str) -> str:
     return hmac.new(secret.encode(), ("delivery-code:" + code).encode(), hashlib.sha256).hexdigest()
 
 
-def upload_identity(authorization: str | None) -> int:
+async def upload_identity(authorization: str | None) -> int:
     """只接受用途为 delivery 的凭证；管理员 token 也不能被误当作寄件授权。"""
     if not authorization or not authorization.startswith("Bearer "):
         raise HTTPException(401, "请先验证寄件码")
@@ -44,7 +45,13 @@ def upload_identity(authorization: str | None) -> int:
         payload = verify_token(authorization[7:])
         if payload.get("purpose") != "delivery" or payload.get("is_admin"):
             raise ValueError("凭证用途错误")
-        return int(payload["delivery_id"])
+        code_id = int(payload["delivery_id"])
+        # 历史令牌按初始版本 1 解释；改码后同样会立即失效。
+        token_version = payload.get("delivery_version", 1)
+        record = await DeliveryCode.filter(id=code_id, owner_id="admin", deleted=False).first()
+        if record is None or int(token_version) != record.auth_version:
+            raise ValueError("寄件码已修改")
+        return code_id
     except (ValueError, TypeError, KeyError):
         raise HTTPException(401, "寄件凭证无效或已过期，请重新验证寄件码") from None
 
@@ -58,13 +65,14 @@ async def active_code(code_id: int) -> DeliveryCode:
 
 async def create_code(data):
     """创建时保存原文，便于管理员后续查看；访客响应仍不提供任何口令列表。"""
-    validate_storage_config(data.storage_type)
+    validate_storage_config(settings.file_storage if data.storage_type == "system" else data.storage_type)
     code = data.code or "".join(secrets.choice("ABCDEFGHJKLMNPQRSTUVWXYZ23456789") for _ in range(16))
     try:
         record = await DeliveryCode.create(
             code_digest=code_digest(code), code_value=code, name=data.name, owner_id="admin",
             storage_type=data.storage_type, target_path=data.target_path,
             expires_at=data.expires_at, max_uploads=data.max_uploads,
+            note=data.note, tags=data.tags,
         )
     except IntegrityError:
         raise HTTPException(409, "该寄件码已被使用，请设置其他口令") from None
@@ -86,6 +94,7 @@ async def code_summary(record):
     return {
         "id": record.id, "name": record.name, "storage_type": record.storage_type,
         "code": record.code_value,
+        "note": record.note, "tags": record.tags if isinstance(record.tags, list) else [],
         "target_path": record.target_path, "expires_at": record.expires_at,
         "max_uploads": record.max_uploads, "used_count": record.used_count,
         "reserved_count": record.reserved_count, "enabled": record.enabled,
@@ -107,7 +116,10 @@ async def verify_code(code: str):
     if record.code_value is None:
         await DeliveryCode.filter(id=record.id, code_value__isnull=True).update(code_value=code)
     # 凭证仅含寄件 ID，不携带 is_admin、目标路径或下载口令。
-    token = create_token({"purpose": "delivery", "delivery_id": record.id}, expires_in=TOKEN_TTL)
+    token = create_token(
+        {"purpose": "delivery", "delivery_id": record.id, "delivery_version": record.auth_version},
+        expires_in=TOKEN_TTL,
+    )
     return {
         "token": token, "expires_in": TOKEN_TTL, "name": record.name,
         "remaining": remaining, "expires_at": record.expires_at,
@@ -131,9 +143,16 @@ async def reserve_slot(code_id: int):
         if count != 1:
             raise HTTPException(409, "寄件码已失效或没有剩余上传次数")
         code = await DeliveryCode.get(id=code_id).using_db(conn)
+        # 只在新上传预占时解析系统配置并快照；续传、下载和清理沿用记录中的实际位置。
+        storage_type = code.storage_type
+        target_path = code.target_path
+        if storage_type == "system":
+            storage_type = settings.file_storage
+            validate_storage_config(storage_type)
+            target_path, *_ = await build_file_path("delivery", uuid.uuid4().hex)
         return await DeliveryFile.create(
             delivery_id=code.id, owner_id="admin", token=uuid.uuid4().hex,
-            file_path=code.target_path, storage_type=code.storage_type, using_db=conn,
+            file_path=target_path, storage_type=storage_type, using_db=conn,
         )
 
 
@@ -319,6 +338,8 @@ async def commit_delivery(record, share_fields=None):
         share = None
         if share_fields is not None:
             fields = dict(share_fields)
+            # 取件记录保存寄件时解析后的存储类型，后续读取和清理不依赖可变全局设置。
+            fields["storage_type"] = record.storage_type
             # 存储名保证唯一，显示名、文本分享和原取件规则保持不变。
             if "text" not in fields:
                 fields["prefix"], fields["suffix"] = os.path.splitext(record.filename)
@@ -344,3 +365,134 @@ def recyclable_codes():
     return DeliveryCode.filter(owner_id="admin").filter(
         Q(deleted=True) | Q(reserved_count=0, used_count__gte=F("max_uploads"))
     )
+
+
+async def update_code(code_id, data):
+    """原子更新可编辑配置，改码时同步撤销当前版本的临时寄件凭证。"""
+    async with in_transaction() as conn:
+        record = await DeliveryCode.filter(id=code_id, owner_id="admin", deleted=False).using_db(conn).first()
+        if not record:
+            raise HTTPException(404, "寄件码不存在或已删除")
+        changes = data.model_dump(exclude_unset=True)
+        new_code = changes.pop("code", "")
+        # 空值和省略均保持历史口令，因此此前 32 位以上的旧码仍可继续使用。
+        if "expires_at" in changes and changes["expires_at"] <= await get_now():
+            # 兼容旧管理页完整回传过期时间：未改变期限时允许只编辑备注等字段。
+            if changes["expires_at"] != record.expires_at:
+                raise HTTPException(400, "新的有效期必须晚于当前时间")
+        max_uploads = changes.get("max_uploads", record.max_uploads)
+        if record.used_count + record.reserved_count > max_uploads:
+            raise HTTPException(409, "上传总次数不能小于已使用次数与上传中占用次数之和，请刷新后重试")
+        storage_requested = "storage_type" in changes or "target_path" in changes
+        storage_type = changes.get("storage_type", record.storage_type)
+        target_path = changes.get("target_path", record.target_path)
+        if storage_type == "system":
+            target_path = ""
+        elif not target_path:
+            raise HTTPException(400, "自定义存储位置必须填写目标目录")
+        # 整理名称或元数据时不依赖当前后端配置；仅实际改存储设置才重新校验。
+        if storage_requested and (storage_type != record.storage_type or target_path != record.target_path):
+            validate_storage_config(settings.file_storage if storage_type == "system" else storage_type)
+            changes["storage_type"] = storage_type
+            changes["target_path"] = target_path
+        if new_code and new_code != record.code_value:
+            # 版本由数据库递增，两个改码请求并发时任一旧令牌都不会被错误复用。
+            changes.update(code_digest=code_digest(new_code), code_value=new_code, auth_version=True)
+        if changes:
+            try:
+                # 条件写入把已用和预占次数与配置修改放入同一语句，避免并发上传越过新额度。
+                bound_fields = [field for field in changes if field != "auth_version"]
+                placeholders = _sql_placeholders(len(bound_fields) + 2)
+                assignments = ", ".join(f"{field} = {placeholders[index]}" for index, field in enumerate(bound_fields))
+                if "auth_version" in changes:
+                    assignments += ", auth_version = auth_version + 1"
+                changed, _ = await conn.execute_query(
+                    f"UPDATE deliverycode SET {assignments} WHERE id = {placeholders[-2]} "
+                    f"AND owner_id = 'admin' AND deleted = 0 "
+                    f"AND used_count + reserved_count <= {placeholders[-1]}",
+                    [json.dumps(changes[field], ensure_ascii=False) if field == "tags" else changes[field]
+                     for field in bound_fields] + [record.id, max_uploads],
+                )
+                if changed != 1:
+                    raise HTTPException(409, "上传次数已变化，请刷新后重试")
+            except IntegrityError:
+                raise HTTPException(409, "该寄件码已被使用，请设置其他口令") from None
+        record = await DeliveryCode.get(id=record.id).using_db(conn)
+        return await code_summary(record)
+
+
+async def list_codes(*, keyword="", status="all", storage_type="all", tag="", sort_by="created_at", sort_order="desc"):
+    """在服务层统一筛选与排序，分页前得到的 total 与列表结果保持一致。"""
+    if status not in {"all", "active", "disabled", "expired", "exhausted"}:
+        raise HTTPException(400, "不支持的寄件码状态筛选")
+    if storage_type not in {"all", "system", "local", "s3", "webdav"}:
+        raise HTTPException(400, "不支持的存储类型筛选")
+    if sort_by not in {"created_at", "expires_at", "name", "code", "used_count", "max_uploads"} or sort_order not in {"asc", "desc"}:
+        raise HTTPException(400, "不支持的排序方式")
+    items = [await code_summary(record) for record in await DeliveryCode.filter(owner_id="admin", deleted=False)]
+    keyword, tag = keyword.strip().lower(), tag.strip().lower()
+    def matched(item):
+        if status != "all" and item["status"] != status:
+            return False
+        if storage_type != "all" and item["storage_type"] != storage_type:
+            return False
+        if tag and tag not in {str(value).lower() for value in item["tags"]}:
+            return False
+        values = [item["name"], item["code"], item["note"], *item["tags"]]
+        return not keyword or any(keyword in str(value).lower() for value in values if value)
+    items = [item for item in items if matched(item)]
+    def sort_value(item):
+        value = item.get(sort_by)
+        if sort_by in {"created_at", "expires_at"}:
+            primary = value.timestamp() if value is not None else float("-inf")
+        elif sort_by in {"used_count", "max_uploads"}:
+            primary = int(value or 0)
+        else:
+            primary = str(value or "").casefold()
+        return primary, item["id"]
+    items.sort(key=sort_value, reverse=sort_order == "desc")
+    return items
+
+
+async def batch_codes(data):
+    """批量操作在同一事务中先完整校验，任一记录不合法时整批不变更。"""
+    async with in_transaction() as conn:
+        records = await DeliveryCode.filter(id__in=data.ids, owner_id="admin", deleted=False).using_db(conn)
+        by_id = {record.id: record for record in records}
+        missing = [str(code_id) for code_id in data.ids if code_id not in by_id]
+        if missing:
+            raise HTTPException(404, "寄件码不存在、已删除或不属于当前管理员：" + "、".join(missing))
+        if data.action == "update":
+            now = await get_now()
+            if data.expires_at is not None and data.expires_at <= now:
+                raise HTTPException(400, "新的有效期必须晚于当前时间")
+            if data.max_uploads is not None:
+                invalid = [str(record.id) for record in records if record.used_count + record.reserved_count > data.max_uploads]
+                if invalid:
+                    raise HTTPException(409, "上传次数不能小于已使用和上传中占用次数，受影响寄件码：" + "、".join(invalid))
+        if data.action == "delete":
+            await DeliveryCode.filter(id__in=data.ids, owner_id="admin").using_db(conn).delete()
+            return {"message": "已删除寄件码，已收文件和取件码不受影响", "count": len(data.ids)}
+        changes = {"enabled": data.action == "enable"} if data.action in {"enable", "disable"} else {}
+        if data.action == "update":
+            if data.expires_at is not None:
+                changes["expires_at"] = data.expires_at
+            if data.max_uploads is not None:
+                changes["max_uploads"] = data.max_uploads
+        # 批量条件写入必须覆盖全部记录，防止并发上传使其中一个新额度失效。
+        placeholders = _sql_placeholders(len(changes) + len(data.ids))
+        assignments = ", ".join(f"{field} = {placeholders[index]}" for index, field in enumerate(changes))
+        id_placeholders = ", ".join(placeholders[len(changes):])
+        condition = ""
+        values = list(changes.values()) + data.ids
+        if data.action == "update" and data.max_uploads is not None:
+            # max_uploads 是 update 时第一个或第二个字段，改用其实际占位符。
+            condition = f" AND used_count + reserved_count <= {placeholders[list(changes).index('max_uploads')]}"
+        changed, _ = await conn.execute_query(
+            f"UPDATE deliverycode SET {assignments} WHERE id IN ({id_placeholders}) "
+            f"AND owner_id = 'admin' AND deleted = 0{condition}", values,
+        )
+        if changed != len(data.ids):
+            raise HTTPException(409, "寄件码状态已变化，请刷新后重试")
+        result = await DeliveryCode.filter(id__in=data.ids, owner_id="admin", deleted=False).using_db(conn)
+        return {"items": [await code_summary(record) for record in result], "count": len(result)}

@@ -33,7 +33,7 @@ async function loadCodes() {
   if (!result.items.length) emptyRow($('codes'), 6, '还没有寄件码。创建后即可邀请对方投递。');
   for (const item of result.items) {
     const row = $('codes').insertRow();
-    cell(row, `${item.name} #${item.id}`); cell(row, `${item.storage_type} · ${item.target_path}`); cell(row, date(item.expires_at));
+    cell(row, `${item.name} #${item.id}`); cell(row, item.storage_type === 'system' ? '跟随系统设置' : `${item.storage_type} · ${item.target_path}`); cell(row, date(item.expires_at));
     const badge = document.createElement('span'); badge.className = 'badge'; badge.textContent = stateNames[item.status] || item.status; row.insertCell().append(badge);
     cell(row, `${item.used_count} / ${item.reserved_count} / ${item.max_uploads}`);
     const actions = row.insertCell(); actions.className = 'actions';
@@ -92,7 +92,7 @@ $('login-form').addEventListener('submit', async event => {
 $('create-form').addEventListener('submit', async event => {
   event.preventDefault(); const button=event.submitter; button.disabled=true; $('created').hidden=true;
   try {
-    const result=await request('/codes', {method:'POST', json:{name:$('name').value, code:$('new-code').value.trim(), storage_type:$('storage').value, target_path:$('target').value, expires_at:new Date($('expires').value).toISOString(), max_uploads:Number($('maximum').value)}});
+    const result=await request('/codes', {method:'POST', json:{name:$('name').value, code:$('new-code').value.trim(), storage_type:$('storage').value, target_path:$('storage').value === 'system' ? '' : $('target').value, expires_at:new Date($('expires').value).toISOString(), max_uploads:Number($('maximum').value)}});
     $('created-code').textContent=result.code; $('created').hidden=false; $('copy-message').textContent=''; $('new-code').value='';
     page=1; message($('message'),'寄件码已创建，请保存下方口令并发给投递人。'); await loadCodes();
   } catch(error) { report(error); } finally { button.disabled=false; }
@@ -140,3 +140,10 @@ async function copyCreatedCode() {
     ? '已选中寄件码，请按 Ctrl+C（Mac 为 ⌘C），或长按选中文字后复制。'
     : '请选中上方寄件码，按 Ctrl+C（Mac 为 ⌘C），或长按文字复制。';
 }
+
+// 跟随系统模式隐藏目录输入；切回自定义后恢复必填，避免隐藏字段阻止提交。
+$('storage').addEventListener('change', () => {
+  const custom = $('storage').value !== 'system';
+  $('target-label').hidden = !custom;
+  $('target').required = custom;
+});

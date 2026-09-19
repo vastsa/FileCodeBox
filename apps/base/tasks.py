@@ -20,7 +20,7 @@ from core.logger import logger
 from core.settings import settings, data_root
 from core.storage import FileStorageInterface, StoredFile, storages
 from apps.base.services import stored_file_of
-from apps.base.share_storage import remove_delivery_share
+from apps.base.share_storage import remove_delivery_share, storage_for_share
 from core.utils import get_now
 
 
@@ -28,7 +28,6 @@ async def delete_expire_files():
     while True:
         try:
             await refresh_settings()
-            file_storage = None
             # 遍历 share目录下的所有文件夹，删除空的文件夹，并判断父目录是否为空，如果为空也删除
             if settings.file_storage == "local":
                 for root, dirs, files in os.walk(f"{data_root}/share/data"):
@@ -50,11 +49,13 @@ async def delete_expire_files():
                     logger.warning("寄件分享过期清理失败 id=%s", exp.id, exc_info=True)
                     continue
                 try:
-                    if file_storage is None:
-                        file_storage = storages[settings.file_storage]()
-                    await file_storage.delete_file(stored_file_of(exp))
+                    # 文本内容只在数据库中；普通文件按快照清理，历史 NULL 才兼容旧设置。
+                    if exp.text is None:
+                        await (await storage_for_share(exp)).delete_file(stored_file_of(exp))
                 except Exception as e:
                     logger.error(f"删除过期文件失败 code={exp.code}: {e}")
+                    # 文件定位或后端异常时保留记录，下一轮按同一快照重试。
+                    continue
                 try:
                     await exp.delete()
                 except Exception as e:
@@ -69,7 +70,6 @@ async def clean_incomplete_uploads():
     while True:
         try:
             await refresh_settings()
-            file_storage: FileStorageInterface = storages[settings.file_storage]()
             expire_hours = getattr(settings, "chunk_expire_hours", 24)
             now = await get_now()
             expire_time = now - datetime.timedelta(hours=expire_hours)
@@ -84,7 +84,8 @@ async def clean_incomplete_uploads():
                         _, _, _, _, save_path = await get_chunk_file_path_name(
                             session.file_name, session.upload_id
                         )
-                    await file_storage.clean_chunks(session.upload_id, save_path)
+                    storage = storages[session.storage_type or settings.file_storage]()
+                    await storage.clean_chunks(session.upload_id, save_path)
                 except Exception as e:
                     logger.error(
                         f"清理分片文件失败 upload_id={session.upload_id}: {e}"
@@ -111,7 +112,6 @@ async def clean_expired_presign_sessions():
     while True:
         try:
             await refresh_settings()
-            storage: FileStorageInterface = storages[settings.file_storage]()
             now = await get_now()
             expired_sessions = await PresignUploadSession.filter(
                 expires_at__lt=now
@@ -119,6 +119,7 @@ async def clean_expired_presign_sessions():
             for session in expired_sessions:
                 if session.mode == "direct":
                     try:
+                        storage = storages[session.storage_type or settings.file_storage]()
                         if await storage.file_exists(session.save_path):
                             await storage.delete_file(
                                 StoredFile(

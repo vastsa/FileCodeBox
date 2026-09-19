@@ -15,7 +15,7 @@ from apps.base.pages import theme_has_delivery_ui
 from apps.base.services import response_from_download
 from apps.base.utils import ip_limit
 from apps.delivery import services
-from apps.delivery.schemas import CreateDeliveryCode, SetDeliveryEnabled, VerifyDeliveryCode, DeliveryShareOptions
+from apps.delivery.schemas import BatchDeliveryCodes, CreateDeliveryCode, SetDeliveryEnabled, UpdateDeliveryCode, VerifyDeliveryCode, DeliveryShareOptions
 from apps.delivery.storage import get_storage
 from core.errors import StorageError
 from core.logger import logger
@@ -49,7 +49,7 @@ async def verify(data: VerifyDeliveryCode, request: Request):
 
 @public_api.post("/upload")
 async def upload(request: Request, authorization: str | None = Header(default=None)):
-    code_id = services.upload_identity(authorization)
+    code_id = await services.upload_identity(authorization)
     await services.active_code(code_id)
     ip = ip_limit["upload"](request)
     ip_limit["upload"].add_ip(ip)
@@ -96,12 +96,14 @@ async def upload(request: Request, authorization: str | None = Header(default=No
 
 
 @admin_api.get("/codes")
-async def list_codes(page: int = Query(1, ge=1), page_size: int = Query(20, ge=1, le=100)):
-    # 旧撤销标记仅用于迁移清理，不再提供已删除寄件码的回收视图。
-    query = DeliveryCode.filter(owner_id="admin", deleted=False)
-    total = await query.count()
-    records = await query.order_by("-id").offset((page - 1) * page_size).limit(page_size)
-    return APIResponse(detail={"items": [await services.code_summary(item) for item in records], "total": total})
+async def list_codes(
+    page: int = Query(1, ge=1), page_size: int = Query(20, ge=1, le=100), keyword: str = "",
+    status: str = "all", storage_type: str = "all", tag: str = "", sort_by: str = "created_at", sort_order: str = "desc",
+):
+    # 在切片前统一完成筛选排序，total 与当前查询条件下的项目数一致。
+    items = await services.list_codes(keyword=keyword, status=status, storage_type=storage_type, tag=tag, sort_by=sort_by, sort_order=sort_order)
+    start = (page - 1) * page_size
+    return APIResponse(detail={"items": items[start:start + page_size], "total": len(items)})
 
 
 @admin_api.post("/codes", status_code=201)
@@ -215,3 +217,15 @@ async def asset(filename: str):
     if filename not in {"delivery.css", "delivery.js", "admin.js", "common.js", "entry.js", "entry.css", "logo.svg"}:
         raise HTTPException(404, "资源不存在")
     return FileResponse(STATIC / filename, headers={"Cache-Control": "no-cache", "X-Content-Type-Options": "nosniff"})
+
+
+@admin_api.put("/codes/{code_id}")
+async def update_config(code_id: int, data: UpdateDeliveryCode):
+    """管理员编辑配置，启停操作仍使用兼容的 PATCH 接口。"""
+    return APIResponse(detail=await services.update_code(code_id, data))
+
+
+@admin_api.post("/codes/batch")
+async def batch_codes(data: BatchDeliveryCodes):
+    """批量启停、删除或调整期限和额度，不修改其他寄件配置。"""
+    return APIResponse(detail=await services.batch_codes(data))

@@ -16,10 +16,11 @@ from core.settings import (
     settings,
 )
 from apps.base.config import refresh_settings
+from apps.base.metadata import normalize_metadata_note, normalize_metadata_tags
 from apps.base.services import response_from_download, stored_file_of
 from core.security import INTERNAL_CONFIG_KEYS, generate_jwt_secret
 from apps.base.models import DeliveryCode, DeliveryFile, FileCodes, KeyValue
-from apps.base.share_storage import remove_delivery_share, storage_for_share
+from apps.base.share_storage import remove_delivery_share, storage_for_share, storage_type_for_share
 from apps.base.utils import get_expire_info, get_file_path_name
 from apps.base.quota import release_storage, reserve_storage
 from fastapi import HTTPException
@@ -103,7 +104,8 @@ class FileService:
         if await remove_delivery_share(file_code):
             return
         if file_code.text is None:
-            await self.file_storage.delete_file(stored_file_of(file_code))
+            storage = await storage_for_share(file_code, self._file_storage)
+            await storage.delete_file(stored_file_of(file_code))
         await KeyValue.filter(key=self._file_metadata_key(file_code.id)).delete()
         await file_code.delete()
 
@@ -677,6 +679,10 @@ class FileService:
             is_text=is_text,
         )
 
+        # 详情展示记录实际后端；历史普通文件没有可靠来源时显示 unknown。
+        actual_storage_type = await storage_type_for_share(file_code)
+        # 未知来源以 NULL 交给前端本地化，不能直接输出英文文案。
+        display_storage_type = actual_storage_type
         detail.update(
             {
                 "filename": detail["name"],
@@ -687,7 +693,7 @@ class FileService:
                 "text_length": text_length,
                 "can_preview_text": is_text,
                 "can_download": can_download,
-                "storage_backend": settings.file_storage,
+                "storage_backend": display_storage_type,
                 "file_path": file_code.file_path,
                 "uuid_file_name": file_code.uuid_file_name,
                 "upload_id": file_code.upload_id,
@@ -699,7 +705,7 @@ class FileService:
                     "is_permanent": is_permanent,
                 },
                 "storage": {
-                    "backend": settings.file_storage,
+                    "backend": display_storage_type,
                     "file_path": file_code.file_path,
                     "uuid_file_name": file_code.uuid_file_name,
                     "file_hash": file_code.file_hash,
@@ -722,33 +728,12 @@ class FileService:
         return detail
 
     def _normalize_metadata_note(self, note: Optional[str]) -> str:
-        if note is None:
-            return ""
-        return str(note).strip()[: self.MAX_METADATA_NOTE_LENGTH]
+        # 与寄件管理共用规则，避免两个后台的备注长度和裁剪行为不一致。
+        return normalize_metadata_note(note)
 
     def _normalize_metadata_tags(self, tags: Any) -> list[str]:
-        if not tags:
-            return []
-        if isinstance(tags, str):
-            tags = [tags]
-        elif not isinstance(tags, list):
-            return []
-
-        normalized_tags = []
-        seen_tags = set()
-        for raw_tag in tags:
-            tag = str(raw_tag).strip()
-            if not tag:
-                continue
-            tag = tag[: self.MAX_METADATA_TAG_LENGTH]
-            dedupe_key = tag.lower()
-            if dedupe_key in seen_tags:
-                continue
-            seen_tags.add(dedupe_key)
-            normalized_tags.append(tag)
-            if len(normalized_tags) >= self.MAX_METADATA_TAGS:
-                break
-        return normalized_tags
+        # 标签数量、长度和忽略大小写去重统一由公共模块维护。
+        return normalize_metadata_tags(tags)
 
     def _normalize_file_metadata(self, metadata: Any) -> dict[str, Any]:
         if not isinstance(metadata, dict):
@@ -1459,6 +1444,9 @@ class FileService:
             raise HTTPException(status_code=404, detail="文件不存在")
 
         reservation_token = f"local:{uuid.uuid4().hex}"
+        # 在读取和写入之间固定实际后端，避免管理端上传遇到设置切换而记录错位。
+        storage_type = settings.file_storage
+        storage = storages[storage_type]()
         await reserve_storage(reservation_token, local_file.size, ttl_seconds=3600)
         try:
             data = await local_file.read()  # bytes（read 内部用 with 关闭句柄）
@@ -1468,7 +1456,7 @@ class FileService:
             path, suffix, prefix, uuid_file_name, save_path = await get_file_path_name(
                 item
             )
-            await self.file_storage.save_file(io.BytesIO(data), save_path)
+            await storage.save_file(io.BytesIO(data), save_path)
             try:
                 await FileCodes.create(
                     code=code,
@@ -1480,9 +1468,11 @@ class FileService:
                     expired_at=expired_at,
                     expired_count=expired_count,
                     used_count=used_count,
+                    # 管理端本地文件分享同样固定保存时的真实后端。
+                    storage_type=storage_type,
                 )
             except Exception:
-                await self.file_storage.delete_file(
+                await storage.delete_file(
                     StoredFile(file_path=path, uuid_file_name=uuid_file_name)
                 )
                 raise
@@ -1563,6 +1553,14 @@ class ConfigService:
             and key not in INTERNAL_CONFIG_KEYS
             and key != "themes_choices"  # 主题清单由程序维护，兼容旧字段时也不能允许客户端改写。
         }
+
+        # 与寄件目录采用相同规则，允许空前缀表示普通上传的默认日期目录。
+        if "storage_path" in update_data:
+            from core.path_validation import validate_storage_directory
+            try:
+                update_data["storage_path"] = validate_storage_directory(update_data["storage_path"], allow_empty=True)
+            except ValueError as exc:
+                raise HTTPException(422, str(exc)) from None
 
         admin_token = update_data.get("admin_token")
         admin_password_changed = False

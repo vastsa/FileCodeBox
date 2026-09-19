@@ -30,6 +30,8 @@ class FileCodes(models.Model):
     file_hash = fields.CharField(max_length=64, null=True)
     is_chunked = fields.BooleanField(default=False)
     upload_id = fields.CharField(max_length=36, null=True)
+    # 普通文件创建时固定实际后端；历史记录没有可靠来源时保留 NULL。
+    storage_type = fields.CharField(max_length=20, null=True)
 
     async def is_expired(self):
         if self.expired_at is None:
@@ -52,6 +54,8 @@ class UploadChunk(models.Model):
     chunk_size = fields.IntField()
     file_name = fields.CharField(max_length=255)
     save_path = fields.CharField(max_length=512, null=True)
+    # 分片会话必须固定后端，避免全站设置切换后续传或清理到错误位置。
+    storage_type = fields.CharField(max_length=20, null=True)
     created_at = fields.DatetimeField(auto_now_add=True)
     completed = fields.BooleanField(default=False)
 
@@ -75,6 +79,8 @@ class PresignUploadSession(models.Model):
     file_name = fields.CharField(max_length=255)
     file_size = fields.BigIntField()
     save_path = fields.CharField(max_length=512)
+    # 直传 URL、代理上传和会话清理均使用初始化时确定的后端。
+    storage_type = fields.CharField(max_length=20, null=True)
     mode = fields.CharField(max_length=10)  # "direct" 或 "proxy"
     expire_value = fields.IntField(default=1)
     expire_style = fields.CharField(max_length=20, default="day")
@@ -102,8 +108,13 @@ class DeliveryCode(models.Model):
     code_digest = fields.CharField(max_length=64, unique=True)
     # 与普通取件码一样保留原文供管理员管理；旧记录为 NULL，不能从摘要反推。
     code_value = fields.CharField(max_length=64, null=True)
+    # 改码时递增，令牌携带该版本后可立即撤销旧寄件授权。
+    auth_version = fields.IntField(default=1)
     name = fields.CharField(max_length=100)
+    note = fields.CharField(max_length=2000, default="")
+    tags = fields.JSONField(default=list)
     owner_id = fields.CharField(max_length=64, default="admin", index=True)
+    # system 仅标记寄件码跟随设置，实际收件记录始终保存解析后的存储类型与目录。
     storage_type = fields.CharField(max_length=20)
     target_path = fields.CharField(max_length=200)
     expires_at = fields.DatetimeField()
@@ -126,7 +137,8 @@ class DeliveryFile(models.Model):
     token = fields.CharField(max_length=64, unique=True)
     filename = fields.CharField(max_length=255, default="")
     stored_name = fields.CharField(max_length=255, default="")
-    file_path = fields.CharField(max_length=200)
+    # system 路径可包含 share/data 日期目录及唯一文件名，长度与普通文件路径对齐。
+    file_path = fields.CharField(max_length=255)
     storage_type = fields.CharField(max_length=20)
     size = fields.BigIntField(default=0)
     status = fields.CharField(max_length=20, default="pending", index=True)

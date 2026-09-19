@@ -348,6 +348,8 @@ async def init_chunk_upload(data: InitChunkUploadModel = Depends(parse_init_chun
             )
 
     # 创建新的上传会话
+    # 普通会话在任何异步准备前先固定后端，避免设置切换穿透到本次会话。
+    initial_storage_type = settings.file_storage
     upload_id = uuid.uuid4().hex
     upload_id, delivery_path = await prepare_upload(access, safe_file_name, data.file_size, upload_id)
     reservation_token = f"chunk:{upload_id}"
@@ -359,6 +361,8 @@ async def init_chunk_upload(data: InitChunkUploadModel = Depends(parse_init_chun
         data.file_name, upload_id
     )
     try:
+        # 普通分片会话在初始化时固定后端，寄件会话沿用收件记录的实际后端。
+        storage_type = access.record.storage_type if access is not None and access.record is not None else initial_storage_type
         await UploadChunk.create(
             upload_id=upload_id,
             chunk_index=-1,
@@ -368,6 +372,7 @@ async def init_chunk_upload(data: InitChunkUploadModel = Depends(parse_init_chun
             chunk_hash=data.file_hash,
             file_name=safe_file_name,
             save_path=delivery_path or save_path,
+            storage_type=storage_type,
         )
     except Exception:
         await abort_access(access)
@@ -453,7 +458,12 @@ async def upload_chunk(
     save_path = chunk_info.save_path
 
     # 保存分片到存储
-    storage = await upload_storage(access)
+    # 旧会话首次续传后补写快照；本请求及之后都使用同一个后端。
+    storage_type = chunk_info.storage_type or settings.file_storage
+    if chunk_info.storage_type is None:
+        await UploadChunk.filter(upload_id=upload_id).update(storage_type=storage_type)
+        chunk_info.storage_type = storage_type
+    storage = await upload_storage(access, storage_type)
     try:
         await storage.save_chunk(
             upload_id, chunk_index, chunk_data, chunk_hash, save_path
@@ -475,6 +485,7 @@ async def upload_chunk(
             "chunk_size": chunk_info.chunk_size,
             "file_name": chunk_info.file_name,
             "save_path": chunk_info.save_path,
+            "storage_type": storage_type,
         },
     )
     return APIResponse(detail={"chunk_hash": chunk_hash})
@@ -493,7 +504,7 @@ async def cancel_upload(upload_id: str, access: Annotated[UploadAccess, Depends(
     save_path = chunk_info.save_path
 
     # 清理存储中的临时文件
-    storage = await upload_storage(access)
+    storage = await upload_storage(access, chunk_info.storage_type or settings.file_storage)
     if save_path:
         try:
             await storage.clean_chunks(upload_id, save_path)
@@ -571,13 +582,26 @@ def build_proxy_upload_urls(upload_id: str) -> dict:
 
 
 async def _get_valid_session(
-    upload_id: str, expected_mode: Optional[str] = None
+    upload_id: str, expected_mode: Optional[str] = None, access: UploadAccess | None = None
 ) -> PresignUploadSession:
     """获取并验证会话"""
     session = await PresignUploadSession.filter(upload_id=upload_id).first()
     if not session:
         raise HTTPException(404, "上传会话不存在")
     if await session.is_expired():
+        # 请求触发的过期处理也必须使用会话快照，不能等待后台任务误用新设置。
+        if session.mode == "direct":
+            storage = await upload_storage(access, session.storage_type)
+            try:
+                if await storage.file_exists(session.save_path):
+                    await storage.delete_file(
+                        StoredFile(
+                            file_path=os.path.dirname(session.save_path),
+                            uuid_file_name=os.path.basename(session.save_path),
+                        )
+                    )
+            except Exception:
+                logger.warning("过期预签名会话：清理临时文件失败 upload_id=%s", upload_id, exc_info=True)
         await session.delete()
         await release_storage(f"presign:{upload_id}")
         raise HTTPException(404, "上传会话已过期")
@@ -599,6 +623,8 @@ async def presign_upload_init(
         )
     validate_expire_style(data.expire_style)
 
+    # 普通预签名会话在准备寄件记录和远端 URL 前固定实际后端。
+    initial_storage_type = settings.file_storage
     upload_id = uuid.uuid4().hex
     upload_id, delivery_path = await prepare_upload(access, data.file_name, data.file_size, upload_id)
     reservation_token = f"presign:{upload_id}"
@@ -611,7 +637,9 @@ async def presign_upload_init(
         )
         if delivery_path:
             save_path = delivery_path
-        storage: FileStorageInterface = await upload_storage(access)
+        # 预签名会话保存快照，后续代理、确认和清理不会受全站设置影响。
+        storage_type = access.record.storage_type if access is not None and access.record is not None else initial_storage_type
+        storage: FileStorageInterface = await upload_storage(access, storage_type)
         presigned_url = await storage.generate_presigned_upload_url(
             save_path, PRESIGN_SESSION_EXPIRES
         )
@@ -627,6 +655,7 @@ async def presign_upload_init(
             expire_value=data.expire_value,
             expire_style=data.expire_style,
             expires_at=await get_now() + timedelta(seconds=PRESIGN_SESSION_EXPIRES),
+            storage_type=storage_type,
         )
     except Exception:
         await abort_access(access)
@@ -658,7 +687,7 @@ async def presign_upload_proxy(
     result = await completed_upload(access)
     if result:
         return APIResponse(detail=result)
-    session = await _get_valid_session(upload_id, expected_mode="proxy")
+    session = await _get_valid_session(upload_id, expected_mode="proxy", access=access)
     code = await FileUploadService.commit_proxy_upload(session, file, access=access)
     ip_limit["upload"].add_ip(ip)
     return APIResponse(detail={"code": code, "name": session.file_name})
@@ -672,7 +701,7 @@ async def presign_upload_confirm(upload_id: str, access: Annotated[UploadAccess,
     result = await completed_upload(access)
     if result:
         return APIResponse(detail=result)
-    session = await _get_valid_session(upload_id, expected_mode="direct")
+    session = await _get_valid_session(upload_id, expected_mode="direct", access=access)
     code = await FileUploadService.confirm_direct_upload(session, access=access)
     ip_limit["upload"].add_ip(ip)
     return APIResponse(detail={"code": code, "name": session.file_name})
@@ -711,7 +740,7 @@ async def presign_upload_cancel(upload_id: str, access: Annotated[UploadAccess, 
         raise HTTPException(404, "上传会话不存在")
 
     if session.mode == "direct":
-        storage: FileStorageInterface = await upload_storage(access)
+        storage: FileStorageInterface = await upload_storage(access, session.storage_type)
         try:
             if await storage.file_exists(session.save_path):
                 temp_file_code = StoredFile(
