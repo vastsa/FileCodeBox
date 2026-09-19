@@ -90,6 +90,12 @@ def test_hostname_tier_rejects_url_forms(production_env):
         validate_outbound_hostname("http://127.0.0.1:9000")
 
 
+def test_hostname_tier_rejects_userinfo(production_env):
+    """存储层拼 https://{s3_hostname}，@ 会被当成 userinfo，实际连 @ 后的地址。"""
+    for hostname in ("evil.com@127.0.0.1", "attacker.example@127.0.0.1:8443"):
+        with pytest.raises(ValueError):
+            validate_outbound_hostname(hostname)
+
 @pytest.mark.asyncio
 class TestChangedOnlyEnforcement:
     """changed-only 集成回归：存量内网 endpoint 不得挡死无关设置保存。

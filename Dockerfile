@@ -59,16 +59,12 @@ COPY --from=frontend-builder /build/fronted-2023/dist ./themes/2023
 
 # 安装系统安全更新 + Python 依赖
 # 依赖从带哈希的锁定文件安装（--require-hashes），保证构建可复现、防供应链篡改。
-# gosu 用于入口脚本的数据卷属主修正后降权；清理 apt 缓存，降低镜像噪音与扫描面
+# 清理 apt 缓存，降低镜像噪音与扫描面
 RUN apt-get update \
  && apt-get upgrade -y --no-install-recommends \
- && apt-get install -y --no-install-recommends gosu \
  && rm -rf /var/lib/apt/lists/* \
  && pip install --no-cache-dir --require-hashes -r requirements.lock.txt \
  && pip cache purge || true
-
-# 非 root 运行用户；数据卷属主由 docker-entrypoint.sh 按需修正（兼容存量 root 卷）
-RUN useradd --system --uid 10001 --home-dir /app app
 
 # 环境变量配置
 ENV HOST="0.0.0.0" \
@@ -81,11 +77,8 @@ ENV HOST="0.0.0.0" \
 
 EXPOSE 12345
 
-COPY docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
-RUN chmod +x /usr/local/bin/docker-entrypoint.sh
-ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]
-
 # 生产环境启动命令
 # FORWARDED_ALLOW_IPS 默认为空：仅信任直连 IP，避免任意客户端伪造 X-Forwarded-*。
 # 若前面有反向代理，请显式设置为代理网段，例如 "10.0.0.0/8,172.16.0.0/12"。
+# 容器以 root 运行：兼容存量 root 属主的数据卷，以及 NAS/只读 bind mount。
 CMD ["sh", "-c", "access_log_arg=--no-access-log; if [ \"${APP_ENV:-development}\" != \"production\" ] || [ \"${ACCESS_LOG:-false}\" = \"true\" ]; then access_log_arg=--access-log; fi; exec uvicorn main:app --host \"$HOST\" --port \"$PORT\" --workers \"$WORKERS\" --log-level \"$LOG_LEVEL\" \"$access_log_arg\" --proxy-headers --forwarded-allow-ips \"${FORWARDED_ALLOW_IPS:-}\""]

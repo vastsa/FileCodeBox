@@ -96,14 +96,18 @@ async def not_found_handler(request, exc=None):
     （负路径测试抓到的存量 bug）。浏览器（Accept 含 text/html）仍拿到
     主题首页做 SPA 兜底；API 客户端拿到 JSON 404。
     """
-    if request is not None and request.method in {"GET", "HEAD"} and "text/html" in (
-        request.headers.get("accept", "")
-    ):
-        return await index(request, exc)
-    return JSONResponse(
+    json_404 = JSONResponse(
         status_code=404,
         content={"code": 404, "message": "Not Found", "detail": "资源不存在"},
     )
+    if request is not None and request.method in {"GET", "HEAD"} and "text/html" in (
+        request.headers.get("accept", "")
+    ):
+        try:
+            return await index(request, exc)
+        except HTTPException:
+            return json_404
+    return json_404
 
 
 @router.get("/")

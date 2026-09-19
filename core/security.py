@@ -155,8 +155,8 @@ def validate_outbound_hostname(value: Any) -> str:
     if os.environ.get("APP_ENV", "development") != "production":
         return hostname
 
-    if "://" in hostname or "/" in hostname:
-        raise ValueError(f"s3_hostname 应为裸主机名，不含协议或路径：{hostname}")
+    if "://" in hostname or "/" in hostname or "@" in hostname:
+        raise ValueError(f"s3_hostname 应为裸主机名，不含协议、路径或 userinfo：{hostname}")
     # 取主机部分：[v6] 形态取括号内；host:port 取冒号前；裸 IPv6（多个冒号）整体
     if "[" in hostname:
         host = hostname.split("[", 1)[1].split("]", 1)[0]

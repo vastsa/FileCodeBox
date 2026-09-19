@@ -138,9 +138,23 @@ class TestNotFoundHandlerBranches:
         assert "text/html" not in response.headers["content-type"]
 
     async def test_browser_accept_gets_theme_page(self, initialized_client):
-        response = await initialized_client.get("/no-such-path", headers={"Accept": "text/html"})
-        assert response.status_code == 200
-        assert "text/html" in response.headers["content-type"]
+        from core.settings import BASE_DIR
+
+        theme_dir = BASE_DIR / "themes" / "2024"
+        theme_dir.mkdir(parents=True, exist_ok=True)
+        index = theme_dir / "index.html"
+        created = not index.exists()
+        if created:
+            index.write_text("<!doctype html><title>{{title}}</title>", encoding="utf-8")
+        try:
+            response = await initialized_client.get(
+                "/no-such-path", headers={"Accept": "text/html"}
+            )
+            assert response.status_code == 200
+            assert "text/html" in response.headers["content-type"]
+        finally:
+            if created:
+                index.unlink(missing_ok=True)
 
     async def test_default_star_accept_gets_json_404(self, initialized_client):
         """curl 默认 */* 不含 text/html——必须走 JSON 分支（防误伤脚本调用方）。"""
