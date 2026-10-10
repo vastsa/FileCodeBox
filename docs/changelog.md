@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.8.2](https://github.com/vastsa/FileCodeBox/compare/v2.8.1...v2.8.2) (2026-10-10)
+
+
+### Bug Fixes
+
+* type MCP protocol results ([da374b4](https://github.com/vastsa/FileCodeBox/commit/da374b459537ee079e1d03da121a935c8fb18f0e))
+
 ## [2.8.1](https://github.com/vastsa/FileCodeBox/compare/v2.8.0...v2.8.1) (2026-10-10)
 
 
