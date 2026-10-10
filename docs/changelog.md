@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.8.1](https://github.com/vastsa/FileCodeBox/compare/v2.8.0...v2.8.1) (2026-10-10)
+
+
+### Bug Fixes
+
+* restore lint and Docker theme build ([2f5eab1](https://github.com/vastsa/FileCodeBox/commit/2f5eab18b1ab28fcb4f416248076ce574998d718))
+
 ## [2.8.0](https://github.com/vastsa/FileCodeBox/compare/v2.7.1...v2.8.0) (2026-10-10)
 
 
