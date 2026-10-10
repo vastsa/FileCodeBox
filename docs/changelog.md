@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.8.3](https://github.com/vastsa/FileCodeBox/compare/v2.8.2...v2.8.3) (2026-10-10)
+
+
+### Bug Fixes
+
+* remove HTML preview endpoint ([65f4929](https://github.com/vastsa/FileCodeBox/commit/65f4929d405408e1c9e58127e0097f8b78b1819f))
+
 ## [2.8.2](https://github.com/vastsa/FileCodeBox/compare/v2.8.1...v2.8.2) (2026-10-10)
 
 
