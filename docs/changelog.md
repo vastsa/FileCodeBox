@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.8.0](https://github.com/vastsa/FileCodeBox/compare/v2.7.1...v2.8.0) (2026-10-10)
+
+
+### Features
+
+* add MCP quick share and safe HTML preview ([63e72c1](https://github.com/vastsa/FileCodeBox/commit/63e72c145576d169265e4fa8cf373e33531a06a0))
+
 ## [2.7.1](https://github.com/vastsa/FileCodeBox/compare/v2.7.0...v2.7.1) (2026-09-19)
 
 

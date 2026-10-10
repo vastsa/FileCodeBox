@@ -1,7 +1,7 @@
 version: "3"
 services:
   file-code-box:
-    image: lanol/filecodebox:2.7.1 # x-release-please-version
+    image: lanol/filecodebox:2.8.0 # x-release-please-version
     volumes:
       - fcb-data:/app/data:rw
       # NAS 已有文件：把共享目录挂到 /app/data/local，即可在后台「本地分享」里生成提取码，无需再上传
