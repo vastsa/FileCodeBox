@@ -36,6 +36,11 @@ docker run -d --restart unless-stopped \
 ```
 
 Open `http://localhost:12345` and complete first-run setup. Pin a version in production; `latest` tracks the newest stable release.
+## MCP for AI clients
+
+FileCodeBox supports **MCP over Streamable HTTP**, allowing compatible AI clients to create text and file shares. Use `http://<your-server>:12345/mcp` (or `http://localhost:12345/mcp` for a local instance). No token is required by default. The available tools are `share_text` and `share_file`. If guest uploads are disabled or MCP token validation is enabled, configure `Authorization: Bearer <admin token>` in the client.
+
+See the [MCP integration guide](https://fcb-docs.aiuo.net/en/guide/mcp).
 
 ## Simple, yet capable
 
@@ -77,26 +82,6 @@ Open `http://localhost:12345` and complete first-run setup. Pin a version in pro
 - [Security](https://fcb-docs.aiuo.net/en/guide/security) · rate limits, sessions, and access protection
 - [API reference](https://fcb-docs.aiuo.net/en/api/) · upload, retrieval, and administration
 - [Frontend source](https://github.com/vastsa/FileCodeBoxFronted) · the active 2024 theme
-
-## Related projects
-
-If you enjoy self-hosted “box” tools, also check out this project from the same author:
-
-### [BokeBox](https://github.com/vastsa/BokeBox/) · Private AI Podcast Box
-
-Drop in videos, links, or drafts, and get listen-worthy personal podcasts with custom host persona and voice.
-
-<p align="center">
-  <a href="https://github.com/vastsa/BokeBox/">
-    <img src="./.github/images/readme/bokebox/banner_en.webp" alt="BokeBox banner" width="860" />
-  </a>
-</p>
-
-<p align="center">
-  <a href="https://github.com/vastsa/BokeBox/">
-    <img src="./.github/images/readme/bokebox/home_en.webp" alt="BokeBox home" width="860" />
-  </a>
-</p>
 
 ## Contributing
 

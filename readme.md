@@ -36,6 +36,11 @@ docker run -d --restart unless-stopped \
 ```
 
 访问 `http://localhost:12345`，完成首次初始化。生产环境建议固定版本号；`latest` 指向最新正式版。
+## AI 客户端与 MCP
+
+FileCodeBox 支持 **MCP Streamable HTTP**，可从兼容的 AI 客户端创建文本和文件分享。服务端点为 `http://<你的服务器地址>:12345/mcp`（本机部署可用 `http://localhost:12345/mcp`），默认无需 Token。工具包括 `share_text` 和 `share_file`。若关闭游客上传或启用 MCP Token 校验，客户端需配置 `Authorization: Bearer <管理员 Token>`。
+
+详见 [MCP 接入指南](https://fcb-docs.aiuo.net/guide/mcp)。
 
 ## 简单，但足够强大
 
@@ -77,26 +82,6 @@ docker run -d --restart unless-stopped \
 - [安全设置](https://fcb-docs.aiuo.net/guide/security) · 限流、会话与访问保护
 - [API 文档](https://fcb-docs.aiuo.net/api/) · 上传、取件与管理接口
 - [前端源码](https://github.com/vastsa/FileCodeBoxFronted) · 当前 2024 主题
-
-## 相关项目
-
-如果你也喜欢「盒子」系列的自托管工具，可以看看同作者的：
-
-### [BokeBox](https://github.com/vastsa/BokeBox/) · 私人 AI 播客盒
-
-把视频、链接或文稿丢进去，生成可听完的个人播客，支持自定义主持人设与声音。
-
-<p align="center">
-  <a href="https://github.com/vastsa/BokeBox/">
-    <img src="./.github/images/readme/bokebox/banner_zh.webp" alt="BokeBox 横幅" width="860" />
-  </a>
-</p>
-
-<p align="center">
-  <a href="https://github.com/vastsa/BokeBox/">
-    <img src="./.github/images/readme/bokebox/home_zh.webp" alt="BokeBox 首页" width="860" />
-  </a>
-</p>
 
 ## 参与项目
 

@@ -31,6 +31,7 @@ export default defineConfig({
               { text: '上传与分享', link: '/guide/upload' },
               { text: '管理面板', link: '/guide/management' },
               { text: '存储配置', link: '/guide/storage' },
+              { text: 'MCP 接入', link: '/guide/mcp' },
             ],
           },
           { text: 'API', link: '/api/' },
@@ -64,6 +65,7 @@ export default defineConfig({
                 { text: '文件上传', link: '/guide/upload' },
                 { text: '文件分享', link: '/guide/share' },
                 { text: '文件管理', link: '/guide/management' },
+                { text: 'MCP 接入', link: '/guide/mcp' },
               ],
             },
             {
@@ -148,6 +150,7 @@ export default defineConfig({
               { text: 'Getting Started', link: '/en/guide/getting-started' },
               { text: 'Upload & Share', link: '/en/guide/upload' },
               { text: 'Admin Panel', link: '/en/guide/management' },
+              { text: 'MCP Integration', link: '/en/guide/mcp' },
               { text: 'Storage', link: '/en/guide/storage' },
             ],
           },
@@ -185,6 +188,7 @@ export default defineConfig({
                 { text: 'File Upload', link: '/en/guide/upload' },
                 { text: 'File Sharing', link: '/en/guide/share' },
                 { text: 'File Management', link: '/en/guide/management' },
+                { text: 'MCP Integration', link: '/en/guide/mcp' },
               ],
             },
             {
