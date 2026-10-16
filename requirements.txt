@@ -5,5 +5,5 @@ fastapi==0.141.1
 starlette==1.6.0
 pydantic==2.13.5
 uvicorn==0.53.0
-tortoise-orm==0.25.3
+tortoise-orm==1.1.8
 python-multipart==0.0.32
