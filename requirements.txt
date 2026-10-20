@@ -1,5 +1,5 @@
 aioboto3==15.5.0
-aiohttp==3.14.3
+aiohttp==3.14.4
 aiofiles==25.1.0
 fastapi==0.141.1
 starlette==1.6.0
