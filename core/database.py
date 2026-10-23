@@ -25,6 +25,17 @@ def get_db_config() -> dict:
                     "journal_mode": "WAL",
                     "busy_timeout": 10000,
                     "foreign_keys": "ON",
+                    # 小内存 VPS 下的 IOPS 与内存折中。Tortoise 的 SqliteClient 会把
+                    # credentials 中 file_path 以外的键逐条执行成 PRAGMA，且 SQLite
+                    # 后端只维持单条连接，因此这些设置在进程生命周期内全局生效。
+                    # synchronous=NORMAL：WAL 下应用崩溃不丢已提交事务，
+                    #   仅 OS/断电可能丢最后若干事务，省去每次提交的 fsync。
+                    # temp_store=MEMORY：临时表与排序走内存，小库收益明显；
+                    #   后台大排序的内存峰值需在压测中关注。
+                    # cache_size=-8000：page cache 上限约 8MB（负数单位为 KiB）。
+                    "synchronous": "NORMAL",
+                    "temp_store": "MEMORY",
+                    "cache_size": -8000,
                 },
             }
         },
