@@ -10,7 +10,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from tortoise import Tortoise
-from tortoise.contrib.fastapi import register_tortoise
+from tortoise.contrib.fastapi import tortoise_exception_handlers
 
 from apps.admin.views import admin_api
 from apps.base.config import (
@@ -29,7 +29,7 @@ from apps.base.tasks import (
 )
 from apps.base.views import share_api, chunk_api, presign_api
 from apps.base.mcp import router as mcp_router
-from core.database import db_startup_lock, get_db_config, init_db
+from core.database import db_startup_lock, init_db
 from core.errors import StorageError
 from core.logger import get_log_level_name, is_access_log_enabled, logger
 from core.settings import settings
@@ -89,7 +89,14 @@ async def load_config():
         )
 
 
-app = FastAPI(lifespan=lifespan, version=APP_VERSION)
+# Tortoise 的 ORM 异常映射（DoesNotExist → 404、IntegrityError → 422）。
+# 只注册处理器；连接初始化统一由 lifespan 里的 init_db() 负责，
+# 避免 register_tortoise 合并 lifespan 造成的双重初始化。
+app = FastAPI(
+    lifespan=lifespan,
+    version=APP_VERSION,
+    exception_handlers=tortoise_exception_handlers(),
+)
 
 
 @app.exception_handler(StorageError)
@@ -124,14 +131,6 @@ app.add_middleware(
     allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
-)
-
-# 使用 register_tortoise 来添加异常处理器
-register_tortoise(
-    app,
-    config=get_db_config(),
-    generate_schemas=False,
-    add_exception_handlers=True,
 )
 
 app.include_router(share_api)
