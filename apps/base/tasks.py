@@ -23,16 +23,23 @@ from apps.base.services import stored_file_of
 from apps.base.local_share import is_local_ref
 from core.utils import get_now
 
+
+def _prune_empty_share_dirs(root: str) -> None:
+    """删除 share/data 下的空目录（阻塞操作，调用方需放入线程池）。"""
+    for current, dirs, files in os.walk(os.path.join(str(root), "share", "data")):
+        if not dirs and not files:
+            os.rmdir(current)
+
+
 async def delete_expire_files():
     while True:
         try:
             await refresh_settings()
             file_storage: FileStorageInterface = storages[settings.file_storage]()
             # 遍历 share目录下的所有文件夹，删除空的文件夹，并判断父目录是否为空，如果为空也删除
+            # 目录遍历是阻塞的文件系统调用，下放线程池避免卡住事件循环
             if settings.file_storage == "local":
-                for root, dirs, files in os.walk(f"{data_root}/share/data"):
-                    if not dirs and not files:
-                        os.rmdir(root)
+                await asyncio.to_thread(_prune_empty_share_dirs, data_root)
             await ip_limit["error"].remove_expired_ip()
             await ip_limit["metadata"].remove_expired_ip()
             await ip_limit["upload"].remove_expired_ip()

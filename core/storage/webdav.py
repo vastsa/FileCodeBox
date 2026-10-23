@@ -25,6 +25,20 @@ from core.storage._base import (
 
 
 class WebDAVFileStorage(FileStorageInterface):
+    # 供 core.storage._StorageFactory 复用实例；只列影响构造结果的配置项。
+    @classmethod
+    def cache_signature(cls) -> tuple[str, ...]:
+        return tuple(
+            repr(getattr(settings, key, None))
+            for key in (
+                "webdav_url",
+                "webdav_username",
+                "webdav_password",
+                "webdav_root_path",
+                "webdav_proxy",
+            )
+        )
+
     def __init__(self):
         if not hasattr(self, "_initialized"):
             self.base_url = settings.webdav_url.rstrip("/") + "/"

@@ -23,6 +23,26 @@ from core.storage._base import (
 
 
 class S3FileStorage(FileStorageInterface):
+    # 供 core.storage._StorageFactory 复用实例；只列影响构造/签名的配置项。
+    # 配置变更时签名变化，工厂会重建实例（见到新 endpoint/bucket 等）。
+    @classmethod
+    def cache_signature(cls) -> tuple[str, ...]:
+        return tuple(
+            repr(getattr(settings, key, None))
+            for key in (
+                "s3_access_key_id",
+                "s3_secret_access_key",
+                "s3_bucket_name",
+                "s3_hostname",
+                "s3_region_name",
+                "s3_signature_version",
+                "s3_endpoint_url",
+                "aws_session_token",
+                "s3_addressing_style",
+                "s3_proxy",
+            )
+        )
+
     def __init__(self):
         self.access_key_id = settings.s3_access_key_id
         self.secret_access_key = settings.s3_secret_access_key

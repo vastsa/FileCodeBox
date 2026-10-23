@@ -12,6 +12,7 @@ import hashlib
 import unittest
 from pathlib import Path
 from tempfile import TemporaryDirectory
+from types import SimpleNamespace
 from unittest.mock import patch
 
 from tests.helpers import SettingsOverrideMixin, close_db, init_memory_db
@@ -112,6 +113,76 @@ class MergeChunksFailureTests(SettingsOverrideMixin, unittest.TestCase):
                     self.assertFalse(chunk_dir.exists())
             finally:
                 await close_db()
+
+
+class MergeChunksStreamingTests(unittest.TestCase):
+    """合并必须按块读取：峰值内存与分片大小无关，且哈希仍逐片校验。"""
+
+    def test_reads_chunks_in_bounded_blocks(self):
+        asyncio.run(self._scenario())
+
+    async def _scenario(self):
+        import core.storage.local as local_module
+
+        with TemporaryDirectory() as tmpdir:
+            with patch("core.storage.local.data_root", Path(tmpdir)):
+                storage = SystemFileStorage()
+                storage.chunk_size = 3
+                save_path = "share/data/2026/01/01/uuid-stream/merged.bin"
+                chunk_dir = (
+                    Path(tmpdir) / "share/data/2026/01/01/uuid-stream/chunks/uid-stream"
+                )
+                chunk_dir.mkdir(parents=True)
+                payloads = [b"abcdefghij", b"klm"]
+                for index, data in enumerate(payloads):
+                    (chunk_dir / f"{index}.part").write_bytes(data)
+
+                records = {
+                    index: SimpleNamespace(chunk_hash=_sha(data))
+                    for index, data in enumerate(payloads)
+                }
+
+                read_sizes = []
+                real_open = local_module.aiofiles.open
+
+                class RecordingFile:
+                    def __init__(self, inner):
+                        self._inner = inner
+
+                    async def read(self, *args):
+                        read_sizes.append(args)
+                        return await self._inner.read(*args)
+
+                class RecordingContext:
+                    def __init__(self, ctx):
+                        self._ctx = ctx
+
+                    async def __aenter__(self):
+                        return RecordingFile(await self._ctx.__aenter__())
+
+                    async def __aexit__(self, *exc_info):
+                        return await self._ctx.__aexit__(*exc_info)
+
+                def fake_open(path, mode="r", *args, **kwargs):
+                    ctx = real_open(path, mode, *args, **kwargs)
+                    if "b" in mode and "r" in mode:
+                        return RecordingContext(ctx)
+                    return ctx
+
+                with patch.object(local_module.aiofiles, "open", fake_open):
+                    out_path, digest = await storage.merge_chunks(
+                        "uid-stream",
+                        len(payloads),
+                        storage.chunk_size,
+                        save_path,
+                        records,
+                    )
+
+                merged = b"".join(payloads)
+                self.assertEqual(Path(out_path).read_bytes(), merged)
+                self.assertEqual(digest, _sha(merged))
+                # 每 3 字节一次读取：10 字节 -> 5 次（含 EOF），3 字节 -> 2 次
+                self.assertEqual(read_sizes, [(3,)] * 7)
 
 
 if __name__ == "__main__":

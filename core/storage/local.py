@@ -43,6 +43,49 @@ class SystemFileStorage(FileStorageInterface):
                 f.write(chunk)
                 chunk = file.read(self.chunk_size)
 
+    def _prepare_save_path(self, directory: str, filename: str) -> Path:
+        """Resolve + create the parent directory (blocking; run in a thread)."""
+        safe_save_path = self._resolve_safe_path(
+            f"{directory}/{filename}" if directory not in {"", "."} else filename
+        )
+        safe_save_path.parent.mkdir(parents=True, exist_ok=True)
+        return safe_save_path
+
+    def _prepare_chunk_path(
+        self, save_path: str, upload_id: str, chunk_index: int
+    ) -> Path:
+        """Validate the target path and materialise the chunk directory."""
+        self._resolve_safe_path(save_path)
+        chunk_path = self._resolve_safe_path(
+            str(Path(save_path).parent / "chunks" / upload_id / f"{chunk_index}.part")
+        )
+        chunk_path.parent.mkdir(parents=True, exist_ok=True)
+        return chunk_path
+
+    @staticmethod
+    def _unlink_if_exists(path: Path) -> None:
+        try:
+            path.unlink()
+        except FileNotFoundError:
+            pass
+
+    def _delete_file_sync(self, relative_path: str) -> None:
+        self._unlink_if_exists(self._resolve_safe_path(relative_path))
+
+    def _stat_file_sync(self, relative_path: str) -> tuple[Path, int | None] | None:
+        """Return (path, size); None when the file is gone.
+
+        A stat that fails for another reason still yields the path with an
+        unknown size, matching the old "omit Content-Length" behaviour.
+        """
+        file_path = self._resolve_safe_path(relative_path)
+        try:
+            return file_path, file_path.stat().st_size
+        except FileNotFoundError:
+            return None
+        except OSError:
+            return file_path, None
+
     async def save_file(
         self, stream: BinaryIO, save_path: str, content_type: Optional[str] = None
     ):
@@ -50,32 +93,28 @@ class SystemFileStorage(FileStorageInterface):
         directory = str(path_obj.parent).replace("\\", "/").lstrip("/")
         # 提取原始文件名并进行清理
         filename = await sanitize_filename(path_obj.name)
-        # 构建安全的完整保存路径
-        safe_save_path = self._resolve_safe_path(f"{directory}/{filename}" if directory not in {"", "."} else filename)
-        # 确保目录存在
-        if not safe_save_path.parent.exists():
-            safe_save_path.parent.mkdir(parents=True)
+        # 构建安全的完整保存路径（解析路径与建目录都是阻塞系统调用）
+        safe_save_path = await asyncio.to_thread(
+            self._prepare_save_path, directory, filename
+        )
         await asyncio.to_thread(self._save, stream, safe_save_path)
 
     async def delete_file(self, file_code: StoredFile):
-        save_path = self._resolve_safe_path(file_code.get_file_path())
-        if save_path.exists():
-            save_path.unlink()
+        await asyncio.to_thread(self._delete_file_sync, file_code.get_file_path())
 
     async def get_file_url(self, file_code: StoredFile):
         return await get_file_url(file_code.code)
 
     async def get_file_response(self, file_code: StoredFile):
-        file_path = self._resolve_safe_path(file_code.get_file_path())
-        if not file_path.exists():
+        stat_result = await asyncio.to_thread(
+            self._stat_file_sync, file_code.get_file_path()
+        )
+        if stat_result is None:
             raise StorageError(status_code=404, detail="文件已过期删除")
+        file_path, size = stat_result
         filename = f"{file_code.prefix}{file_code.suffix}"
-        try:
-            headers = build_attachment_headers(filename, file_path.stat().st_size)
-        except OSError:
-            # 文件大小不可得时省略 Content-Length
-            headers = build_attachment_headers(filename)
-        
+        headers = build_attachment_headers(filename, size)
+
         return StoredDownload(
             filename=filename,
             headers=headers,
@@ -91,40 +130,39 @@ class SystemFileStorage(FileStorageInterface):
         :param chunk_hash: 分片哈希值
         :param save_path: 文件保存路径
         """
-        # 先校验目标文件路径合法，再将分片落到同级 chunks 目录。
-        self._resolve_safe_path(save_path)
-        chunk_path = self._resolve_safe_path(
-            str(Path(save_path).parent / "chunks" / upload_id / f"{chunk_index}.part")
+        chunk_path = await asyncio.to_thread(
+            self._prepare_chunk_path, save_path, upload_id, chunk_index
         )
-        if not chunk_path.parent.exists():
-            chunk_path.parent.mkdir(parents=True, exist_ok=True)
         # 使用临时文件写入，确保原子性
         temp_path = chunk_path.with_suffix('.tmp')
         try:
             async with aiofiles.open(temp_path, "wb") as f:
                 await f.write(chunk_data)
             # 原子重命名
-            temp_path.rename(chunk_path)
+            await asyncio.to_thread(temp_path.rename, chunk_path)
         except Exception as e:
-            if temp_path.exists():
-                temp_path.unlink()
+            await asyncio.to_thread(self._unlink_if_exists, temp_path)
             raise e
 
     async def merge_chunks(self, upload_id: str, total_chunks: int, chunk_size: int, save_path: str, chunk_records: dict) -> tuple[str, str]:
         """
         合并本地文件系统的分片文件并返回文件路径和完整哈希值
+
+        按固定块（self.chunk_size）流式读写：内存峰值与分片大小无关，
+        只与块大小有关（旧实现会把整片 read() 进内存）。
         :param upload_id: 上传会话ID
         :param chunk_info: 分片信息
         :param save_path: 文件保存路径
         :return: (文件路径, 文件哈希值)
         """
-        output_path = self._resolve_safe_path(save_path)
-        output_path.parent.mkdir(parents=True, exist_ok=True)
-        chunk_base_dir = self._resolve_safe_path(
-            str(Path(save_path).parent / "chunks" / upload_id)
+        output_path = await asyncio.to_thread(self._resolve_safe_path, save_path)
+        await asyncio.to_thread(output_path.parent.mkdir, parents=True, exist_ok=True)
+        chunk_base_dir = await asyncio.to_thread(
+            self._resolve_safe_path,
+            str(Path(save_path).parent / "chunks" / upload_id),
         )
         file_sha256 = hashlib.sha256()
-        
+
         # 使用临时文件写入，确保原子性
         temp_output = output_path.with_suffix('.merging')
         try:
@@ -133,26 +171,27 @@ class SystemFileStorage(FileStorageInterface):
                     # 获取分片记录
                     chunk_record = self._get_chunk_record(chunk_records, i)
                     chunk_path = chunk_base_dir / f"{i}.part"
-                    if not chunk_path.exists():
-                        raise ValueError(f"分片{i}文件不存在")
-                    async with aiofiles.open(chunk_path, "rb") as in_file:
-                        chunk_data = await in_file.read()
-                        self._verify_and_hash_chunk(i, chunk_record, chunk_data, file_sha256)
-                        await out_file.write(chunk_data)
+                    chunk_sha256 = hashlib.sha256()
+                    try:
+                        async with aiofiles.open(chunk_path, "rb") as in_file:
+                            while True:
+                                block = await in_file.read(self.chunk_size)
+                                if not block:
+                                    break
+                                chunk_sha256.update(block)
+                                file_sha256.update(block)
+                                await out_file.write(block)
+                    except FileNotFoundError as exc:
+                        raise ValueError(f"分片{i}文件不存在") from exc
+                    self._verify_chunk_hash(i, chunk_record, chunk_sha256.hexdigest())
             # 原子重命名
-            temp_output.rename(output_path)
+            await asyncio.to_thread(temp_output.rename, output_path)
         except Exception as e:
-            if temp_output.exists():
-                temp_output.unlink()
+            await asyncio.to_thread(self._unlink_if_exists, temp_output)
             raise e
         return str(output_path), file_sha256.hexdigest()
 
-    async def clean_chunks(self, upload_id: str, save_path: str):
-        """
-        清理本地文件系统的临时分片文件
-        :param upload_id: 上传会话ID
-        :param save_path: 文件保存路径
-        """
+    def _clean_chunks_sync(self, upload_id: str, save_path: str) -> None:
         chunk_dir = self._resolve_safe_path(
             str(Path(save_path).parent / "chunks" / upload_id)
         )
@@ -169,16 +208,27 @@ class SystemFileStorage(FileStorageInterface):
             except Exception as e:
                 logger.warning(f"清理 chunks 父目录失败: {e}")
 
+    async def clean_chunks(self, upload_id: str, save_path: str):
+        """
+        清理本地文件系统的临时分片文件
+        :param upload_id: 上传会话ID
+        :param save_path: 文件保存路径
+        """
+        await asyncio.to_thread(self._clean_chunks_sync, upload_id, save_path)
+
+    def _file_exists_sync(self, save_path: str) -> bool:
+        try:
+            file_path = self._resolve_safe_path(save_path)
+        except ValueError:
+            return False
+        return file_path.exists()
+
     async def file_exists(self, save_path: str) -> bool:
         """
         检查文件是否存在于本地文件系统
         :param save_path: 文件路径
         :return: 文件是否存在
         """
-        try:
-            file_path = self._resolve_safe_path(save_path)
-        except ValueError:
-            return False
-        return file_path.exists()
+        return await asyncio.to_thread(self._file_exists_sync, save_path)
 
 
