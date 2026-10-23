@@ -18,6 +18,7 @@ class IndexTemplateEscapingTests(unittest.TestCase):
     def setUp(self):
         self._original_user_config = dict(settings.user_config)
         self._original_resolve_theme_file = pages.resolve_theme_file
+        pages._render_index_html.cache_clear()
         tmp = tempfile.NamedTemporaryFile(
             "w", suffix=".html", delete=False, encoding="utf-8"
         )
@@ -32,6 +33,7 @@ class IndexTemplateEscapingTests(unittest.TestCase):
     def tearDown(self):
         settings.user_config = self._original_user_config
         pages.resolve_theme_file = self._original_resolve_theme_file
+        pages._render_index_html.cache_clear()
         self._template_path.unlink()
 
     def _patch_template(self):

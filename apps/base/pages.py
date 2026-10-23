@@ -1,6 +1,9 @@
 """Public-facing pages and routes: setup wizard, theme assets, index,
 robots.txt, and the public config endpoints."""
 import html
+import re
+from functools import lru_cache
+from pathlib import Path
 
 from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, RedirectResponse
@@ -83,9 +86,58 @@ def resolve_theme_file(*parts: str):
     return file_path
 
 
+# Vite 产物带内容指纹（如 index-BX2s1QqP.js），内容变化时文件名必然变化，
+# 可以安全地长缓存；public/ 下的未哈希资源原地升级时名字不变，只给短缓存，
+# 过期后靠 FileResponse 自带的 ETag/Last-Modified 走 304。
+_HASHED_ASSET_RE = re.compile(
+    r"-[A-Za-z0-9_-]{8,}\.(?:js|mjs|css|map|woff2?|ttf|otf|eot|svg|png|jpe?g|gif|webp|avif|ico)$",
+    re.IGNORECASE,
+)
+_IMMUTABLE_ASSET_CACHE = "public, max-age=31536000, immutable"
+_DEFAULT_ASSET_CACHE = "public, max-age=86400"
+
+
+def _asset_cache_control(asset_path: str) -> str:
+    if _HASHED_ASSET_RE.search(asset_path):
+        return _IMMUTABLE_ASSET_CACHE
+    return _DEFAULT_ASSET_CACHE
+
+
+@lru_cache(maxsize=8)
+def _render_index_html(
+    template_path: str,
+    inode: int,
+    mtime_ns: int,
+    size: int,
+    title: str,
+    description: str,
+    keywords: str,
+    opacity: str,
+    background: str,
+) -> str:
+    """Render index.html once per (theme file version, site config) pair.
+
+    The stat fields keep the cache honest when a theme is replaced in place;
+    config values are part of the key so admin edits are visible immediately
+    without any cross-module invalidation hook.
+    """
+    return (
+        Path(template_path)
+        .read_text(encoding="utf-8")
+        .replace("{{title}}", html.escape(title))
+        .replace("{{description}}", html.escape(description))
+        .replace("{{keywords}}", html.escape(keywords))
+        .replace("{{opacity}}", html.escape(opacity))
+        .replace("{{background}}", html.escape(background))
+    )
+
+
 @router.get("/assets/{asset_path:path}", include_in_schema=False)
 async def theme_asset(asset_path: str):
-    return FileResponse(resolve_theme_file("assets", asset_path))
+    return FileResponse(
+        resolve_theme_file("assets", asset_path),
+        headers={"Cache-Control": _asset_cache_control(asset_path)},
+    )
 
 
 async def not_found_handler(request, exc=None):
@@ -115,14 +167,26 @@ async def index(request=None, exc=None):
     # Site config is admin input (and during the setup window anyone can claim it);
     # always escape before injecting into the theme template to prevent stored XSS
     # (mirrors the setup page).
+    template_path = resolve_theme_file("index.html")
+    try:
+        stat_result = template_path.stat()
+    except OSError:
+        # resolve_theme_file 与 stat 之间文件被删除/替换时仍按 404 处理，
+        # 不能退回缓存内容。
+        raise HTTPException(status_code=404, detail="资源不存在")
+    content = _render_index_html(
+        str(template_path),
+        stat_result.st_ino,
+        stat_result.st_mtime_ns,
+        stat_result.st_size,
+        str(settings.name),
+        str(settings.description),
+        str(settings.keywords),
+        str(settings.opacity),
+        str(settings.background),
+    )
     return HTMLResponse(
-        content=resolve_theme_file("index.html")
-        .read_text(encoding="utf-8")
-        .replace("{{title}}", html.escape(str(settings.name)))
-        .replace("{{description}}", html.escape(str(settings.description)))
-        .replace("{{keywords}}", html.escape(str(settings.keywords)))
-        .replace("{{opacity}}", html.escape(str(settings.opacity)))
-        .replace("{{background}}", html.escape(str(settings.background))),
+        content=content,
         media_type="text/html",
         headers={"Cache-Control": "no-cache"},
     )
