@@ -7,3 +7,7 @@ pydantic==2.13.5
 uvicorn==0.53.0
 tortoise-orm==0.25.3
 python-multipart==0.0.32
+# Uvicorn auto-selects these when importable (`--loop auto` / `--http auto`).
+# uvloop has no Windows wheels/support; httptools ships Windows wheels.
+uvloop==0.23.0; sys_platform != "win32"
+httptools==0.9.0
