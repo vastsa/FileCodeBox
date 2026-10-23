@@ -18,7 +18,48 @@ from apps.base.local_share import (
 )
 from fastapi import HTTPException
 from core.utils import get_now
+from tortoise.expressions import Q, RawSQL
+from tortoise.functions import Sum
 
+from apps.base.quota import owned_storage_queryset
+
+
+def expired_file_q(now: datetime) -> Q:
+    """SQL version of FileCodes.is_expired:
+    (expired_count < 0 AND expired_at IS NOT NULL AND expired_at < now) OR expired_count = 0
+    """
+    return (
+        Q(expired_count__lt=0, expired_at__isnull=False, expired_at__lt=now)
+        | Q(expired_count=0)
+    )
+
+
+def expires_soon_q(now: datetime) -> Q:
+    """0 < (expired_at - now) <= 24h（与 _build_file_status_insights 的 expires_soon 一致）。"""
+    return Q(expired_at__gt=now) & Q(expired_at__lte=now + timedelta(days=1))
+
+
+def not_expires_soon_q(now: datetime) -> Q:
+    """expires_soon_q 的补集；显式处理 NULL，避免 NOT NULL 三值逻辑丢行。"""
+    return (
+        Q(expired_at__isnull=True)
+        | Q(expired_at__lte=now)
+        | Q(expired_at__gt=now + timedelta(days=1))
+    )
+
+
+def _missing_download_source_q() -> Q:
+    """无文本且无文件路径/对象名 = 存储元数据不完整（can_download 为假）。"""
+    return (
+        Q(text__isnull=True)
+        & (Q(file_path__isnull=True) | Q(file_path=""))
+        & (Q(uuid_file_name__isnull=True) | Q(uuid_file_name=""))
+    )
+
+
+def danger_file_q(now: datetime) -> Q:
+    """severity == danger：已过期、次数耗尽，或缺少可下载来源。"""
+    return expired_file_q(now) | _missing_download_source_q()
 
 
 class FileService:
@@ -457,6 +498,18 @@ class FileService:
             "failed": failed,
         }
 
+    SQL_SORT_FIELDS = {
+        "created_at": "created_at",
+        "createdat": "created_at",
+        "expired_at": "expired_at",
+        "expiredat": "expired_at",
+        "name": "display_name",
+        "size": "size",
+        "used_count": "used_count",
+        "usedcount": "used_count",
+        "code": "code",
+    }
+
     async def list_files(
         self,
         page: int,
@@ -477,45 +530,103 @@ class FileService:
         sort_by = self._normalize_sort_by(sort_by)
         reverse = sort_order.strip().lower() != "asc"
 
-        all_files = await FileCodes.all()
         now = await get_now()
-        enriched_files = []
-        summary = {
-            "total_files": len(all_files),
-            "active_count": 0,
-            "expired_count": 0,
-            "text_count": 0,
-            "file_count": 0,
-            "chunked_count": 0,
-            **self._empty_health_summary(),
-            "storage_used": sum(file_code.size for file_code in all_files if not is_local_ref(file_code)),
-            "used_count": sum(file_code.used_count for file_code in all_files),
-        }
-
-        for file_code in all_files:
-            item = await self._build_admin_file_item(file_code, now=now)
-            if item["is_expired"]:
-                summary["expired_count"] += 1
-            else:
-                summary["active_count"] += 1
-            if item["is_text"]:
-                summary["text_count"] += 1
-            else:
-                summary["file_count"] += 1
-            if item["is_chunked"]:
-                summary["chunked_count"] += 1
-            self._accumulate_health_summary(summary, item)
-
-            if not self._match_admin_file(item, keyword, status, file_type, health):
-                continue
-            enriched_files.append(item)
-
-        enriched_files.sort(
-            key=lambda item: self._get_sort_value(item, sort_by),
-            reverse=reverse,
+        # 过滤、排序、分页全部下推 SQL；text 只为当前页的 ≤100 条加载，
+        # 关键词命中的 text 也由 SQL LIKE 判定，不再整表载入。
+        queryset = FileCodes.all()
+        if keyword or sort_by == "name":
+            # name 是 prefix + suffix 的派生值，SQLite 用 || 拼接排序/匹配
+            queryset = FileCodes.annotate(display_name=RawSQL("prefix || suffix"))
+        queryset = queryset.filter(
+            self._build_list_filter_q(keyword, status, file_type, health, now)
         )
-        offset = (page - 1) * size
-        return enriched_files[offset : offset + size], len(enriched_files), summary
+        total = await queryset.count()
+        summary = await self.build_list_summary(now=now)
+
+        order_field = self.SQL_SORT_FIELDS.get(sort_by, "created_at")
+        direction = "-" if reverse else ""
+        # id 作为次级排序：等价于原先内存排序对默认主键序的稳定性
+        rows = await queryset.order_by(f"{direction}{order_field}", "id").offset(
+            (page - 1) * size
+        ).limit(size)
+        files = [await self._build_admin_file_item(file_code, now=now) for file_code in rows]
+        return files, total, summary
+
+    def _build_list_filter_q(
+        self, keyword: str, status: str, file_type: str, health: str, now: datetime
+    ) -> Q:
+        query = Q()
+        if status == "active":
+            query &= ~expired_file_q(now)
+        elif status == "expired":
+            query &= expired_file_q(now)
+        if file_type == "text":
+            query &= Q(text__isnull=False)
+        elif file_type == "file":
+            query &= Q(text__isnull=True)
+        elif file_type == "chunked":
+            query &= Q(is_chunked=True)
+        if health:
+            query &= self._health_filter_q(health, now)
+        if keyword:
+            # 与旧的内存匹配对齐：code/name/prefix/suffix/file_hash/text 子串命中。
+            # icontains 只对 ASCII 大小写不敏感（SQLite UPPER 限制），中文不受影响。
+            query &= (
+                Q(code__icontains=keyword)
+                | Q(prefix__icontains=keyword)
+                | Q(suffix__icontains=keyword)
+                | Q(file_hash__icontains=keyword)
+                | Q(text__icontains=keyword)
+                | Q(display_name__icontains=keyword)
+            )
+        return query
+
+    def _health_filter_q(self, health: str, now: datetime) -> Q:
+        """health 过滤的 SQL 等价实现，语义与 _match_admin_file_health 一致。"""
+        danger = danger_file_q(now)
+        soon = expires_soon_q(now)
+        mapping = {
+            "attention": danger | soon,
+            "danger": danger,
+            "warning": ~danger & soon,
+            "expired": expired_file_q(now),
+            "expiring_soon": soon,
+            "storage_issue": _missing_download_source_q(),
+            "never_retrieved": Q(used_count=0),
+            "healthy": ~danger & not_expires_soon_q(now),
+            "permanent": ~danger
+            & not_expires_soon_q(now)
+            & Q(expired_at__isnull=True)
+            & Q(expired_count__lt=0),
+        }
+        return mapping.get(health, Q())
+
+    async def build_list_summary(self, now: Optional[datetime] = None) -> dict[str, Any]:
+        if now is None:
+            now = await get_now()
+        total_files = await FileCodes.all().count()
+        expired_count = await FileCodes.filter(expired_file_q(now)).count()
+        text_count = await FileCodes.filter(text__isnull=False).count()
+        chunked_count = await FileCodes.filter(is_chunked=True).count()
+        storage_used = (
+            await owned_storage_queryset()
+            .annotate(total=Sum("size"))
+            .values("total")
+        )[0]["total"] or 0
+        used_count = (
+            await FileCodes.all().annotate(total=Sum("used_count")).values("total")
+        )[0]["total"] or 0
+        return {
+            "total_files": total_files,
+            "active_count": total_files - expired_count,
+            "expired_count": expired_count,
+            "text_count": text_count,
+            "file_count": total_files - text_count,
+            "chunked_count": chunked_count,
+            **await self.build_file_health_summary(now=now),
+            "storage_used": storage_used,
+            "used_count": used_count,
+        }
 
     def _empty_health_summary(self) -> dict[str, int]:
         return {
@@ -529,39 +640,37 @@ class FileService:
             "permanent_count": 0,
         }
 
-    def _accumulate_health_summary(self, summary: dict[str, Any], item: dict[str, Any]) -> None:
-        status_insights = item.get("status_insights") or {}
-        reasons = status_insights.get("reasons") or []
-        severity = status_insights.get("severity")
-        state = status_insights.get("state")
+    async def build_file_health_summary(self, now: Optional[datetime] = None) -> dict[str, int]:
+        """健康摘要全部用 SQL 计数，避免为统计而整表载入（含 text 大字段）。
 
-        if severity in {"danger", "warning"}:
-            summary["health_attention_count"] += 1
-        if severity == "danger":
-            summary["health_danger_count"] += 1
-        if severity == "warning":
-            summary["health_warning_count"] += 1
-        if severity == "success":
-            summary["healthy_count"] += 1
-        if state == "permanent":
-            summary["permanent_count"] += 1
-        if "expires_soon" in reasons:
-            summary["expiring_soon_count"] += 1
-        if "storage_metadata_incomplete" in reasons:
-            summary["storage_issue_count"] += 1
-        if "never_retrieved" in reasons:
-            summary["never_retrieved_count"] += 1
-
-    async def build_file_health_summary(
-        self, file_codes: list[FileCodes], now: Optional[datetime] = None
-    ) -> dict[str, int]:
+        severity 三态互斥：danger / warning / success，因此
+        healthy_count = total - danger - warning，attention = danger + warning。
+        """
         if now is None:
             now = await get_now()
-        summary = self._empty_health_summary()
-        for file_code in file_codes:
-            item = await self._build_admin_file_item(file_code, now=now)
-            self._accumulate_health_summary(summary, item)
-        return summary
+        danger = danger_file_q(now)
+        soon = expires_soon_q(now)
+        not_soon = not_expires_soon_q(now)
+        total = await FileCodes.all().count()
+        danger_count = await FileCodes.filter(danger).count()
+        warning_count = await FileCodes.filter(~danger & soon).count()
+        return {
+            "health_attention_count": danger_count + warning_count,
+            "health_danger_count": danger_count,
+            "health_warning_count": warning_count,
+            "healthy_count": total - danger_count - warning_count,
+            "permanent_count": await FileCodes.filter(
+                ~danger
+                & not_soon
+                & Q(expired_at__isnull=True)
+                & Q(expired_count__lt=0)
+            ).count(),
+            "expiring_soon_count": await FileCodes.filter(soon).count(),
+            "storage_issue_count": await FileCodes.filter(
+                _missing_download_source_q()
+            ).count(),
+            "never_retrieved_count": await FileCodes.filter(used_count=0).count(),
+        }
 
     async def _build_admin_file_item(
         self, file_code: FileCodes, now: Optional[datetime] = None
