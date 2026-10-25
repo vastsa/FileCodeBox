@@ -1,6 +1,6 @@
 # 第一阶段：构建前端主题
 # 前端产物与 CPU 架构无关，使用原生构建平台避免在 QEMU 中运行 Node/pnpm。
-FROM --platform=$BUILDPLATFORM node:20-alpine AS frontend-builder
+FROM --platform=$BUILDPLATFORM node:26-alpine AS frontend-builder
 
 ARG FRONTEND_2024_REF=main
 ARG FRONTEND_2023_REF=main
