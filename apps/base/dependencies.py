@@ -1,6 +1,7 @@
+import time
+from collections import OrderedDict
 from ipaddress import ip_address, ip_network
-from typing import Dict, Iterable, TypedDict
-from datetime import datetime, timedelta
+from typing import Iterable, TypedDict
 from fastapi import HTTPException, Request
 
 from core.settings import settings
@@ -67,41 +68,66 @@ def get_client_ip(request: Request) -> str:
 
 class _IPRecord(TypedDict):
     count: int
-    time: datetime
+    last_seen: float
+
+
+# Upper bound for tracked source IPs per limiter. Without it a scan using
+# spoofed/rotating addresses grows the dict forever on a small VPS.
+DEFAULT_MAX_TRACKED_IPS = 10_000
 
 
 class IPRateLimit:
-    def __init__(self, count: int, minutes: int):
-        self.ips: Dict[str, _IPRecord] = {}
+    def __init__(
+        self,
+        count: int,
+        minutes: int,
+        max_ips: int = DEFAULT_MAX_TRACKED_IPS,
+    ):
+        # Ordered by last activity (oldest first) so capacity eviction and the
+        # periodic cleanup are both O(1)/O(expired) instead of a full rebuild.
+        self.ips: OrderedDict[str, _IPRecord] = OrderedDict()
         self.count = count
         self.minutes = minutes
+        self.max_ips = max(1, max_ips)
+
+    def _window_seconds(self) -> float:
+        # minutes is mutable at runtime via apps.base.config._sync_ip_limits.
+        return float(self.minutes) * 60
 
     def check_ip(self, ip: str) -> bool:
-        if ip in self.ips:
-            ip_info = self.ips[ip]
-            if ip_info["count"] >= self.count:
-                if ip_info["time"] + timedelta(minutes=self.minutes) > datetime.now():
-                    return False
-                self.ips.pop(ip)
+        record = self.ips.get(ip)
+        if record is None:
+            return True
+        if record["count"] >= self.count:
+            if record["last_seen"] + self._window_seconds() > time.monotonic():
+                return False
+            self.ips.pop(ip, None)
         return True
 
     def add_ip(self, ip: str) -> int:
-        ip_info = self.ips.setdefault(
-            ip, {"count": 0, "time": datetime.now()}
-        )
-        ip_info["count"] += 1
-        ip_info["time"] = datetime.now()
-        self.ips[ip] = ip_info
-        return ip_info["count"]
+        now = time.monotonic()
+        record = self.ips.get(ip)
+        if record is None:
+            record = {"count": 0, "last_seen": now}
+            self.ips[ip] = record
+        else:
+            self.ips.move_to_end(ip)
+        record["count"] += 1
+        record["last_seen"] = now
+        while len(self.ips) > self.max_ips:
+            # Evict the least recently active IP; fail-open for the evicted
+            # address is preferable to unbounded memory growth.
+            self.ips.popitem(last=False)
+        return record["count"]
 
     async def remove_expired_ip(self) -> None:
-        now = datetime.now()
-        expiration = timedelta(minutes=self.minutes)
-        self.ips = {
-            ip: info
-            for ip, info in self.ips.items()
-            if info["time"] + expiration >= now
-        }
+        now = time.monotonic()
+        window = self._window_seconds()
+        while self.ips:
+            _, record = next(iter(self.ips.items()))
+            if record["last_seen"] + window >= now:
+                break
+            self.ips.popitem(last=False)
 
     def __call__(self, request: Request) -> str:
         ip = get_client_ip(request)
