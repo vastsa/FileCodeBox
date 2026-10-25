@@ -73,7 +73,9 @@ ENV HOST="0.0.0.0" \
     APP_ENV="production" \
     LOG_LEVEL="warning" \
     ACCESS_LOG="false" \
-    FORWARDED_ALLOW_IPS=""
+    FORWARDED_ALLOW_IPS="" \
+    TIMEOUT_KEEP_ALIVE=5 \
+    MALLOC_TRIM_THRESHOLD_=65536
 
 EXPOSE 12345
 
@@ -81,4 +83,4 @@ EXPOSE 12345
 # FORWARDED_ALLOW_IPS 默认为空：仅信任直连 IP，避免任意客户端伪造 X-Forwarded-*。
 # 若前面有反向代理，请显式设置为代理网段，例如 "10.0.0.0/8,172.16.0.0/12"。
 # 容器以 root 运行：兼容存量 root 属主的数据卷，以及 NAS/只读 bind mount。
-CMD ["sh", "-c", "access_log_arg=--no-access-log; if [ \"${APP_ENV:-development}\" != \"production\" ] || [ \"${ACCESS_LOG:-false}\" = \"true\" ]; then access_log_arg=--access-log; fi; exec uvicorn main:app --host \"$HOST\" --port \"$PORT\" --workers \"$WORKERS\" --log-level \"$LOG_LEVEL\" \"$access_log_arg\" --proxy-headers --forwarded-allow-ips \"${FORWARDED_ALLOW_IPS:-}\""]
+CMD ["sh", "-c", "access_log_arg=--no-access-log; if [ \"${APP_ENV:-development}\" != \"production\" ] || [ \"${ACCESS_LOG:-false}\" = \"true\" ]; then access_log_arg=--access-log; fi; exec uvicorn main:app --host \"$HOST\" --port \"$PORT\" --workers \"$WORKERS\" --log-level \"$LOG_LEVEL\" \"$access_log_arg\" --timeout-keep-alive \"${TIMEOUT_KEEP_ALIVE:-5}\" --proxy-headers --forwarded-allow-ips \"${FORWARDED_ALLOW_IPS:-}\""]

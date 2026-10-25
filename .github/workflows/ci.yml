@@ -51,7 +51,7 @@ jobs:
         run: |
           python - <<'PY'
           import re, sys
-          pins = dict(re.findall(r'^([\w-]+)==([\w.]+)$', open('requirements.txt').read(), re.M))
+          pins = dict(re.findall(r'^([\w-]+)==([\w.]+)(?:\s*;[^#\n]*)?$', open('requirements.txt').read(), re.M))
           lock = open('requirements.lock.txt').read()
           stale = []
           for name, ver in pins.items():

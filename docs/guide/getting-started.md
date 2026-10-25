@@ -68,6 +68,8 @@ volumes:
 | `APP_ENV` | `production`（Docker） | 运行环境；生产环境默认关闭 HTTP 访问日志 |
 | `LOG_LEVEL` | `warning`（Docker） | 日志级别：debug/info/warning/error |
 | `ACCESS_LOG` | `false`（生产环境） | 是否启用 HTTP 访问日志；调试请求时可设为 `true` |
+| `TIMEOUT_KEEP_ALIVE` | `5` | HTTP Keep-Alive 空闲超时（秒）；前置反向代理后可调大以减少重复握手 |
+| `MALLOC_TRIM_THRESHOLD_` | `65536` | glibc 归还空闲堆的阈值（字节）；降低大文件请求后的常驻内存（仅 glibc 镜像生效） |
 
 生产环境默认只输出 warning、error 等关键日志，并限制 Docker 日志最多保留 3 个 10 MB 文件。
 

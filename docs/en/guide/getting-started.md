@@ -39,6 +39,8 @@ The named volume persists configuration and uploaded files across container upgr
 | `APP_ENV` | `production` (Docker) | Runtime environment; production disables HTTP access logs by default |
 | `LOG_LEVEL` | `warning` (Docker) | `debug`, `info`, `warning`, or `error` |
 | `ACCESS_LOG` | `false` (production) | Enable HTTP access logs; set to `true` when debugging requests |
+| `TIMEOUT_KEEP_ALIVE` | `5` | HTTP Keep-Alive idle timeout in seconds; raise it behind a reverse proxy to reduce reconnects |
+| `MALLOC_TRIM_THRESHOLD_` | `65536` | glibc heap trim threshold in bytes; lowers resident memory after large transfers (glibc images only) |
 
 Production deployments output only warning, error, and other key events by default. Docker retains at most three 10 MB log files.
 
