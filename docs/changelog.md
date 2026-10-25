@@ -1,5 +1,16 @@
 # Changelog
 
+## [2.8.4](https://github.com/vastsa/FileCodeBox/compare/v2.8.3...v2.8.4) (2026-10-25)
+
+
+### Performance Improvements
+
+* **db:** tune SQLite connection pragmas for small VPS ([2073f9b](https://github.com/vastsa/FileCodeBox/commit/2073f9ba4b6d17e2a9c81832c7d77468e9a15814))
+* **db:** tune SQLite connection pragmas for small VPS ([ec714dc](https://github.com/vastsa/FileCodeBox/commit/ec714dcd6fec2dc2097d05a250ea3962d01d66aa))
+* **rate-limit:** bound tracked IPs and use monotonic clock ([496a713](https://github.com/vastsa/FileCodeBox/commit/496a7139bdb2cdac7f516986b613715a693fff13))
+* **startup:** drop duplicate Tortoise init, keep ORM exception handlers ([4f141ee](https://github.com/vastsa/FileCodeBox/commit/4f141eeb4940311ad6dcfe2bc11650fa505f825b))
+* **web:** cache rendered index.html and add theme asset cache headers ([5b5d70c](https://github.com/vastsa/FileCodeBox/commit/5b5d70c3b7eb3b8efb3d77d731c860e88d1e7a92))
+
 ## [2.8.3](https://github.com/vastsa/FileCodeBox/compare/v2.8.2...v2.8.3) (2026-10-10)
 
 
