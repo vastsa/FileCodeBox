@@ -43,7 +43,7 @@ jobs:
           cache: 'pnpm'
           cache-dependency-path: 'docs/pnpm-lock.yaml'
       - name: Setup Pages
-        uses: actions/configure-pages@v4
+        uses: actions/configure-pages@v6
       - name: Install dependencies
         working-directory: docs
         run: pnpm install
