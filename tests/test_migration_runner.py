@@ -1,5 +1,5 @@
 """Migration runner coverage: discovery order, registration, idempotency,
-and failure propagation. Runs the REAL migrations (001-007) against an
+and failure propagation. Runs the REAL migrations (001-008) against an
 in-memory database — the same code path a deployment upgrade takes.
 """
 import pytest
@@ -8,7 +8,7 @@ from tortoise import Tortoise
 from core.database import execute_migrations
 from tests.helpers import MEMORY_DB_CONFIG, close_db
 
-EXPECTED = [f"migrations_{i:03d}.py" for i in range(1, 8)]
+EXPECTED = [f"migrations_{i:03d}.py" for i in range(1, 9)]
 
 
 @pytest.fixture
@@ -60,15 +60,15 @@ class TestMigrationRunner:
         """部分已登记（模拟中途升级）：只执行缺口，顺序保持。"""
         conn = Tortoise.get_connection("default")
         await conn.execute_query("DELETE FROM migrates")
-        # 预登记 006/007（模拟已执行过全部迁移的库），验证 runner 只跑缺口
-        # 001-005 且跳过已登记的 006/007（跳过语义 = 不再执行其 DDL）
-        for name in EXPECTED[-2:]:
+        # 预登记 006/007/008（模拟已执行过末尾迁移的库），验证 runner 只跑缺口
+        # 001-005 且跳过已登记的 006/007/008（跳过语义 = 不再执行其 DDL）
+        for name in EXPECTED[-3:]:
             await conn.execute_query(
                 "INSERT INTO migrates (migration_file) VALUES (?)", [name]
             )
         await execute_migrations()
         registered = await _registered()
-        # 预登记的 006/007 占据登记序前列——断言用集合：7 个全登记、无重复
+        # 预登记的 006/007/008 占据登记序前列——断言用集合：全部登记、无重复
         assert sorted(registered) == sorted(EXPECTED)
         assert len(registered) == len(EXPECTED)
         tables = {
@@ -107,7 +107,7 @@ class TestMigrationRunner:
         """迁移执行失败必须向上抛（启动失败可见），不能静默吞掉。"""
         import importlib
 
-                # 构造一个会失败的执行缺口：007 未登记，且其模块 migrate 抛错
+        # 构造一个会失败的执行缺口：008 未登记，且其模块 migrate 抛错
         conn = Tortoise.get_connection("default")
         await conn.execute_query("DELETE FROM migrates")
         for name in EXPECTED[:-1]:
@@ -117,7 +117,7 @@ class TestMigrationRunner:
         real_import = importlib.import_module
 
         def fake_import(name):
-            if name.endswith("migrations_007"):
+            if name.endswith("migrations_008"):
                 class FakeMod:
                     @staticmethod
                     async def migrate():
@@ -130,4 +130,4 @@ class TestMigrationRunner:
         with pytest.raises(RuntimeError, match="boom"):
             await execute_migrations()
         # 失败的迁移不得登记
-        assert "migrations_007.py" not in await _registered()
+        assert "migrations_008.py" not in await _registered()

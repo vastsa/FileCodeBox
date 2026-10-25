@@ -21,12 +21,14 @@ class FileCodes(models.Model):
     file_path = fields.CharField(max_length=255, null=True)
     size = fields.BigIntField(default=0)
     text = fields.TextField(null=True)
-    expired_at = fields.DatetimeField(null=True)
+    # 过期扫描与后台过期统计的高频过滤列
+    expired_at = fields.DatetimeField(null=True, index=True)
     # -1 = 时间式（看 expired_at），<=0 的 0 = 次数耗尽。默认 -1 而非 0：
     # 0 语义是"次数已用完即过期"，忘传该字段的创建路径会得到立即过期的记录。
     expired_count = fields.IntField(default=-1)
     used_count = fields.IntField(default=0)
-    created_at = fields.DatetimeField(auto_now_add=True)
+    # 后台默认按创建时间倒序、今日/昨日统计均落在该列
+    created_at = fields.DatetimeField(auto_now_add=True, index=True)
     file_hash = fields.CharField(max_length=64, null=True)
     is_chunked = fields.BooleanField(default=False)
     upload_id = fields.CharField(max_length=36, null=True)
@@ -44,7 +46,9 @@ class FileCodes(models.Model):
 
 class UploadChunk(models.Model):
     id = fields.IntField(pk=True)
-    upload_id = fields.CharField(max_length=36, index=True)
+    # 上传会话/分片查询始终同时带 upload_id；复合索引前缀已覆盖仅按 upload_id
+    # 的删除与清理查询，单列索引会造成重复。
+    upload_id = fields.CharField(max_length=36)
     chunk_index = fields.IntField()
     chunk_hash = fields.CharField(max_length=64)
     total_chunks = fields.IntField()
@@ -54,6 +58,9 @@ class UploadChunk(models.Model):
     save_path = fields.CharField(max_length=512, null=True)
     created_at = fields.DatetimeField(auto_now_add=True)
     completed = fields.BooleanField(default=False)
+
+    class Meta:
+        indexes = [("upload_id", "chunk_index")]
 
 
 class KeyValue(Model):
