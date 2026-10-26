@@ -8,7 +8,12 @@ from collections import Counter
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException
-from apps.admin.services import FileService, ConfigService, LocalFileService
+from apps.admin.services import (
+    FileService,
+    ConfigService,
+    LocalFileService,
+    expired_file_q,
+)
 from apps.admin.dependencies import (
     admin_required,
     get_admin_session,
@@ -33,7 +38,6 @@ from apps.admin.schemas import (
 from core.response import APIResponse
 from apps.base.models import FileCodes, KeyValue
 from apps.base.quota import owned_storage_queryset
-from tortoise.expressions import Q
 from tortoise.functions import Count, Sum
 from apps.admin.dependencies import (
     create_token,
@@ -120,15 +124,6 @@ async def build_dashboard_recent_file(file_code: FileCodes) -> dict:
     }
 
 
-def _expired_predicate(now: datetime.datetime) -> Q:
-    """SQL version of FileCodes.is_expired:
-    expired_at IS NOT NULL AND ((expired_count < 0 AND expired_at < now) OR expired_count = 0)
-    """
-    return Q(expired_at__isnull=False) & (
-        Q(expired_count__lt=0, expired_at__lt=now) | Q(expired_count=0)
-    )
-
-
 async def _sum_size(queryset) -> int:
     rows = await queryset.annotate(total=Sum("size")).values("total")
     return rows[0]["total"] or 0
@@ -142,10 +137,9 @@ async def dashboard(file_service: FileService = Depends(get_file_service)):
     yesterday_start = today_start - datetime.timedelta(days=1)
     yesterday_end = today_start - datetime.timedelta(microseconds=1)
 
-    # 简单计数全部走 SQL 聚合，避免整表载入内存（D3）。
-    # 健康摘要依赖逐行 rules engine（_build_file_status_insights），保留一次遍历。
+    # 简单计数与健康摘要全部走 SQL 聚合，避免整表载入内存（D3）。
     total_files = await FileCodes.all().count()
-    expired_count = await FileCodes.filter(_expired_predicate(now)).count()
+    expired_count = await FileCodes.filter(expired_file_q(now)).count()
     all_size = await _sum_size(owned_storage_queryset())
     used_count = (
         await FileCodes.all().annotate(total=Sum("used_count")).values("total")
@@ -175,9 +169,7 @@ async def dashboard(file_service: FileService = Depends(get_file_service)):
     )
 
     recent_file_codes = await FileCodes.all().order_by("-created_at").limit(8)
-    health_summary = await file_service.build_file_health_summary(
-        await FileCodes.all(), now=now
-    )
+    health_summary = await file_service.build_file_health_summary(now=now)
     recent_activities = await file_service.list_admin_activities(limit=8)
     return APIResponse(
         detail={

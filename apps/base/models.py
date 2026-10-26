@@ -34,11 +34,11 @@ class FileCodes(models.Model):
     upload_id = fields.CharField(max_length=36, null=True)
 
     async def is_expired(self):
+        if self.expired_count >= 0:
+            return self.expired_count <= 0
         if self.expired_at is None:
             return False
-        if self.expired_at and self.expired_count < 0:
-            return self.expired_at < await get_now()
-        return self.expired_count <= 0
+        return self.expired_at < await get_now()
 
     async def get_file_path(self):
         return f"{self.file_path}/{self.uuid_file_name}"
