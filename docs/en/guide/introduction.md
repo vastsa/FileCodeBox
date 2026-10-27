@@ -179,7 +179,7 @@ python main.py
 3. Download file or view text
 
 ### Admin Panel
-1. Visit `/admin`
+1. Visit `/#/admin`
 2. Enter admin password
 3. Manage files and settings
 

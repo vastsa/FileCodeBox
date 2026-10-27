@@ -9,6 +9,7 @@ import os
 
 from fastapi import HTTPException, UploadFile
 from fastapi.responses import FileResponse, Response, StreamingResponse
+from tortoise.transactions import in_transaction
 
 from core.logger import logger
 from core.settings import settings
@@ -210,13 +211,15 @@ class FileUploadService:
         失败路径的配额释放与清理范围与原实现逐一对齐：
         完整性校验失败仅抛 400（预留由 TTL 兜底）；合并失败清理分片文件后抛 500。
         """
+        if chunk_info.completed:
+            raise HTTPException(409, "上传会话已完成，仅待清理")
         storage = FileUploadService._storage()
         await reserve_storage(
             f"chunk:{upload_id}", chunk_info.file_size, ttl_seconds=chunk_reservation_ttl()
         )
 
         completed_chunks = await UploadChunk.filter(
-            upload_id=upload_id, completed=True
+            upload_id=upload_id, completed=True, chunk_index__gte=0
         ).all()
         if len(completed_chunks) != chunk_info.total_chunks:
             raise HTTPException(400, "分片不完整")
@@ -225,16 +228,19 @@ class FileUploadService:
         max_total_size = len(completed_chunks) * chunk_info.chunk_size
         if max_total_size > settings.upload_size:
             save_path = chunk_info.save_path
+            cleanup_succeeded = True
             if save_path:
                 try:
                     await storage.clean_chunks(upload_id, save_path)
                 except Exception:
+                    cleanup_succeeded = False
                     logger.warning(
                         "分片超限中止：清理分片文件失败 upload_id=%s",
                         upload_id,
                         exc_info=True,
                     )
-            await UploadChunk.filter(upload_id=upload_id).delete()
+            if cleanup_succeeded:
+                await UploadChunk.filter(upload_id=upload_id).delete()
             await release_storage(f"chunk:{upload_id}")
             max_size_mb = settings.upload_size / (1024 * 1024)
             raise HTTPException(
@@ -258,22 +264,36 @@ class FileUploadService:
             expired_at, expired_count, used_count, code = await get_expire_info(
                 expire_value, expire_style
             )
-            await FileCodes.create(
-                code=code,
-                file_hash=file_hash,  # 使用合并后计算的哈希
-                is_chunked=True,
-                upload_id=upload_id,
-                size=chunk_info.file_size,
-                expired_at=expired_at,
-                expired_count=expired_count,
-                used_count=used_count,
-                file_path=path,
-                uuid_file_name=safe_file_name,
-                prefix=prefix,
-                suffix=suffix,
-            )
-            await storage.clean_chunks(upload_id, save_path)
-            await UploadChunk.filter(upload_id=upload_id).delete()
+            # 发布记录与会话终态一起提交；即使分享过期删除，会话也不能被复用。
+            async with in_transaction() as connection:
+                await FileCodes.create(
+                    code=code,
+                    file_hash=file_hash,  # 使用合并后计算的哈希
+                    is_chunked=True,
+                    upload_id=upload_id,
+                    size=chunk_info.file_size,
+                    expired_at=expired_at,
+                    expired_count=expired_count,
+                    used_count=used_count,
+                    file_path=path,
+                    uuid_file_name=safe_file_name,
+                    prefix=prefix,
+                    suffix=suffix,
+                    using_db=connection,
+                )
+                chunk_info.completed = True
+                await chunk_info.save(using_db=connection, update_fields=["completed"])
+            try:
+                await storage.clean_chunks(upload_id, save_path)
+            except Exception:
+                # 分享已创建：不把清理故障伪装成合并失败，保留会话供定时任务重试。
+                logger.warning(
+                    "分片合并完成：清理临时分片文件失败 upload_id=%s",
+                    upload_id,
+                    exc_info=True,
+                )
+            else:
+                await UploadChunk.filter(upload_id=upload_id).delete()
             await release_storage(f"chunk:{upload_id}")
             return {"code": code, "name": safe_file_name}
         except ValueError as e:

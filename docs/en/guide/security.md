@@ -12,7 +12,7 @@ FileCodeBox does not ship with a default admin password. Open the site in your b
 
 Change the admin password through the admin panel:
 
-1. Access `/admin` to enter the admin panel
+1. Access `/#/admin` to enter the admin panel
 2. Log in with the current password
 3. Go to the "System Settings" page
 4. Find the `admin_token` configuration item
@@ -41,7 +41,7 @@ By default, the admin panel entry is hidden. You can control whether to show the
 | `show_admin_addr` | int | `0` | Show admin entry (1=show, 0=hide) |
 
 ::: tip Recommendation
-For public services, it's recommended to keep `show_admin_addr` at `0` and access the admin panel directly via the `/admin` path.
+For public services, it's recommended to keep `show_admin_addr` at `0` and access the admin panel directly via `/#/admin`.
 :::
 
 ## IP Rate Limiting

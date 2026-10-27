@@ -3,6 +3,7 @@
 # @File    : storage.py
 # @Software: PyCharm
 import hashlib
+import re
 from typing import BinaryIO, Optional
 from urllib.parse import quote
 
@@ -66,8 +67,15 @@ def build_attachment_headers(filename: str, content_length=None) -> dict:
     （/share/download）因此永不内联渲染 HTML/SVG。此函数是唯一构造点，
     新增后端必须复用（tests/test_attachment_guard.py 有源码级 tripwire）。
     """
+    # Older Android download managers ignore filename*. Keep an ASCII fallback
+    # with the extension, without allowing quoted-string/header injection.
+    fallback = re.sub(r"[^A-Za-z0-9._ -]", "_", filename).strip(" .") or "download"
     encoded_filename = quote(filename, safe="")
-    headers = {"Content-Disposition": f"attachment; filename*=UTF-8''{encoded_filename}"}
+    headers = {
+        "Content-Disposition": (
+            f'attachment; filename="{fallback}"; filename*=UTF-8\'\'{encoded_filename}'
+        )
+    }
     if content_length is not None:
         headers["Content-Length"] = str(content_length)
     return headers

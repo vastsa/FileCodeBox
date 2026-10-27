@@ -52,6 +52,7 @@ storage_path=
 | `s3_endpoint_url` | string | `""` | S3 端点 URL |
 | `s3_region_name` | string | `auto` | 区域名称 |
 | `s3_signature_version` | string | `s3v2` | 签名版本（`s3v2` 或 `s3v4`） |
+| `s3_addressing_style` | string | `auto` | 地址风格（`auto`、`path` 或 `virtual`）；OSS 使用 `virtual` |
 | `s3_hostname` | string | `""` | S3 主机名（备用） |
 | `s3_proxy` | int | `0` | 是否通过服务器代理下载（1=是，0=否） |
 | `aws_session_token` | string | `""` | AWS 会话令牌（可选） |
@@ -75,13 +76,16 @@ file_storage=s3
 s3_access_key_id=您的AccessKeyId
 s3_secret_access_key=您的SecretAccessKey
 s3_bucket_name=bucket-name
-s3_endpoint_url=https://bucket-name.oss-cn-hangzhou.aliyuncs.com
+s3_endpoint_url=https://oss-cn-hangzhou.aliyuncs.com
 s3_region_name=oss-cn-hangzhou
 s3_signature_version=s3v4
+s3_addressing_style=virtual
 ```
 
 ::: tip 阿里云 OSS 端点格式
-端点 URL 格式为：`https://<bucket-name>.<region>.aliyuncs.com`
+端点 URL 格式为：`https://oss-<region>.aliyuncs.com`（例如 region 为 `cn-hangzhou`），**不要包含桶名**。桶名仅填入 `s3_bucket_name`，地址风格选择 Virtual-host（`virtual`），由 SDK 自动拼接桶名；否则可能出现桶名前缀重复或 DNS 解析失败。
+
+S3 客户端已将请求和响应校验和设为 `when_required`，避免 OSS 不支持的 `STREAMING-UNSIGNED-PAYLOAD-TRAILER`；分片采用分页、逐对象删除，无需配置额外的校验和环境变量。清理失败会保留上传会话，供定时任务重试。
 
 常用区域：
 - 杭州：`oss-cn-hangzhou`

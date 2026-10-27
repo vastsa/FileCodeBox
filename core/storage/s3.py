@@ -45,7 +45,12 @@ class S3FileStorage(FileStorageInterface):
             self.endpoint_url = settings.s3_endpoint_url
 
     def _client_config(self) -> Config:
-        config = {"signature_version": self.signature_version}
+        # OSS 等兼容服务不支持默认 flexible checksum 的 aws-chunked trailer。
+        config = {
+            "signature_version": self.signature_version,
+            "request_checksum_calculation": "when_required",
+            "response_checksum_validation": "when_required",
+        }
         s3_config = {}
         if self.addressing_style in {"path", "virtual", "auto"}:
             s3_config["addressing_style"] = self.addressing_style
@@ -277,21 +282,15 @@ class S3FileStorage(FileStorageInterface):
         :param upload_id: 上传会话ID
         :param save_path: 文件保存路径
         """
-        chunk_dir = str(Path(save_path).parent / "chunks" / upload_id)
+        # 尾部斜杠防止误删 upload_id 相同前缀的其他会话。
+        chunk_dir = str(Path(save_path).parent / "chunks" / upload_id) + "/"
         async with self._client() as s3:
-            try:
-                # 列出并删除所有分片对象
-                paginator = s3.get_paginator('list_objects_v2')
-                async for page in paginator.paginate(Bucket=self.bucket_name, Prefix=chunk_dir):
-                    objects = page.get('Contents', [])
-                    if objects:
-                        delete_objects = [{'Key': obj['Key']} for obj in objects]
-                        await s3.delete_objects(
-                            Bucket=self.bucket_name,
-                            Delete={'Objects': delete_objects}
-                        )
-            except Exception as e:
-                logger.warning(f"清理 S3 分片数据时出错: {e}")
+            paginator = s3.get_paginator("list_objects_v2")
+            async for page in paginator.paginate(Bucket=self.bucket_name, Prefix=chunk_dir):
+                for obj in page.get("Contents", []):
+                    # OSS 批量删除要求 Content-MD5；单对象删除不依赖该扩展。
+                    # 失败向调用方传播，保留会话供重试，不能当作清理成功。
+                    await s3.delete_object(Bucket=self.bucket_name, Key=obj["Key"])
 
     async def generate_presigned_upload_url(self, save_path: str, expires_in: int = 900) -> Optional[str]:
         """

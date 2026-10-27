@@ -10,10 +10,10 @@ FileCodeBox provides a fully-featured admin panel that allows administrators to 
 
 ### Login Method
 
-The admin panel is located at the `/admin` path. Access method:
+The admin panel is located at `/#/admin` (a frontend hash route). Access method:
 
 1. On first run, set the admin password on the setup page
-2. Visit `http://your-domain.com/admin` in your browser
+2. Visit `http://your-domain.com/#/admin` in your browser
 3. Enter the admin password (the value of the `admin_token` configuration)
 4. Click the login button
 
@@ -30,7 +30,7 @@ By default, the admin panel entry is not shown on the homepage. You can control 
 | `show_admin_addr` | int | `0` | Show admin entry on homepage (1=show, 0=hide) |
 
 ::: warning Security Recommendation
-For public services, it's recommended to keep `show_admin_addr` at `0` and access the admin panel directly via the `/admin` path to reduce the risk of malicious scanning.
+For public services, keep `show_admin_addr` at `0` and access the admin panel via `/#/admin`. Hiding the link is not access control; a strong password is still required.
 :::
 
 ### Authentication Mechanism

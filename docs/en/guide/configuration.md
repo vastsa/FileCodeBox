@@ -6,7 +6,7 @@ FileCodeBox provides rich configuration options. Prefer the admin panel; directl
 
 FileCodeBox supports two configuration methods:
 
-1. **Admin Panel Configuration** (Recommended): Access `/admin` to enter the admin panel and modify settings on the settings page
+1. **Admin Panel Configuration** (Recommended): Access `/#/admin` to enter the admin panel and modify settings on the settings page
 2. **Database Configuration**: Configuration is stored in the `data/filecodebox.db` database
 
 ::: tip Note

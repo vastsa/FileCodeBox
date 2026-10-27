@@ -80,6 +80,8 @@ async def clean_incomplete_uploads():
                     logger.error(
                         f"清理分片文件失败 upload_id={session.upload_id}: {e}"
                     )
+                    # 存储清理失败（包括部分删除）时保留记录，下轮继续重试。
+                    continue
 
                 try:
                     await UploadChunk.filter(upload_id=session.upload_id).delete()

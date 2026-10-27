@@ -163,7 +163,7 @@ class ShareUsageSecurityTests(unittest.TestCase):
         self.assertEqual(response.media_type, "text/plain")
         self.assertEqual(
             response.headers["content-disposition"],
-            "attachment; filename*=UTF-8''TAG.txt",
+            'attachment; filename="TAG.txt"; filename*=UTF-8\'\'TAG.txt',
         )
         await record.refresh_from_db()
         self.assertEqual(record.used_count, 1)

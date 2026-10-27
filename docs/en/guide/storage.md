@@ -52,6 +52,7 @@ Supports all S3-compatible object storage services, including AWS S3, Aliyun OSS
 | `s3_endpoint_url` | string | `""` | S3 endpoint URL |
 | `s3_region_name` | string | `auto` | Region name |
 | `s3_signature_version` | string | `s3v2` | Signature version (`s3v2` or `s3v4`) |
+| `s3_addressing_style` | string | `auto` | Addressing style (`auto`, `path`, or `virtual`); use `virtual` for OSS |
 | `s3_hostname` | string | `""` | S3 hostname (alternative) |
 | `s3_proxy` | int | `0` | Download through server proxy (1=yes, 0=no) |
 | `aws_session_token` | string | `""` | AWS session token (optional) |
@@ -76,13 +77,16 @@ file_storage=s3
 s3_access_key_id=YourAccessKeyId
 s3_secret_access_key=YourSecretAccessKey
 s3_bucket_name=bucket-name
-s3_endpoint_url=https://bucket-name.oss-cn-hangzhou.aliyuncs.com
+s3_endpoint_url=https://oss-cn-hangzhou.aliyuncs.com
 s3_region_name=oss-cn-hangzhou
 s3_signature_version=s3v4
+s3_addressing_style=virtual
 ```
 
 ::: tip Aliyun OSS Endpoint Format
-Endpoint URL format: `https://<bucket-name>.<region>.aliyuncs.com`
+Endpoint URL format: `https://oss-<region>.aliyuncs.com` (for example, region `cn-hangzhou`), **without the bucket name**. Set the bucket only in `s3_bucket_name` and select Virtual-host (`virtual`) addressing. The SDK adds the bucket to the hostname; including it in the endpoint can duplicate the bucket prefix or cause DNS failures.
+
+The S3 client sets request and response checksums to `when_required` to avoid OSS's unsupported `STREAMING-UNSIGNED-PAYLOAD-TRAILER`. Chunk cleanup uses paginated, single-object deletion; no additional checksum environment variables are needed. Failed cleanup retains the upload session for retry by the scheduled task.
 
 Common regions:
 - Hangzhou: `oss-cn-hangzhou`

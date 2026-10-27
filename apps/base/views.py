@@ -3,7 +3,7 @@ import hmac
 import os
 import uuid
 from datetime import timedelta
-from urllib.parse import quote, unquote
+from urllib.parse import unquote
 
 from typing import Optional, Tuple, Union
 
@@ -24,7 +24,7 @@ from apps.base.services import (
     stored_file_of,
     validate_file_size,
 )
-from core.storage import StoredFile
+from core.storage import StoredFile, build_attachment_headers
 from core.logger import logger
 from apps.base.schemas import (
     SelectFileModel,
@@ -212,11 +212,7 @@ async def get_code_file(code: str, ip: str = Depends(ip_limit["error"])):
         return Response(
             content=file_code.text,
             media_type="text/plain",
-            headers={
-                "Content-Disposition": (
-                    f"attachment; filename*=UTF-8''{quote(filename, safe='')}"
-                )
-            },
+            headers=build_attachment_headers(filename),
         )
     return response_from_download(await get_stored_download(file_code, file_storage))
 
@@ -313,6 +309,7 @@ async def init_chunk_upload(data: InitChunkUploadModel = Depends(parse_init_chun
     existing_session = await UploadChunk.filter(
         chunk_hash=data.file_hash,
         chunk_index=-1,
+        completed=False,
         file_size=data.file_size,
         file_name=safe_file_name,
     ).first()
@@ -331,7 +328,7 @@ async def init_chunk_upload(data: InitChunkUploadModel = Depends(parse_init_chun
                 * 3600,
             )
             uploaded_chunks = await UploadChunk.filter(
-                upload_id=existing_session.upload_id, completed=True
+                upload_id=existing_session.upload_id, completed=True, chunk_index__gte=0
             ).values_list("chunk_index", flat=True)
             return APIResponse(
                 detail={
@@ -391,6 +388,8 @@ async def upload_chunk(
     chunk_info = await UploadChunk.filter(upload_id=upload_id, chunk_index=-1).first()
     if not chunk_info:
         raise HTTPException(status.HTTP_404_NOT_FOUND, detail="上传会话不存在")
+    if chunk_info.completed:
+        raise HTTPException(409, "上传会话已完成，仅待清理")
     await reserve_storage(
         f"chunk:{upload_id}",
         chunk_info.file_size,
@@ -425,7 +424,7 @@ async def upload_chunk(
 
     # 计算已上传分片数，校验累计大小不超限（用分片数 * chunk_size 估算）
     uploaded_count = await UploadChunk.filter(
-        upload_id=upload_id, completed=True
+        upload_id=upload_id, completed=True, chunk_index__gte=0
     ).count()
     # 已上传分片的最大可能大小 + 当前分片
     max_uploaded_size = uploaded_count * chunk_info.chunk_size + chunk_size
@@ -483,6 +482,7 @@ async def cancel_upload(upload_id: str):
             await storage.clean_chunks(upload_id, save_path)
         except Exception:
             logger.warning("取消分片上传：清理分片文件失败 upload_id=%s", upload_id, exc_info=True)
+            raise HTTPException(503, "分片清理失败，请稍后重试")
 
     # 清理数据库记录
     await UploadChunk.filter(upload_id=upload_id).delete()
@@ -502,7 +502,7 @@ async def get_upload_status(upload_id: str):
 
     # 获取已上传的分片列表
     uploaded_chunks = await UploadChunk.filter(
-        upload_id=upload_id, completed=True
+        upload_id=upload_id, completed=True, chunk_index__gte=0
     ).values_list("chunk_index", flat=True)
 
     return APIResponse(
@@ -530,6 +530,8 @@ async def complete_upload(
     chunk_info = await UploadChunk.filter(upload_id=upload_id, chunk_index=-1).first()
     if not chunk_info:
         raise HTTPException(status.HTTP_404_NOT_FOUND, detail="上传会话不存在")
+    if chunk_info.completed:
+        raise HTTPException(409, "上传会话已完成，仅待清理")
     validate_expire_style(data.expire_style)
     detail = await FileUploadService.complete_chunked_upload(
         upload_id, chunk_info, data.expire_value, data.expire_style

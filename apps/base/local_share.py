@@ -13,12 +13,11 @@ from __future__ import annotations
 
 import time
 from pathlib import Path
-from urllib.parse import quote
 
 from fastapi import HTTPException
 
 from core.errors import StorageError
-from core.storage import StoredDownload
+from core.storage import StoredDownload, build_attachment_headers
 
 LOCAL_REF_MARKER = "local-ref"
 MAX_RELPATH_LEN = 255
@@ -97,8 +96,7 @@ def build_local_ref_download(file_code) -> StoredDownload:
     filename = f"{getattr(file_code, 'prefix', '') or ''}{getattr(file_code, 'suffix', '') or ''}"
     if not filename:
         filename = path.name
-    encoded_filename = quote(filename, safe="")
-    headers = {"Content-Disposition": f"attachment; filename*=UTF-8''{encoded_filename}"}
+    headers = build_attachment_headers(filename)
     try:
         headers["Content-Length"] = str(path.stat().st_size)
     except OSError:
