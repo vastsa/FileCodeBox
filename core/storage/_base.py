@@ -86,6 +86,17 @@ class FileStorageInterface:
             raise ValueError(f"分片{index}记录不存在")
         return chunk_record
 
+    def _verify_chunk_hash(self, index: int, chunk_record, current_hash: str) -> None:
+        """Compare a chunk digest with its record using the shared error wording.
+
+        Streaming backends hash incrementally and call this once per chunk, so
+        the message stays byte-identical to the in-memory path.
+        """
+        if current_hash != chunk_record.chunk_hash:
+            raise ValueError(
+                f"分片{index}哈希不匹配: 期望 {chunk_record.chunk_hash}, 实际 {current_hash}"
+            )
+
     def _verify_and_hash_chunk(
         self,
         index: int,
@@ -95,11 +106,9 @@ class FileStorageInterface:
     ) -> None:
         """Verify a chunk against its recorded hash, then stripe it into the
         whole-file digest. Raises the shared ValueError wording on mismatch."""
-        current_hash = hashlib.sha256(chunk_data).hexdigest()
-        if current_hash != chunk_record.chunk_hash:
-            raise ValueError(
-                f"分片{index}哈希不匹配: 期望 {chunk_record.chunk_hash}, 实际 {current_hash}"
-            )
+        self._verify_chunk_hash(
+            index, chunk_record, hashlib.sha256(chunk_data).hexdigest()
+        )
         file_sha256.update(chunk_data)
 
     async def save_file(

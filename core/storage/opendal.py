@@ -20,6 +20,19 @@ from core.storage._base import (
 
 
 class OpenDALFileStorage(FileStorageInterface):
+    # 供 core.storage._StorageFactory 复用实例。AsyncOperator 设计上可共享，
+    # 签名跟随 opendal_scheme 及当前 scheme 的全部 opendal_<scheme>_* 配置。
+    @classmethod
+    def cache_signature(cls) -> tuple:
+        scheme = getattr(settings, "opendal_scheme", "")
+        prefix = f"opendal_{scheme}_"
+        items = {
+            key: value
+            for key, value in settings.items()
+            if key == "opendal_scheme" or key.startswith(prefix)
+        }
+        return (repr(sorted(items.items())),)
+
     def __init__(self):
         try:
             import opendal
@@ -35,12 +48,45 @@ class OpenDALFileStorage(FileStorageInterface):
             settings.opendal_scheme, **service_settings
         )
 
+    async def _open_writer(self, save_path: str):
+        """Open a streaming writer, or None when the installed SDK is too old."""
+        try:
+            return await self.operator.open(save_path, "wb")
+        except (AttributeError, NotImplementedError, TypeError) as exc:
+            logger.warning("OpenDAL 不支持流式写入，回退到整文件写入: %s", exc)
+            return None
+
+    async def _discard_partial_write(self, writer, save_path: str) -> None:
+        """关闭流式 writer 并尽力删除已部分写入的对象。"""
+        try:
+            await writer.close()
+        finally:
+            try:
+                await self.operator.delete(save_path)
+            except Exception as cleanup_error:
+                logger.warning(
+                    "清理 OpenDAL 写入失败残留失败 %s: %s", save_path, cleanup_error
+                )
+
     async def save_file(
         self, stream: BinaryIO, save_path: str, content_type: Optional[str] = None
     ):
-        # 使用 asyncio.to_thread 避免阻塞事件循环
-        content = await asyncio.to_thread(stream.read)
-        await self.operator.write(save_path, content)
+        writer = await self._open_writer(save_path)
+        if writer is None:
+            # 旧版 SDK 回退：整文件读入后一次写入（内存 = 文件大小）
+            content = await asyncio.to_thread(stream.read)
+            await self.operator.write(save_path, content)
+            return
+        try:
+            while True:
+                block = await asyncio.to_thread(stream.read, 256 * 1024)
+                if not block:
+                    break
+                await writer.write(block)
+        except Exception:
+            await self._discard_partial_write(writer, save_path)
+            raise
+        await writer.close()
 
     async def delete_file(self, file_code: StoredFile):
         await self.operator.delete(file_code.get_file_path())
@@ -102,11 +148,38 @@ class OpenDALFileStorage(FileStorageInterface):
         await self.operator.write(chunk_path, chunk_data)
 
     async def merge_chunks(self, upload_id: str, total_chunks: int, chunk_size: int, save_path: str, chunk_records: dict) -> tuple[str, str]:
-        """合并 OpenDAL 存储上的分片文件，使用临时文件避免内存问题"""
+        """合并 OpenDAL 存储上的分片文件。
+
+        首选流式 writer：内存上界 = 单个分片（operator.read 无法按块读），
+        不再把整个合并结果 read() 进内存。旧版 SDK 不支持 open("wb") 时
+        回退到临时文件 + 整文件写入，保留原有行为。
+        """
         file_sha256 = hashlib.sha256()
         chunk_dir = str(Path(save_path).parent / "chunks" / upload_id)
 
-        # 使用临时文件存储合并数据
+        writer = await self._open_writer(save_path)
+        if writer is not None:
+            try:
+                for i in range(total_chunks):
+                    chunk_path = f"{chunk_dir}/{i}.part"
+                    chunk_record = self._get_chunk_record(chunk_records, i)
+
+                    try:
+                        chunk_data = await self.operator.read(chunk_path)
+                    except Exception as e:
+                        raise ValueError(f"分片{i}文件不存在: {e}")
+
+                    self._verify_and_hash_chunk(i, chunk_record, chunk_data, file_sha256)
+                    await writer.write(chunk_data)
+                    del chunk_data  # 释放分片内存
+            except Exception:
+                # 失败时目标对象可能已被部分写入，尽力清理后再抛出。
+                await self._discard_partial_write(writer, save_path)
+                raise
+            await writer.close()
+            return save_path, file_sha256.hexdigest()
+
+        # 旧版 SDK 回退路径：临时文件避免重复网络读，最后整文件写入。
         with tempfile.NamedTemporaryFile(delete=False) as temp_file:
             temp_path = temp_file.name
 
@@ -133,7 +206,7 @@ class OpenDALFileStorage(FileStorageInterface):
             # 清理临时文件
             if os.path.exists(temp_path):
                 os.unlink(temp_path)
-        
+
         return save_path, file_sha256.hexdigest()
 
     async def clean_chunks(self, upload_id: str, save_path: str):

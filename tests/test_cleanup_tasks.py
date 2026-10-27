@@ -6,6 +6,8 @@ patching asyncio.sleep to raise a sentinel after the first full pass; storage
 is isolated into a temp dir by patching data_root in both consumers.
 """
 import asyncio
+import os
+import threading
 import unittest
 from pathlib import Path
 from tempfile import TemporaryDirectory
@@ -136,6 +138,39 @@ class CleanIncompleteUploadsTests(_OneRoundMixin, unittest.TestCase):
                 )
                 # 静默保留 stale 引用避免未使用告警（save_path 行为已由目录断言覆盖）
                 del stale
+            finally:
+                await close_db()
+
+
+class PruneEmptyShareDirsTests(_OneRoundMixin, unittest.TestCase):
+    def test_empty_dirs_pruned_in_worker_thread(self):
+        asyncio.run(self._scenario())
+
+    async def _scenario(self):
+        with TemporaryDirectory() as tmpdir:
+            await init_memory_db()
+            try:
+                empty_dir = Path(tmpdir) / "share/data/2026/01/01/empty"
+                empty_dir.mkdir(parents=True)
+                kept_dir = Path(tmpdir) / "share/data/2026/01/01/kept"
+                kept_dir.mkdir(parents=True)
+                (kept_dir / "f.bin").write_bytes(b"x")
+
+                recorded = {}
+                main_thread = threading.current_thread()
+                real_walk = os.walk
+
+                def spy_walk(path, *args, **kwargs):
+                    recorded["thread"] = threading.current_thread()
+                    yield from real_walk(path, *args, **kwargs)
+
+                with patch("apps.base.tasks.os.walk", spy_walk):
+                    await self.run_one_round(delete_expire_files, tmpdir)
+
+                self.assertTrue(recorded)
+                self.assertIsNot(recorded["thread"], main_thread, "目录遍历必须下放线程")
+                self.assertFalse(empty_dir.exists(), "空目录应被清理")
+                self.assertTrue(kept_dir.exists(), "非空目录必须保留")
             finally:
                 await close_db()
 
