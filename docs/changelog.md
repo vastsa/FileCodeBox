@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.8.5](https://github.com/vastsa/FileCodeBox/compare/v2.8.4...v2.8.5) (2026-10-27)
+
+
+### Bug Fixes
+
+* resolve OSS chunk cleanup and legacy download issues ([381a539](https://github.com/vastsa/FileCodeBox/commit/381a539c92ba85681a1e820a4150fff17984147a))
+
 ## [2.8.4](https://github.com/vastsa/FileCodeBox/compare/v2.8.3...v2.8.4) (2026-10-25)
 
 
