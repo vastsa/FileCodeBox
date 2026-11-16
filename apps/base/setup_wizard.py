@@ -45,6 +45,7 @@ def build_public_config() -> dict:
         "notify_content": settings.notify_content,
         "show_admin_address": normalize_public_flag(settings.show_admin_addr),
         "max_save_seconds": settings.max_save_seconds,
+        "background": str(settings.background or ""),
     }
 
 

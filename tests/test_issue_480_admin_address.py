@@ -24,3 +24,19 @@ class AdminAddressPublicConfigTests(unittest.TestCase):
                 self.assertIs(type(public_value), int)
                 self.assertEqual(public_value, expected_value)
                 self.assertIs(feature_value, bool(expected_value))
+
+
+class BackgroundPublicConfigTests(unittest.TestCase):
+    def setUp(self):
+        self._original_user_config = dict(settings.user_config)
+
+    def tearDown(self):
+        settings.user_config = self._original_user_config
+
+    def test_background_is_exposed_for_themes(self):
+        settings.background = "https://example.com/bg.jpg"
+        self.assertEqual(build_public_config()["background"], "https://example.com/bg.jpg")
+
+    def test_empty_background_is_string(self):
+        settings.background = None
+        self.assertEqual(build_public_config()["background"], "")
