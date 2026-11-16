@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.9.0](https://github.com/vastsa/FileCodeBox/compare/v2.8.5...v2.9.0) (2026-11-16)
+
+
+### Features
+
+* expose background in public config for 2024 theme ([#546](https://github.com/vastsa/FileCodeBox/issues/546)) ([f9cc16c](https://github.com/vastsa/FileCodeBox/commit/f9cc16c805757dc4dcf198456f4a5e84922b9b8f))
+
 ## [2.8.5](https://github.com/vastsa/FileCodeBox/compare/v2.8.4...v2.8.5) (2026-10-27)
 
 
